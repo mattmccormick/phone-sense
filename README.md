@@ -27,3 +27,7 @@ Run `just --list` to see the available commands:
 - `just clean` removes build outputs.
 
 Gradle remains the build system; you can also run `./gradlew` commands directly.
+
+### Android Studio
+
+- **Run the full app without a phone:** Create a virtual Android device in Android Studio’s **Device Manager**, select it, and click **Run**. This installs into the emulator; usage data comes from that virtual device, not your phone or computer. [Android Emulator](<https://developer.android.com/studio/run/emulator>)
