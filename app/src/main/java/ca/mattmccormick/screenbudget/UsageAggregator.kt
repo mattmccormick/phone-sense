@@ -1,12 +1,5 @@
 package ca.mattmccormick.screenbudget
 
-data class UsageEvent(
-    val type: Int,
-    val packageName: String,
-    val className: String,
-    val timestampMs: Long,
-)
-
 data class DailyUsage(
     val totalMillis: Long,
     val perPackageMillis: Map<String, Long>,
