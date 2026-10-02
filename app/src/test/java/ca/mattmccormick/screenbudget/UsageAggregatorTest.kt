@@ -104,6 +104,40 @@ class UsageAggregatorTest {
     }
 
     @Test
+    fun screenNonInteractiveClosesAllIntervalsAndAllowsResume() {
+        assertClosingDeviceEvent(16)
+    }
+
+    @Test
+    fun keyguardShownClosesAllIntervalsAndAllowsResume() {
+        assertClosingDeviceEvent(17)
+    }
+
+    @Test
+    fun deviceShutdownClosesAllIntervalsAndAllowsResume() {
+        assertClosingDeviceEvent(26)
+    }
+
+    @Test
+    fun deviceStartupDiscardsAllIntervalsAndAllowsResume() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "first.app", "Main", 1_000),
+                UsageEvent(1, "second.app", "Main", 2_000),
+                UsageEvent(27, "android", "", 5_000),
+                UsageEvent(2, "first.app", "Main", 6_000),
+                UsageEvent(1, "first.app", "Main", 7_000),
+                UsageEvent(2, "first.app", "Main", 9_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(2_000, usage.totalMillis)
+        assertEquals(mapOf("first.app" to 2_000L), usage.perPackageMillis)
+    }
+
+    @Test
     fun repeatedResumeReplacesStartTimestamp() {
         val usage = UsageAggregator.aggregate(
             events = listOf(
@@ -176,5 +210,26 @@ class UsageAggregatorTest {
 
         assertEquals(3_000, usage.totalMillis)
         assertEquals(mapOf("example.app" to 3_000L), usage.perPackageMillis)
+    }
+
+    private fun assertClosingDeviceEvent(eventType: Int) {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "first.app", "Main", 1_000),
+                UsageEvent(1, "second.app", "Main", 2_000),
+                UsageEvent(eventType, "android", "", 5_000),
+                UsageEvent(2, "first.app", "Main", 6_000),
+                UsageEvent(1, "first.app", "Main", 7_000),
+                UsageEvent(2, "first.app", "Main", 9_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(6_000, usage.totalMillis)
+        assertEquals(
+            mapOf("first.app" to 6_000L, "second.app" to 3_000L),
+            usage.perPackageMillis,
+        )
     }
 }
