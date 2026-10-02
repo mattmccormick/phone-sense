@@ -12,7 +12,18 @@ object UsageAggregator {
     private const val ACTIVITY_PAUSED = 2
     private const val ACTIVITY_STOPPED = 23
 
-    fun aggregate(events: List<UsageEvent>, startMs: Long, endMs: Long): DailyUsage {
+    val DEFAULT_HIDDEN_PACKAGES = setOf(
+        "com.android.systemui",
+        "com.google.android.apps.nexuslauncher",
+        "ca.mattmccormick.screenbudget",
+    )
+
+    fun aggregate(
+        events: List<UsageEvent>,
+        startMs: Long,
+        endMs: Long,
+        hiddenPackages: Set<String> = DEFAULT_HIDDEN_PACKAGES,
+    ): DailyUsage {
         val activeActivities = mutableSetOf<Pair<String, String>>()
         val packageStartedAt = mutableMapOf<String, Long>()
         val packageTotals = mutableMapOf<String, Long>()
@@ -24,7 +35,9 @@ object UsageAggregator {
             intervals += Interval(startedAt, stoppedAt)
         }
 
-        events.sortedBy { it.timestampMs }.forEach { event ->
+        events.filterNot { it.packageName in hiddenPackages }
+            .sortedBy { it.timestampMs }
+            .forEach { event ->
             val activity = event.packageName to event.className
             when (event.type) {
                 ACTIVITY_RESUMED -> if (activeActivities.add(activity)) {
