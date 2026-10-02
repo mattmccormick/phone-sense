@@ -21,10 +21,9 @@ test:
 install: debug
     "{{android_home}}/platform-tools/adb" install -r {{debug_apk}}
 
-# Fail if the built APK declares a permission from outside the app's own
-# package. Screen Budget asks for no platform permission until a ticket adds
-# one deliberately, so this guards the manifest merge against a permission
-# arriving from a library.
+# Fail if the built APK declares an unexpected permission. Screen Budget needs
+# usage access for collection; this guards the manifest merge against another
+# permission arriving from a library.
 #
 # androidx.core merges in a signature permission named after the application
 # id (DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION) so ContextCompat can register
@@ -35,6 +34,7 @@ install: debug
 permissions: debug
     @"{{build_tools}}/aapt2" dump permissions {{debug_apk}} \
         | grep "^uses-permission" \
+        | grep -v "name='android.permission.PACKAGE_USAGE_STATS'" \
         | grep -v "name='{{application_id}}\." > /tmp/screen-budget-permissions.txt \
         || true
     @if [ -s /tmp/screen-budget-permissions.txt ]; then \
@@ -42,10 +42,10 @@ permissions: debug
         cat /tmp/screen-budget-permissions.txt; \
         exit 1; \
     fi
-    @echo "OK: the merged manifest declares no permission outside {{application_id}}."
+    @echo "OK: the merged manifest declares only expected permissions."
     @"{{build_tools}}/aapt2" dump permissions {{debug_apk}} \
         | grep "^uses-permission" \
-        | sed 's/^/     ignored, app-private: /' || true
+        | sed 's/^/     expected: /' || true
 
 # Remove build outputs.
 clean:
