@@ -1,12 +1,5 @@
 package ca.mattmccormick.screenbudget
 
-data class UsageEvent(
-    val type: Int,
-    val packageName: String,
-    val className: String,
-    val timestampMs: Long,
-)
-
 data class DailyUsage(
     val totalMillis: Long,
     val perPackageMillis: Map<String, Long>,
@@ -20,7 +13,7 @@ object UsageAggregator {
     private const val ACTIVITY_STOPPED = 23
 
     fun aggregate(events: List<UsageEvent>, startMs: Long, endMs: Long): DailyUsage {
-        val activeActivities = mutableSetOf<Pair<String, String>>()
+        val activityIsOpen = mutableMapOf<Pair<String, String>, Boolean>()
         val packageStartedAt = mutableMapOf<String, Long>()
         val packageTotals = mutableMapOf<String, Long>()
         val intervals = mutableListOf<Interval>()
@@ -34,16 +27,34 @@ object UsageAggregator {
         events.sortedBy { it.timestampMs }.forEach { event ->
             val activity = event.packageName to event.className
             when (event.type) {
-                ACTIVITY_RESUMED -> if (activeActivities.add(activity)) {
-                    packageStartedAt.putIfAbsent(event.packageName, event.timestampMs.coerceAtLeast(startMs))
+                ACTIVITY_RESUMED -> {
+                    val startedAt = event.timestampMs.coerceAtLeast(startMs)
+                    val packageHasOtherOpenActivity = activityIsOpen.any {
+                        (key, isOpen) -> isOpen && key.first == event.packageName && key != activity
+                    }
+                    activityIsOpen[activity] = true
+                    if (!packageHasOtherOpenActivity) {
+                        packageStartedAt[event.packageName] = startedAt
+                    }
                 }
 
-                ACTIVITY_PAUSED, ACTIVITY_STOPPED -> if (activeActivities.remove(activity) &&
-                    activeActivities.none { it.first == event.packageName }
-                ) {
-                    val startedAt = packageStartedAt.remove(event.packageName)!!
-                    val stoppedAt = event.timestampMs.coerceAtMost(endMs)
-                    recordInterval(event.packageName, startedAt, stoppedAt)
+                ACTIVITY_PAUSED, ACTIVITY_STOPPED -> when (activityIsOpen[activity]) {
+                    true -> {
+                        activityIsOpen[activity] = false
+                        if (activityIsOpen.none { (key, isOpen) -> isOpen && key.first == event.packageName }) {
+                            val startedAt = packageStartedAt.remove(event.packageName)!!
+                            val stoppedAt = event.timestampMs.coerceAtMost(endMs)
+                            recordInterval(event.packageName, startedAt, stoppedAt)
+                        }
+                    }
+
+                    null -> if (activityIsOpen.none { it.key.first == event.packageName }) {
+                        activityIsOpen[activity] = false
+                        val stoppedAt = event.timestampMs.coerceAtMost(endMs)
+                        recordInterval(event.packageName, startMs, stoppedAt)
+                    }
+
+                    false -> Unit
                 }
             }
         }
