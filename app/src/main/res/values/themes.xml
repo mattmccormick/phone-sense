@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws the UI, so the platform theme only has to stay out of
+         the way: no action bar, and a window background Compose paints over. -->
+    <style name="Theme.ScreenBudget" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
