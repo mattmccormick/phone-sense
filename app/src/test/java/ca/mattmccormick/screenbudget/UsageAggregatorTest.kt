@@ -102,4 +102,79 @@ class UsageAggregatorTest {
         assertEquals(6_000, usage.totalMillis)
         assertEquals(mapOf("example.app" to 6_000L), usage.perPackageMillis)
     }
+
+    @Test
+    fun repeatedResumeReplacesStartTimestamp() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "example.app", "Main", 1_000),
+                UsageEvent(1, "example.app", "Main", 3_000),
+                UsageEvent(2, "example.app", "Main", 7_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(4_000, usage.totalMillis)
+        assertEquals(mapOf("example.app" to 4_000L), usage.perPackageMillis)
+    }
+
+    @Test
+    fun pauseForClosedActivityIsIgnored() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "example.app", "Main", 1_000),
+                UsageEvent(2, "example.app", "Main", 4_000),
+                UsageEvent(2, "example.app", "Main", 7_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(3_000, usage.totalMillis)
+        assertEquals(mapOf("example.app" to 3_000L), usage.perPackageMillis)
+    }
+
+    @Test
+    fun firstPauseForPackageCountsFromWindowStart() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(UsageEvent(2, "example.app", "Main", 4_000)),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(4_000, usage.totalMillis)
+        assertEquals(mapOf("example.app" to 4_000L), usage.perPackageMillis)
+    }
+
+    @Test
+    fun unseenPauseAfterPackageWasClosedIsIgnored() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "example.app", "Main", 1_000),
+                UsageEvent(2, "example.app", "Main", 4_000),
+                UsageEvent(2, "example.app", "Other", 7_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(3_000, usage.totalMillis)
+        assertEquals(mapOf("example.app" to 3_000L), usage.perPackageMillis)
+    }
+
+    @Test
+    fun eventsAreProcessedInTimestampOrder() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(2, "example.app", "Main", 4_000),
+                UsageEvent(1, "example.app", "Main", 1_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(3_000, usage.totalMillis)
+        assertEquals(mapOf("example.app" to 3_000L), usage.perPackageMillis)
+    }
 }
