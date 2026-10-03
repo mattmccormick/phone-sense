@@ -40,6 +40,7 @@ import ca.mattmccormick.screenbudget.data.AppRuleDao
 import ca.mattmccormick.screenbudget.data.DayWithApps
 import ca.mattmccormick.screenbudget.data.UsageDao
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,6 +51,8 @@ fun DayDetailScreen(
     appRuleDao: AppRuleDao,
     appInfoSource: AppInfoSource,
     today: LocalDate = LocalDate.now(),
+    refreshKey: Int = 0,
+    loadDispatcher: CoroutineDispatcher = Dispatchers.IO,
     modifier: Modifier = Modifier,
 ) {
     var date by remember(today) { mutableStateOf(today.minusDays(1)) }
@@ -58,9 +61,9 @@ fun DayDetailScreen(
     var loaded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(date, dao, appRuleDao) {
+    LaunchedEffect(date, dao, appRuleDao, refreshKey) {
         loaded = false
-        val (storedDay, storedExcludedKeys) = withContext(Dispatchers.IO) {
+        val (storedDay, storedExcludedKeys) = withContext(loadDispatcher) {
             dao.day(date) to appRuleDao.excludedKeys().toSet()
         }
         day = storedDay

@@ -23,6 +23,9 @@ import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDatabase
 import java.time.Instant
 import java.time.LocalDate
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -107,6 +110,58 @@ class DayDetailScreenTest {
     }
 
     @Test
+    fun collectionCompletionRefreshesTheDisplayedDay() {
+        val allowCollection = CountDownLatch(1)
+        val date = today.minusDays(1)
+        compose.setContent {
+            MaterialTheme {
+                ScreenBudgetApp(
+                    usageEventsSource = UsageEventsSource(
+                        eventsQuery = UsageEventsQuery { _, _ -> emptyList() },
+                        usageAccessQuery = UsageAccessQuery { _, _, _ ->
+                            android.app.AppOpsManager.MODE_ALLOWED
+                        },
+                        uid = 123,
+                        packageName = "ca.mattmccormick.screenbudget",
+                    ),
+                    launchSettings = {},
+                    collectUsage = {
+                        check(allowCollection.await(5, TimeUnit.SECONDS))
+                        database.usageDao().insert(
+                            DailyUsage(
+                                date,
+                                42,
+                                Source.COLLECTED,
+                                Instant.parse("2026-10-02T07:00:00Z"),
+                            ),
+                            emptyList(),
+                        )
+                    },
+                    mainContent = { collectionVersion ->
+                        DayDetailScreen(
+                            dao = database.usageDao(),
+                            appRuleDao = database.appRuleDao(),
+                            appInfoSource = resolver,
+                            today = today,
+                            refreshKey = collectionVersion,
+                            loadDispatcher = Dispatchers.Unconfined,
+                        )
+                    },
+                )
+            }
+        }
+        compose.waitUntilAtLeastOneExists(
+            hasText("Not collected yet"),
+            timeoutMillis = 5_000,
+        )
+
+        allowCollection.countDown()
+
+        compose.waitUntilAtLeastOneExists(hasText("42 min"), timeoutMillis = 5_000)
+        compose.onNodeWithText("42 min").assertIsDisplayed()
+    }
+
+    @Test
     fun backAndForwardButtonsChangeTheDate() {
         setScreen()
 
@@ -186,6 +241,7 @@ class DayDetailScreenTest {
                     appRuleDao = database.appRuleDao(),
                     appInfoSource = resolver,
                     today = today,
+                    loadDispatcher = Dispatchers.Unconfined,
                 )
             }
         }
