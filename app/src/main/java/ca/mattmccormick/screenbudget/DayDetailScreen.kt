@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,10 +35,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import ca.mattmccormick.screenbudget.data.DayWithApps
+import ca.mattmccormick.screenbudget.data.DailyUsage
+import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDao
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -52,6 +57,8 @@ fun DayDetailScreen(
     var date by remember(today) { mutableStateOf(today.minusDays(1)) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
     var loaded by remember { mutableStateOf(false) }
+    var enteringManual by remember(date) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(date, dao, refreshKey) {
         loaded = false
@@ -87,7 +94,33 @@ fun DayDetailScreen(
             if (loaded) {
                 val storedDay = day
                 if (storedDay == null) {
+                    val manualDate = date
                     Text("Not collected yet", modifier = Modifier.padding(top = 32.dp))
+                    if (enteringManual) {
+                        ManualEntryForm(
+                            modifier = Modifier.weight(1f),
+                            onSave = { totalMinutes, apps ->
+                                scope.launch {
+                                    day = withContext(loadDispatcher) {
+                                        dao.insert(
+                                            DailyUsage(
+                                                date = manualDate,
+                                                totalMinutes = totalMinutes,
+                                                source = Source.MANUAL,
+                                                collectedAt = Instant.now(),
+                                            ),
+                                            apps,
+                                        )
+                                        dao.day(manualDate)
+                                    }
+                                    enteringManual = false
+                                }
+                            },
+                            date = manualDate,
+                        )
+                    } else {
+                        Button(onClick = { enteringManual = true }) { Text("Enter by hand") }
+                    }
                 } else {
                     Text(
                         text = "${storedDay.day.totalMinutes} min",
@@ -100,7 +133,11 @@ fun DayDetailScreen(
                             key = { it.appKey },
                         ) { usage ->
                             val appInfo = remember(usage.appKey) {
-                                appInfoSource.resolve(usage.appKey)
+                                if (usage.appKey.startsWith("label:")) {
+                                    AppInfo(usage.appKey.removePrefix("label:"), null)
+                                } else {
+                                    appInfoSource.resolve(usage.appKey)
+                                }
                             }
                             AppUsageRow(appInfo, usage.minutes)
                         }
