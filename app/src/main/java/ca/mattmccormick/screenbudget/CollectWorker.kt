@@ -1,10 +1,8 @@
 package ca.mattmccormick.screenbudget
 
 import android.content.Context
-import androidx.room.Room
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import ca.mattmccormick.screenbudget.data.UsageDatabase
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -36,19 +34,8 @@ class CollectWorker internal constructor(
 }
 
 private object CollectionDependencies {
-    @Volatile
-    private var database: UsageDatabase? = null
-
     fun collector(context: Context): Collector = Collector(
-        dao = database(context).usageDao(),
+        dao = (context.applicationContext as ScreenBudgetApplication).database.usageDao(),
         source = UsageEventsSource(context),
     )
-
-    private fun database(context: Context): UsageDatabase = database ?: synchronized(this) {
-        database ?: Room.databaseBuilder(
-            context.applicationContext,
-            UsageDatabase::class.java,
-            "screen-budget.db",
-        ).build().also { database = it }
-    }
 }

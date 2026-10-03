@@ -30,16 +30,26 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import ca.mattmccormick.screenbudget.data.UsageDatabase
 
 class MainActivity : ComponentActivity() {
+    private lateinit var database: UsageDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        database = (application as ScreenBudgetApplication).database
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
                 ScreenBudgetApp(
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
+                    mainContent = {
+                        DayDetailScreen(
+                            dao = database.usageDao(),
+                            appInfoSource = AppInfoResolver(packageManager),
+                        )
+                    },
                 )
             }
         }
@@ -50,6 +60,7 @@ class MainActivity : ComponentActivity() {
 internal fun ScreenBudgetApp(
     usageEventsSource: UsageEventsSource,
     launchSettings: (Intent) -> Unit,
+    mainContent: @Composable () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     var hasUsageAccess by remember(usageEventsSource) {
@@ -66,7 +77,7 @@ internal fun ScreenBudgetApp(
     }
 
     if (hasUsageAccess) {
-        AppNameScreen()
+        mainContent()
     } else {
         UsageAccessScreen(
             onAllowUsageAccess = {
@@ -115,27 +126,10 @@ private fun UsageAccessScreen(
     }
 }
 
+@Preview(name = "Usage access", showBackground = true, showSystemUi = true)
 @Composable
-fun AppNameScreen(modifier: Modifier = Modifier) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun AppNameScreenPreview() {
+private fun UsageAccessScreenPreview() {
     MaterialTheme {
-        AppNameScreen()
+        UsageAccessScreen(onAllowUsageAccess = {})
     }
 }
