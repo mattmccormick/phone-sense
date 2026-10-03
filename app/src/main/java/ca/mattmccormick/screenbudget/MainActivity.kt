@@ -104,7 +104,9 @@ class MainActivity : ComponentActivity() {
                         collector.collect(LocalDate.now(), ZoneId.systemDefault())
                     },
                     mainContent = { _ ->
-                        GoalsRoute(database.goalDao(), settings)
+                        HomeWithAboutSettings {
+                            GoalsRoute(database.goalDao(), settings)
+                        }
                     },
                 )
             }

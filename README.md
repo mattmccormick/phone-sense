@@ -1,5 +1,7 @@
 # Screen Budget
 
+SPDX-License-Identifier: GPL-3.0-or-later
+
 A local-only Android app that measures daily screen time per app, lets you
 exclude apps that are not distractions, sets a weekly goal, and tells you each
 morning how much time you have left. No account, no server, no INTERNET
