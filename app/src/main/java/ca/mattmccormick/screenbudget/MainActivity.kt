@@ -3,50 +3,32 @@ package ca.mattmccormick.screenbudget
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.room.Room
+import ca.mattmccormick.screenbudget.data.UsageDatabase
 
 class MainActivity : ComponentActivity() {
+    private lateinit var database: UsageDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        database = Room.databaseBuilder(
+            applicationContext,
+            UsageDatabase::class.java,
+            "usage.db",
+        ).build()
         setContent {
             MaterialTheme {
-                AppNameScreen()
+                DayDetailScreen(
+                    dao = database.usageDao(),
+                    appInfoSource = AppInfoResolver(packageManager),
+                )
             }
         }
     }
-}
 
-@Composable
-fun AppNameScreen(modifier: Modifier = Modifier) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun AppNameScreenPreview() {
-    MaterialTheme {
-        AppNameScreen()
+    override fun onDestroy() {
+        database.close()
+        super.onDestroy()
     }
 }
