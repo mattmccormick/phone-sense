@@ -125,6 +125,7 @@ class DayDetailScreenTest {
                         packageName = "ca.mattmccormick.screenbudget",
                     ),
                     launchSettings = {},
+                    notificationOnboardingDone = true,
                     collectUsage = {
                         check(allowCollection.await(5, TimeUnit.SECONDS))
                         database.usageDao().insert(
