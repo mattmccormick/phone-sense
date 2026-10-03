@@ -1,6 +1,7 @@
 package ca.mattmccormick.screenbudget
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -67,14 +68,35 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
+                val notificationManager = remember {
+                    getSystemService(NotificationManager::class.java)
+                }
                 val collector = remember {
                     Collector(database.usageDao(), usageEventsSource)
                 }
                 val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
                 val scope = rememberCoroutineScope()
+                val lifecycleOwner = LocalLifecycleOwner.current
+                var notificationsEnabled by remember {
+                    mutableStateOf(notificationManager.areNotificationsEnabled())
+                }
+                DisposableEffect(lifecycleOwner, notificationManager) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            notificationsEnabled = notificationManager.areNotificationsEnabled()
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
                 val notificationPermission = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestPermission(),
-                ) {}
+                ) { granted ->
+                    notificationsEnabled = granted
+                    scope.launch {
+                        settingsRepository.setNotificationsDeclined(!granted)
+                    }
+                }
                 ScreenBudgetApp(
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
@@ -104,7 +126,46 @@ class MainActivity : ComponentActivity() {
                         collector.collect(LocalDate.now(), ZoneId.systemDefault())
                     },
                     mainContent = { _ ->
-                        GoalsRoute(database.goalDao(), settings)
+                        HomeWithSettings(
+                            settings = settings,
+                            hasUsageAccess = usageEventsSource.hasUsageAccess(),
+                            notificationsEnabled =
+                                notificationsEnabled && !settings.notificationsDeclined,
+                            onWeekStartDayChange = { day ->
+                                scope.launch { settingsRepository.setWeekStartDay(day) }
+                            },
+                            onNotificationTimeChange = { time ->
+                                scope.launch {
+                                    settingsRepository.setNotificationTime(time)
+                                    scheduleDailyCollection(
+                                        WorkManager.getInstance(this@MainActivity),
+                                        Clock.systemDefaultZone(),
+                                        time,
+                                    )
+                                }
+                            },
+                            onReductionPercentChange = { percent ->
+                                scope.launch { settingsRepository.setReductionPercent(percent) }
+                            },
+                            collectNow = {
+                                collector.collect(LocalDate.now(), ZoneId.systemDefault())
+                            },
+                            openUsageSettings = {
+                                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                            },
+                            openNotificationSettings = {
+                                scope.launch {
+                                    settingsRepository.setNotificationsDeclined(false)
+                                }
+                                startActivity(
+                                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                        .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
+                                )
+                            },
+                            mainContent = { currentSettings ->
+                                GoalsRoute(database.goalDao(), currentSettings)
+                            },
+                        )
                     },
                 )
             }
@@ -151,7 +212,7 @@ internal fun ScreenBudgetApp(
         }
     }
 
-    if (!hasUsageAccess) {
+    if (!hasUsageAccess && !settings.onboardingDone) {
         UsageAccessScreen(
             onAllowUsageAccess = {
                 launchSettings(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
