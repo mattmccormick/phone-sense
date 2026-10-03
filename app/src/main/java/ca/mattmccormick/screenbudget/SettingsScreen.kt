@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ca.mattmccormick.screenbudget.data.Settings
 import ca.mattmccormick.screenbudget.export.ImportStatus
@@ -49,6 +50,7 @@ internal fun SettingsScreen(
     openNotificationSettings: () -> Unit = {},
     openImportDocument: () -> Unit = {},
     importStatus: ImportStatus? = null,
+    onAbout: () -> Unit = {},
     showTimePicker: ((LocalTime, (LocalTime) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -81,8 +83,8 @@ internal fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = onBack) { Text("Back") }
+            Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
+            Button(onClick = onBack) { Text(stringResource(R.string.back)) }
             if (!notificationsEnabled) {
                 Text("Notifications are off. Turn them on to get goal reminders.")
                 Button(onClick = openNotificationSettings) {
@@ -173,6 +175,7 @@ internal fun SettingsScreen(
                 is ImportStatus.Error -> Text("Import failed: ${importStatus.message}")
                 null -> Unit
             }
+            Button(onClick = onAbout) { Text(stringResource(R.string.about)) }
         }
     }
 }
@@ -202,7 +205,10 @@ internal fun HomeWithSettings(
     mainContent: @Composable (Settings) -> Unit,
 ) {
     var showingSettings by remember { mutableStateOf(false) }
-    if (showingSettings) {
+    var showingAbout by remember { mutableStateOf(false) }
+    if (showingAbout) {
+        AboutScreen(onBack = { showingAbout = false })
+    } else if (showingSettings) {
         SettingsScreen(
             settings = settings,
             hasUsageAccess = hasUsageAccess,
@@ -216,10 +222,13 @@ internal fun HomeWithSettings(
             openNotificationSettings = openNotificationSettings,
             openImportDocument = openImportDocument,
             importStatus = importStatus,
+            onAbout = { showingAbout = true },
         )
     } else {
         Column {
-            Button(onClick = { showingSettings = true }) { Text("Settings") }
+            Button(onClick = { showingSettings = true }) {
+                Text(stringResource(R.string.settings))
+            }
             mainContent(settings)
         }
     }
