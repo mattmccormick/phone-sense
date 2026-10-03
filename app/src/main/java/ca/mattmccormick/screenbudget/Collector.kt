@@ -11,6 +11,7 @@ import java.time.ZoneId
 
 sealed interface CollectResult {
     data class Collected(val dates: List<LocalDate>) : CollectResult
+    data object NothingToDo : CollectResult
     data object NotUnlocked : CollectResult
 }
 
@@ -19,8 +20,8 @@ class Collector(
     private val source: UsageEventSource,
     private val aggregate: (List<UsageEvent>, Long, Long) -> DailyUsage = UsageAggregator::aggregate,
     private val clock: Clock = Clock.systemUTC(),
-) {
-    fun collect(today: LocalDate, zone: ZoneId): CollectResult {
+) : CollectionRunner {
+    override fun collect(today: LocalDate, zone: ZoneId): CollectResult {
         val firstDate = today.minusDays(DAYS_TO_COLLECT)
         val protectedDates = dao.daysBetween(firstDate, today.minusDays(1))
             .filter { it.day.source != Source.IMPORTED }
@@ -54,7 +55,11 @@ class Collector(
             collectedDates += date
         }
 
-        return CollectResult.Collected(collectedDates)
+        return if (collectedDates.isEmpty()) {
+            CollectResult.NothingToDo
+        } else {
+            CollectResult.Collected(collectedDates)
+        }
     }
 
     private fun Long.toMinutes(): Int = (this / MILLIS_PER_MINUTE).toInt()

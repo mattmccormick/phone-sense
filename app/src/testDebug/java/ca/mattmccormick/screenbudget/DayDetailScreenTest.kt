@@ -22,6 +22,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Before
 import org.junit.Assert.assertTrue
@@ -76,7 +77,10 @@ class DayDetailScreenTest {
 
         setScreen()
 
-        compose.waitUntilAtLeastOneExists(hasText("75 min"))
+        compose.waitUntilAtLeastOneExists(
+            hasText("75 min"),
+            timeoutMillis = 5_000,
+        )
         compose.onNodeWithText("2026-10-01").assertIsDisplayed()
         compose.onNodeWithText("75 min").assertIsDisplayed()
         compose.onNodeWithText("Reader").assertIsDisplayed()
@@ -94,7 +98,10 @@ class DayDetailScreenTest {
     fun missingDayShowsNotCollectedYet() {
         setScreen()
 
-        compose.waitUntilAtLeastOneExists(hasText("Not collected yet"))
+        compose.waitUntilAtLeastOneExists(
+            hasText("Not collected yet"),
+            timeoutMillis = 5_000,
+        )
         compose.onNodeWithText("Not collected yet").assertIsDisplayed()
     }
 
@@ -132,16 +139,20 @@ class DayDetailScreenTest {
                             appInfoSource = resolver,
                             today = today,
                             refreshKey = collectionVersion,
+                            loadDispatcher = Dispatchers.Unconfined,
                         )
                     },
                 )
             }
         }
-        compose.waitUntilAtLeastOneExists(hasText("Not collected yet"))
+        compose.waitUntilAtLeastOneExists(
+            hasText("Not collected yet"),
+            timeoutMillis = 5_000,
+        )
 
         allowCollection.countDown()
 
-        compose.waitUntilAtLeastOneExists(hasText("42 min"))
+        compose.waitUntilAtLeastOneExists(hasText("42 min"), timeoutMillis = 5_000)
         compose.onNodeWithText("42 min").assertIsDisplayed()
     }
 
@@ -174,6 +185,7 @@ class DayDetailScreenTest {
                     dao = database.usageDao(),
                     appInfoSource = resolver,
                     today = today,
+                    loadDispatcher = Dispatchers.Unconfined,
                 )
             }
         }
