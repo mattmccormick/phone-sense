@@ -123,6 +123,12 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
 
+    constraints {
+        implementation(libs.androidx.graphics.path) {
+            because("graphics-path 1.1.0 fixes 16 KB native-library compatibility")
+        }
+    }
+
     ksp(libs.androidx.room.compiler)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
