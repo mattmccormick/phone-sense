@@ -1,13 +1,12 @@
 package ca.mattmccormick.screenbudget
 
-import android.content.Intent
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.datastore.preferences.preferencesDataStore
-import androidx.room.Room
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,17 +40,14 @@ import ca.mattmccormick.screenbudget.data.UsageDatabase
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 class MainActivity : ComponentActivity() {
-    private val database by lazy {
-        Room.databaseBuilder(applicationContext, UsageDatabase::class.java, "usage.db")
-            .addMigrations(UsageDatabase.MIGRATION_1_2)
-            .build()
-    }
+    private lateinit var database: UsageDatabase
     private val settingsRepository by lazy {
         SettingsRepository(applicationContext.settingsDataStore)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        database = (application as ScreenBudgetApplication).database
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
@@ -72,8 +68,8 @@ class MainActivity : ComponentActivity() {
 internal fun ScreenBudgetApp(
     usageEventsSource: UsageEventsSource,
     launchSettings: (Intent) -> Unit,
+    mainContent: @Composable () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
-    mainContent: @Composable () -> Unit = { AppNameScreen() },
 ) {
     var hasUsageAccess by remember(usageEventsSource) {
         mutableStateOf(usageEventsSource.hasUsageAccess())
@@ -138,27 +134,10 @@ private fun UsageAccessScreen(
     }
 }
 
+@Preview(name = "Usage access", showBackground = true, showSystemUi = true)
 @Composable
-fun AppNameScreen(modifier: Modifier = Modifier) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun AppNameScreenPreview() {
+private fun UsageAccessScreenPreview() {
     MaterialTheme {
-        AppNameScreen()
+        UsageAccessScreen(onAllowUsageAccess = {})
     }
 }

@@ -10,8 +10,12 @@ data class AppInfo(
     val icon: Drawable?,
 )
 
-class AppInfoResolver(private val packageManager: PackageManager) {
-    fun resolve(packageName: String): AppInfo = cache.computeIfAbsent(packageName) {
+fun interface AppInfoSource {
+    fun resolve(packageName: String): AppInfo
+}
+
+class AppInfoResolver(private val packageManager: PackageManager) : AppInfoSource {
+    override fun resolve(packageName: String): AppInfo = cache.computeIfAbsent(packageName) {
         resolveUncached(it)
     }
 

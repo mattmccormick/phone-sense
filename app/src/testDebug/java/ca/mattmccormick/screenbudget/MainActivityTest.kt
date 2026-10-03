@@ -3,6 +3,7 @@ package ca.mattmccormick.screenbudget
 import android.app.AppOpsManager
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -29,6 +30,7 @@ class MainActivityTest {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { false },
                 launchSettings = {},
+                mainContent = { Text("Screen Budget") },
             )
         }
 
@@ -43,6 +45,7 @@ class MainActivityTest {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { false },
                 launchSettings = { launchedIntent = it },
+                mainContent = { Text("Screen Budget") },
             )
         }
 
@@ -61,6 +64,7 @@ class MainActivityTest {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { hasAccess },
                 launchSettings = {},
+                mainContent = { Text("Screen Budget") },
                 lifecycleOwner = lifecycleOwner,
             )
         }
@@ -79,6 +83,7 @@ class MainActivityTest {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { true },
                 launchSettings = {},
+                mainContent = { Text("Screen Budget") },
             )
         }
 
