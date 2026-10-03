@@ -19,7 +19,7 @@ internal fun scheduleDailyCollection(
 ) {
     workManager.enqueueUniquePeriodicWork(
         DAILY_COLLECTION_WORK,
-        ExistingPeriodicWorkPolicy.KEEP,
+        ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
         dailyCollectionRequest(clock, notificationTime),
     )
 }
