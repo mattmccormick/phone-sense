@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -29,6 +30,33 @@ import org.robolectric.annotation.Config
 class SettingsScreenTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun completedOnboardingKeepsSettingsAndNavigationUsable() {
+        compose.setContent {
+            HomeWithSettings(
+                settings = Settings(onboardingDone = true),
+                mainContent = {
+                    AppNavigationShell(
+                        dayDetail = { Text("Day detail screen") },
+                        goals = { Text("Goals screen") },
+                    )
+                },
+            )
+        }
+
+        compose.onNodeWithText("Settings").assertIsDisplayed()
+        compose.onNodeWithText("Day").assertIsDisplayed()
+        compose.onNodeWithText("Goals").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Goals screen").assertIsDisplayed()
+
+        compose.onNodeWithText("Day").performClick()
+        compose.onNodeWithText("Day detail screen").assertIsDisplayed()
+
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("Back").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Goals").assertIsDisplayed()
+    }
 
     @Test
     fun exportJsonLaunchesDocumentPickerWithDatedName() {
