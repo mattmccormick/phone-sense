@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import ca.mattmccormick.screenbudget.data.AppUsage
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -99,6 +101,20 @@ class DayDetailScreenTest {
     }
 
     @Test
+    fun collectedDayCannotBeEditedByHand() {
+        val date = today.minusDays(1)
+        database.usageDao().insert(
+            DailyUsage(date, 75, Source.COLLECTED, Instant.parse("2026-10-02T07:00:00Z")),
+            emptyList(),
+        )
+
+        setScreen()
+
+        compose.waitUntilAtLeastOneExists(hasText("75 min"), timeoutMillis = 5_000)
+        compose.onNodeWithText("Enter by hand").assertDoesNotExist()
+    }
+
+    @Test
     fun missingDayShowsNotCollectedYet() {
         setScreen()
 
@@ -107,6 +123,53 @@ class DayDetailScreenTest {
             timeoutMillis = 5_000,
         )
         compose.onNodeWithText("Not collected yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun missingDayCanBeEnteredByHand() {
+        setScreen()
+
+        compose.waitUntilAtLeastOneExists(
+            hasText("Enter by hand"),
+            timeoutMillis = 5_000,
+        )
+        compose.onNodeWithText("Enter by hand").assertIsDisplayed()
+    }
+
+    @Test
+    fun savingManualEntryWritesTheDayAndItsApps() {
+        val date = today.minusDays(1)
+        setScreen()
+        compose.waitUntilAtLeastOneExists(hasText("Enter by hand"), timeoutMillis = 5_000)
+
+        compose.onNodeWithText("Enter by hand").performClick()
+        compose.onNodeWithText("Total minutes").performTextInput("60")
+        compose.onNodeWithText("App name").performTextInput("Reader")
+        compose.onNodeWithText("App minutes").performTextInput("25")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) { database.usageDao().day(date) != null }
+        val stored = database.usageDao().day(date)!!
+        assertEquals(60, stored.day.totalMinutes)
+        assertEquals(Source.MANUAL, stored.day.source)
+        assertEquals(listOf(AppUsage(date, "label:Reader", 25)), stored.apps)
+        compose.waitUntilAtLeastOneExists(hasText("Reader"), timeoutMillis = 5_000)
+    }
+
+    @Test
+    fun appMinutesGreaterThanTheTotalAreRefused() {
+        val date = today.minusDays(1)
+        setScreen()
+        compose.waitUntilAtLeastOneExists(hasText("Enter by hand"), timeoutMillis = 5_000)
+
+        compose.onNodeWithText("Enter by hand").performClick()
+        compose.onNodeWithText("Total minutes").performTextInput("30")
+        compose.onNodeWithText("App name").performTextInput("Reader")
+        compose.onNodeWithText("App minutes").performTextInput("31")
+        compose.onNodeWithText("Save").performClick()
+
+        compose.onNodeWithText("App minutes cannot exceed total minutes").assertIsDisplayed()
+        assertNull(database.usageDao().day(date))
     }
 
     @Test
