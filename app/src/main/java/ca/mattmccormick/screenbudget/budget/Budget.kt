@@ -5,6 +5,13 @@ import ca.mattmccormick.screenbudget.data.DailyUsage
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
+import kotlin.math.ceil
+
+data class WeeklySummary(
+    val average: Int,
+    val achieved: Boolean,
+    val recommendation: Int,
+)
 
 fun distractionMinutes(
     day: DailyUsage,
@@ -18,3 +25,35 @@ fun weekStart(date: LocalDate, weekStartDay: DayOfWeek): LocalDate =
 
 fun weekDays(weekStart: LocalDate): List<LocalDate> =
     (0L..6L).map(weekStart::plusDays)
+
+fun averageDailyUsage(minutesPerDay: List<Int>): Int {
+    require(minutesPerDay.size == 7) { "A complete week must contain exactly 7 days" }
+    return ceil(minutesPerDay.sumOf(Int::toLong) / 7.0).toInt()
+}
+
+fun achieved(average: Int, goal: Int): Boolean = average <= goal
+
+fun recommendedGoal(
+    average: Int,
+    goal: Int,
+    reductionPercent: Int,
+    achieved: Boolean,
+): Int = if (achieved) {
+    Math.floorDiv(average.toLong() * (100 - reductionPercent), 100L).toInt()
+} else {
+    goal
+}
+
+fun weeklySummary(
+    minutesPerDay: List<Int>,
+    goal: Int,
+    reductionPercent: Int,
+): WeeklySummary {
+    val average = averageDailyUsage(minutesPerDay)
+    val wasAchieved = achieved(average, goal)
+    return WeeklySummary(
+        average = average,
+        achieved = wasAchieved,
+        recommendation = recommendedGoal(average, goal, reductionPercent, wasAchieved),
+    )
+}
