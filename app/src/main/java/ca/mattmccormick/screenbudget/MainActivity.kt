@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         database = (application as ScreenBudgetApplication).database
+        val initialDestination = AppDestination.from(intent)
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
@@ -77,6 +78,7 @@ class MainActivity : ComponentActivity() {
                     Collector(database.usageDao(), usageEventsSource)
                 }
                 val importer = remember { ImportService(database) }
+                val appInfoSource = remember { AppInfoResolver(packageManager) }
                 val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
                 val scope = rememberCoroutineScope()
                 var importStatus by remember { mutableStateOf<ImportStatus?>(null) }
@@ -169,7 +171,7 @@ class MainActivity : ComponentActivity() {
                     collectUsage = {
                         collector.collect(LocalDate.now(), ZoneId.systemDefault())
                     },
-                    mainContent = { _ ->
+                    mainContent = { collectionVersion ->
                         HomeWithSettings(
                             settings = settings,
                             hasUsageAccess = usageEventsSource.hasUsageAccess(),
@@ -221,7 +223,20 @@ class MainActivity : ComponentActivity() {
                             },
                             importStatus = importStatus,
                             mainContent = { currentSettings ->
-                                GoalsRoute(database.goalDao(), currentSettings)
+                                AppNavigationShell(
+                                    initialDestination = initialDestination,
+                                    dayDetail = {
+                                        DayDetailScreen(
+                                            dao = database.usageDao(),
+                                            appRuleDao = database.appRuleDao(),
+                                            appInfoSource = appInfoSource,
+                                            refreshKey = collectionVersion,
+                                        )
+                                    },
+                                    goals = {
+                                        GoalsRoute(database.goalDao(), currentSettings)
+                                    },
+                                )
                             },
                         )
                     },
