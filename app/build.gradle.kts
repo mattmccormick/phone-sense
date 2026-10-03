@@ -1,3 +1,6 @@
+import java.util.Properties
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +8,32 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
+}
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.isFile) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+fun signingValue(propertyName: String, environmentName: String): String? =
+    keystoreProperties.getProperty(propertyName)?.takeIf { it.isNotBlank() }
+        ?: providers.environmentVariable(environmentName).orNull?.takeIf { it.isNotBlank() }
+
+val releaseSigningValues = mapOf(
+    "storeFile" to signingValue("storeFile", "KEYSTORE_PATH"),
+    "storePassword" to signingValue("storePassword", "KEYSTORE_PASSWORD"),
+    "keyAlias" to signingValue("keyAlias", "KEY_ALIAS"),
+    "keyPassword" to signingValue("keyPassword", "KEY_PASSWORD"),
+)
+val releaseSigningRequested = keystorePropertiesFile.isFile || releaseSigningValues.values.any { it != null }
+
+if (releaseSigningRequested) {
+    val missingValues = releaseSigningValues.filterValues { it == null }.keys
+    require(missingValues.isEmpty()) {
+        "Release signing is incomplete; missing: ${missingValues.joinToString()}"
+    }
 }
 
 android {
@@ -19,9 +48,23 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        if (releaseSigningRequested) {
+            create("release") {
+                storeFile = rootProject.file(releaseSigningValues.getValue("storeFile")!!)
+                storePassword = releaseSigningValues.getValue("storePassword")
+                keyAlias = releaseSigningValues.getValue("keyAlias")
+                keyPassword = releaseSigningValues.getValue("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (releaseSigningRequested) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -46,6 +89,19 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+}
+
+tasks.withType<AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+}
+
+if (!releaseSigningRequested) {
+    tasks.matching { it.name == "assembleRelease" }.configureEach {
+        doFirst {
+            logger.lifecycle("Release signing is not configured; built APK will be unsigned.")
+        }
     }
 }
 
