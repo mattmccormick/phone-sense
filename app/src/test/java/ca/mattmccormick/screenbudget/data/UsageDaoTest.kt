@@ -125,3 +125,36 @@ class UsageDaoTest {
         )
     }
 }
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
+class AppRuleDaoTest {
+    private lateinit var database: UsageDatabase
+    private lateinit var dao: AppRuleDao
+
+    @Before
+    fun setUp() {
+        database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext<Context>(),
+            UsageDatabase::class.java,
+        ).allowMainThreadQueries().build()
+        dao = database.appRuleDao()
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+    }
+
+    @Test
+    fun insertReadsAllRulesAndOnlyExcludedKeys() {
+        val included = AppRule("com.example.maps", "Maps", excluded = false)
+        val excluded = AppRule("com.example.video", "Video", excluded = true)
+
+        dao.insert(included)
+        dao.insert(excluded)
+
+        assertEquals(listOf(included, excluded), dao.all())
+        assertEquals(listOf(excluded.appKey), dao.excludedKeys())
+    }
+}

@@ -24,7 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,7 +43,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import ca.mattmccormick.screenbudget.data.Settings as AppSettings
 import ca.mattmccormick.screenbudget.data.SettingsRepository
 import ca.mattmccormick.screenbudget.data.UsageDatabase
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
@@ -57,6 +63,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
+                val collector = remember {
+                    Collector(database.usageDao(), usageEventsSource)
+                }
                 val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
                 val scope = rememberCoroutineScope()
                 val notificationPermission = rememberLauncherForActivityResult(
@@ -77,7 +86,10 @@ class MainActivity : ComponentActivity() {
                             settingsRepository.completeNotificationOnboarding(declined)
                         }
                     },
-                    mainContent = {
+                    collectUsage = {
+                        collector.collect(LocalDate.now(), ZoneId.systemDefault())
+                    },
+                    mainContent = { _ ->
                         GoalsRoute(database.goalDao(), settings)
                     },
                 )
@@ -94,7 +106,8 @@ internal fun ScreenBudgetApp(
     createNotificationChannels: () -> Unit = {},
     requestNotificationPermission: (permission: String) -> Unit = {},
     completeNotificationOnboarding: (notificationsDeclined: Boolean) -> Unit = {},
-    mainContent: @Composable () -> Unit,
+    collectUsage: () -> Unit = {},
+    mainContent: @Composable (collectionVersion: Int) -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     var hasUsageAccess by remember(usageEventsSource) {
@@ -103,6 +116,7 @@ internal fun ScreenBudgetApp(
     var notificationStepDone by remember(notificationOnboardingDone) {
         mutableStateOf(notificationOnboardingDone)
     }
+    var collectionVersion by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner, usageEventsSource) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -111,6 +125,12 @@ internal fun ScreenBudgetApp(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(hasUsageAccess) {
+        if (hasUsageAccess) {
+            withContext(Dispatchers.IO) { collectUsage() }
+            collectionVersion++
+        }
     }
 
     if (!hasUsageAccess) {
@@ -136,7 +156,7 @@ internal fun ScreenBudgetApp(
             },
         )
     } else {
-        mainContent()
+        mainContent(collectionVersion)
     }
 }
 

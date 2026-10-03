@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Looper
 import android.provider.Settings
 import androidx.compose.material3.Text
 import androidx.compose.ui.platform.LocalContext
@@ -16,6 +17,8 @@ import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -29,6 +32,45 @@ import org.robolectric.RobolectricTestRunner
 class MainActivityTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun existingAccessCollectsOnceInTheBackground() {
+        val calls = AtomicInteger()
+        val ranInBackground = AtomicBoolean()
+        compose.setContent {
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { true },
+                launchSettings = {},
+                collectUsage = {
+                    calls.incrementAndGet()
+                    ranInBackground.set(Looper.myLooper() != Looper.getMainLooper())
+                },
+                mainContent = { Text("Screen Budget") },
+            )
+        }
+
+        compose.waitUntil(timeoutMillis = 5_000) { calls.get() == 1 }
+        compose.runOnIdle {
+            assertEquals(1, calls.get())
+            assertEquals(true, ranInBackground.get())
+        }
+    }
+
+    @Test
+    fun missingAccessDoesNotCollect() {
+        val calls = AtomicInteger()
+        compose.setContent {
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { false },
+                launchSettings = {},
+                collectUsage = { calls.incrementAndGet() },
+                mainContent = { Text("Screen Budget") },
+            )
+        }
+
+        compose.onNodeWithText("See your screen time").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(0, calls.get()) }
+    }
 
     @Test
     fun withoutAccessStartsOnUsageAccessScreen() {
