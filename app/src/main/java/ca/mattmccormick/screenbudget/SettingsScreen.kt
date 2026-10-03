@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ca.mattmccormick.screenbudget.data.Settings
+import ca.mattmccormick.screenbudget.export.ImportStatus
 import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -47,6 +48,8 @@ internal fun SettingsScreen(
     collectNow: () -> CollectResult = { CollectResult.NothingToDo },
     openUsageSettings: () -> Unit = {},
     openNotificationSettings: () -> Unit = {},
+    openImportDocument: () -> Unit = {},
+    importStatus: ImportStatus? = null,
     onAbout: () -> Unit = {},
     showTimePicker: ((LocalTime, (LocalTime) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -147,10 +150,37 @@ internal fun SettingsScreen(
                 Text("Collect now")
             }
             collectionResult?.let { Text(it) }
+            Button(onClick = openImportDocument) { Text("Import JSON") }
+            when (importStatus) {
+                is ImportStatus.Success -> {
+                    val result = importStatus.result
+                    Text(
+                        "Imported ${result.importedDays} ${dayWord(result.importedDays)}; " +
+                            "skipped ${result.skippedDays} collected ${dayWord(result.skippedDays)}",
+                    )
+                    val importedWeekStart = result.weekStartDay.getDisplayName(
+                        TextStyle.FULL,
+                        Locale.getDefault(),
+                    )
+                    Text("File week starts on $importedWeekStart")
+                    Button(
+                        onClick = {
+                            weekStartDay = result.weekStartDay
+                            onWeekStartDayChange(result.weekStartDay)
+                        },
+                    ) {
+                        Text("Use $importedWeekStart as week start")
+                    }
+                }
+                is ImportStatus.Error -> Text("Import failed: ${importStatus.message}")
+                null -> Unit
+            }
             Button(onClick = onAbout) { Text(stringResource(R.string.about)) }
         }
     }
 }
+
+private fun dayWord(count: Int): String = if (count == 1) "day" else "days"
 
 private fun CollectResult.displayText(): String = when (this) {
     is CollectResult.Collected ->
@@ -170,6 +200,8 @@ internal fun HomeWithSettings(
     collectNow: () -> CollectResult = { CollectResult.NothingToDo },
     openUsageSettings: () -> Unit = {},
     openNotificationSettings: () -> Unit = {},
+    openImportDocument: () -> Unit = {},
+    importStatus: ImportStatus? = null,
     mainContent: @Composable (Settings) -> Unit,
 ) {
     var showingSettings by remember { mutableStateOf(false) }
@@ -188,6 +220,8 @@ internal fun HomeWithSettings(
             collectNow = collectNow,
             openUsageSettings = openUsageSettings,
             openNotificationSettings = openNotificationSettings,
+            openImportDocument = openImportDocument,
+            importStatus = importStatus,
             onAbout = { showingAbout = true },
         )
     } else {
