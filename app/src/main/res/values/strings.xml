@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Screen Budget</string>
+    <string name="usage_access_title">See your screen time</string>
+    <string name="usage_access_explanation">Screen Budget records which apps are in the foreground and for how long. This information stays on your device and never leaves it.</string>
+    <string name="allow_usage_access">Allow usage access</string>
 </resources>
