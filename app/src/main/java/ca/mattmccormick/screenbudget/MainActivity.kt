@@ -24,25 +24,44 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.room.Room
+import ca.mattmccormick.screenbudget.data.UsageDatabase
 
 class MainActivity : ComponentActivity() {
+    private lateinit var database: UsageDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        database = Room.databaseBuilder(
+            applicationContext,
+            UsageDatabase::class.java,
+            "usage.db",
+        ).build()
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
                 ScreenBudgetApp(
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
+                    mainContent = {
+                        DayDetailScreen(
+                            dao = database.usageDao(),
+                            appInfoSource = AppInfoResolver(packageManager),
+                        )
+                    },
                 )
             }
         }
+    }
+
+    override fun onDestroy() {
+        database.close()
+        super.onDestroy()
     }
 }
 
@@ -50,6 +69,7 @@ class MainActivity : ComponentActivity() {
 internal fun ScreenBudgetApp(
     usageEventsSource: UsageEventsSource,
     launchSettings: (Intent) -> Unit,
+    mainContent: @Composable () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     var hasUsageAccess by remember(usageEventsSource) {
@@ -66,7 +86,7 @@ internal fun ScreenBudgetApp(
     }
 
     if (hasUsageAccess) {
-        AppNameScreen()
+        mainContent()
     } else {
         UsageAccessScreen(
             onAllowUsageAccess = {
@@ -112,30 +132,5 @@ private fun UsageAccessScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun AppNameScreen(modifier: Modifier = Modifier) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun AppNameScreenPreview() {
-    MaterialTheme {
-        AppNameScreen()
     }
 }
