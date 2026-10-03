@@ -101,6 +101,25 @@ class MainActivity : ComponentActivity() {
                         settingsRepository.setNotificationsDeclined(!granted)
                     }
                 }
+                var pendingExportFormat by remember { mutableStateOf(ExportFormat.JSON) }
+                var exportError by remember { mutableStateOf<String?>(null) }
+                val exportDocument = rememberLauncherForActivityResult(
+                    ActivityResultContracts.StartActivityForResult(),
+                ) { result ->
+                    scope.launch {
+                        exportError = withContext(Dispatchers.IO) {
+                            handleExportResult(result.resultCode, result.data) { destination ->
+                                writeExport(
+                                    destination = destination,
+                                    format = pendingExportFormat,
+                                    database = database,
+                                    settings = settings,
+                                    openOutputStream = contentResolver::openOutputStream,
+                                )
+                            }
+                        }
+                    }
+                }
                 val importDocument = rememberLauncherForActivityResult(
                     ActivityResultContracts.OpenDocument(),
                 ) { uri ->
@@ -187,6 +206,16 @@ class MainActivity : ComponentActivity() {
                                         .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
                                 )
                             },
+                            launchExport = { intent ->
+                                pendingExportFormat = if (intent.type == ExportFormat.CSV.mimeType) {
+                                    ExportFormat.CSV
+                                } else {
+                                    ExportFormat.JSON
+                                }
+                                exportError = null
+                                exportDocument.launch(intent)
+                            },
+                            exportError = exportError,
                             openImportDocument = {
                                 importDocument.launch(arrayOf("application/json"))
                             },

@@ -1,5 +1,6 @@
 package ca.mattmccormick.screenbudget
 
+import android.content.Intent
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,50 @@ import org.robolectric.annotation.Config
 class SettingsScreenTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun exportJsonLaunchesDocumentPickerWithDatedName() {
+        var launchedIntent: Intent? = null
+        compose.setContent {
+            SettingsScreen(
+                settings = Settings(),
+                hasUsageAccess = true,
+                notificationsEnabled = true,
+                launchExport = { launchedIntent = it },
+                today = { LocalDate.of(2026, 10, 3) },
+            )
+        }
+
+        compose.onNodeWithText("Export JSON").performScrollTo().performClick()
+
+        compose.runOnIdle {
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, launchedIntent?.action)
+            assertEquals("application/json", launchedIntent?.type)
+            assertEquals("screen-budget-2026-10-03.json", launchedIntent?.getStringExtra(Intent.EXTRA_TITLE))
+        }
+    }
+
+    @Test
+    fun exportCsvLaunchesDocumentPickerWithDatedName() {
+        var launchedIntent: Intent? = null
+        compose.setContent {
+            SettingsScreen(
+                settings = Settings(),
+                hasUsageAccess = true,
+                notificationsEnabled = true,
+                launchExport = { launchedIntent = it },
+                today = { LocalDate.of(2026, 10, 3) },
+            )
+        }
+
+        compose.onNodeWithText("Export CSV").performScrollTo().performClick()
+
+        compose.runOnIdle {
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, launchedIntent?.action)
+            assertEquals("text/csv", launchedIntent?.type)
+            assertEquals("screen-budget-2026-10-03.csv", launchedIntent?.getStringExtra(Intent.EXTRA_TITLE))
+        }
+    }
 
     @Test
     fun changingNotificationTimeUsesChosenValue() {
@@ -101,7 +146,10 @@ class SettingsScreenTest {
         compose.onNodeWithText("Collect now").performScrollTo().performClick()
 
         compose.waitUntil(timeoutMillis = 5_000) { collections.get() == 1 }
-        compose.onNodeWithText("Collected 2 days through 2026-10-01").assertExists()
+        compose.onNodeWithText(
+            "Collected 2 days through 2026-10-01",
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test
