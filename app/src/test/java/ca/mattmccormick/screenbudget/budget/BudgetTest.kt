@@ -65,4 +65,25 @@ class BudgetTest {
             weekDays(saturday),
         )
     }
+
+    @Test
+    fun remainingDailyBudgetSpreadsTheWeeklyRemainderAcrossDaysLeft() {
+        assertEquals(42, remainingDailyBudget(goalMinutes = 45, usedSoFar = 101, dayIndex = 2))
+    }
+
+    @Test
+    fun remainingDailyBudgetNeverReturnsLessThanZero() {
+        assertEquals(0, remainingDailyBudget(goalMinutes = 45, usedSoFar = 400, dayIndex = 2))
+    }
+
+    @Test
+    fun displayBudgetDoesNotExceedTheGoal() {
+        assertEquals(45, displayBudget(goalMinutes = 45, remainingBudget = 70))
+    }
+
+    @Test
+    fun formatHoursMinutesUsesZeroPaddedHoursAndMinutes() {
+        assertEquals("01:32", formatHoursMinutes(92))
+        assertEquals("00:00", formatHoursMinutes(0))
+    }
 }
