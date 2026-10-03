@@ -11,6 +11,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import ca.mattmccormick.screenbudget.data.Settings
+import ca.mattmccormick.screenbudget.export.ImportResult
+import ca.mattmccormick.screenbudget.export.ImportStatus
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.concurrent.atomic.AtomicInteger
@@ -143,7 +146,10 @@ class SettingsScreenTest {
         compose.onNodeWithText("Collect now").performScrollTo().performClick()
 
         compose.waitUntil(timeoutMillis = 5_000) { collections.get() == 1 }
-        compose.onNodeWithText("Collected 2 days through 2026-10-01").assertExists()
+        compose.onNodeWithText(
+            "Collected 2 days through 2026-10-01",
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test
@@ -169,5 +175,41 @@ class SettingsScreenTest {
 
         compose.onNodeWithText("Notifications are off. Turn them on to get goal reminders.")
             .assertDoesNotExist()
+    }
+
+    @Test
+    fun importResultOffersWeekStartWithoutApplyingIt() {
+        var appliedDay: DayOfWeek? = null
+        compose.setContent {
+            SettingsScreen(
+                settings = Settings(weekStartDay = DayOfWeek.SATURDAY),
+                hasUsageAccess = true,
+                notificationsEnabled = true,
+                importStatus = ImportStatus.Success(ImportResult(3, 1, DayOfWeek.MONDAY)),
+                onWeekStartDayChange = { appliedDay = it },
+            )
+        }
+
+        compose.onNodeWithText("Imported 3 days; skipped 1 collected day").assertExists()
+        compose.onNodeWithText("File week starts on Monday").assertExists()
+        compose.runOnIdle { assertEquals(null, appliedDay) }
+
+        compose.onNodeWithText("Use Monday as week start").performScrollTo().performClick()
+
+        compose.runOnIdle { assertEquals(DayOfWeek.MONDAY, appliedDay) }
+    }
+
+    @Test
+    fun importErrorIsShown() {
+        compose.setContent {
+            SettingsScreen(
+                settings = Settings(),
+                hasUsageAccess = true,
+                notificationsEnabled = true,
+                importStatus = ImportStatus.Error("Expected a JSON object"),
+            )
+        }
+
+        compose.onNodeWithText("Import failed: Expected a JSON object").assertExists()
     }
 }

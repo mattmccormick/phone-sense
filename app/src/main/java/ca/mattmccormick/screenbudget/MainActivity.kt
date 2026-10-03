@@ -45,6 +45,8 @@ import androidx.work.WorkManager
 import ca.mattmccormick.screenbudget.data.Settings as AppSettings
 import ca.mattmccormick.screenbudget.data.SettingsRepository
 import ca.mattmccormick.screenbudget.data.UsageDatabase
+import ca.mattmccormick.screenbudget.export.ImportService
+import ca.mattmccormick.screenbudget.export.ImportStatus
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -74,8 +76,10 @@ class MainActivity : ComponentActivity() {
                 val collector = remember {
                     Collector(database.usageDao(), usageEventsSource)
                 }
+                val importer = remember { ImportService(database) }
                 val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
                 val scope = rememberCoroutineScope()
+                var importStatus by remember { mutableStateOf<ImportStatus?>(null) }
                 val lifecycleOwner = LocalLifecycleOwner.current
                 var notificationsEnabled by remember {
                     mutableStateOf(notificationManager.areNotificationsEnabled())
@@ -112,6 +116,27 @@ class MainActivity : ComponentActivity() {
                                     settings = settings,
                                     openOutputStream = contentResolver::openOutputStream,
                                 )
+                            }
+                        }
+                    }
+                }
+                val importDocument = rememberLauncherForActivityResult(
+                    ActivityResultContracts.OpenDocument(),
+                ) { uri ->
+                    if (uri != null) {
+                        scope.launch {
+                            importStatus = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    val encoded = contentResolver.openInputStream(uri)
+                                        ?.bufferedReader()
+                                        ?.use { it.readText() }
+                                        ?: error("Could not read the selected file")
+                                    ImportStatus.Success(importer.importJson(encoded))
+                                }.getOrElse { error ->
+                                    ImportStatus.Error(
+                                        error.message ?: "The selected file could not be imported",
+                                    )
+                                }
                             }
                         }
                     }
@@ -191,6 +216,10 @@ class MainActivity : ComponentActivity() {
                                 exportDocument.launch(intent)
                             },
                             exportError = exportError,
+                            openImportDocument = {
+                                importDocument.launch(arrayOf("application/json"))
+                            },
+                            importStatus = importStatus,
                             mainContent = { currentSettings ->
                                 GoalsRoute(database.goalDao(), currentSettings)
                             },
