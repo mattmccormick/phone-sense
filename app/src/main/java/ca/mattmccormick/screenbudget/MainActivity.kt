@@ -30,7 +30,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.room.Room
 import ca.mattmccormick.screenbudget.data.UsageDatabase
 
 class MainActivity : ComponentActivity() {
@@ -38,11 +37,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        database = Room.databaseBuilder(
-            applicationContext,
-            UsageDatabase::class.java,
-            "usage.db",
-        ).build()
+        database = (application as ScreenBudgetApplication).database
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
@@ -58,11 +53,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-    }
-
-    override fun onDestroy() {
-        database.close()
-        super.onDestroy()
     }
 }
 
