@@ -2,6 +2,7 @@ package ca.mattmccormick.screenbudget
 
 import android.content.Context
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -146,7 +148,7 @@ class DayDetailScreenTest {
         compose.onNodeWithText("Total minutes").performTextInput("60")
         compose.onNodeWithText("App name").performTextInput("Reader")
         compose.onNodeWithText("App minutes").performTextInput("25")
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithText("Save").performScrollTo().performClick()
 
         compose.waitUntil(timeoutMillis = 5_000) { database.usageDao().day(date) != null }
         val stored = database.usageDao().day(date)!!
@@ -166,7 +168,7 @@ class DayDetailScreenTest {
         compose.onNodeWithText("Total minutes").performTextInput("30")
         compose.onNodeWithText("App name").performTextInput("Reader")
         compose.onNodeWithText("App minutes").performTextInput("31")
-        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithText("Save").performScrollTo().performClick()
 
         compose.onNodeWithText("App minutes cannot exceed total minutes").assertIsDisplayed()
         assertNull(database.usageDao().day(date))
@@ -300,12 +302,17 @@ class DayDetailScreenTest {
     private fun setScreen() {
         compose.setContent {
             MaterialTheme {
-                DayDetailScreen(
-                    dao = database.usageDao(),
-                    appRuleDao = database.appRuleDao(),
-                    appInfoSource = resolver,
-                    today = today,
-                    loadDispatcher = Dispatchers.Unconfined,
+                AppNavigationShell(
+                    dayDetail = {
+                        DayDetailScreen(
+                            dao = database.usageDao(),
+                            appRuleDao = database.appRuleDao(),
+                            appInfoSource = resolver,
+                            today = today,
+                            loadDispatcher = Dispatchers.Unconfined,
+                        )
+                    },
+                    goals = { Text("Goals screen") },
                 )
             }
         }

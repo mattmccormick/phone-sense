@@ -94,12 +94,18 @@ class MainActivityTest {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { false },
                 launchSettings = {},
-                mainContent = { Text("Screen Budget") },
+                mainContent = {
+                    AppNavigationShell(
+                        dayDetail = { Text("Day detail screen") },
+                        goals = { Text("Goals screen") },
+                    )
+                },
             )
         }
 
         compose.onNodeWithText("See your screen time").assertIsDisplayed()
-        compose.onNodeWithText("Screen Budget").assertDoesNotExist()
+        compose.onNodeWithText("Day").assertDoesNotExist()
+        compose.onNodeWithText("Goals").assertDoesNotExist()
     }
 
     @Test

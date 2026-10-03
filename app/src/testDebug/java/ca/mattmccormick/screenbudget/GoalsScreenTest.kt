@@ -1,6 +1,7 @@
 package ca.mattmccormick.screenbudget
 
 import android.content.Context
+import androidx.compose.material3.Text
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.assertIsDisplayed
@@ -52,10 +53,16 @@ class GoalsScreenTest {
         goalDao.insert(Goal(LocalDate.of(2026, 9, 26), 45))
         goalDao.insert(Goal(LocalDate.of(2026, 9, 19), 50))
         compose.setContent {
-            GoalsRoute(
-                goalDao = goalDao,
-                settings = Settings(weekStartDay = DayOfWeek.MONDAY),
-                today = LocalDate.of(2026, 10, 1),
+            AppNavigationShell(
+                initialDestination = AppDestination.GOALS,
+                dayDetail = { Text("Day detail screen") },
+                goals = {
+                    GoalsRoute(
+                        goalDao = goalDao,
+                        settings = Settings(weekStartDay = DayOfWeek.MONDAY),
+                        today = LocalDate.of(2026, 10, 1),
+                    )
+                },
             )
         }
 
@@ -71,6 +78,9 @@ class GoalsScreenTest {
             Goal(LocalDate.of(2026, 9, 28), 35),
             goalDao.forWeek(LocalDate.of(2026, 9, 28)),
         )
+        compose.onNodeWithText("Day").performClick()
+        compose.onNodeWithText("Goals").performClick()
+        compose.onNodeWithText("2026-09-28: 35 minutes").assertIsDisplayed()
     }
 
     @Test
