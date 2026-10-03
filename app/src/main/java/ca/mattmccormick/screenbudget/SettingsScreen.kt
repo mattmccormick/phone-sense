@@ -1,6 +1,7 @@
 package ca.mattmccormick.screenbudget
 
 import android.app.TimePickerDialog
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import ca.mattmccormick.screenbudget.data.Settings
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -46,6 +48,9 @@ internal fun SettingsScreen(
     collectNow: () -> CollectResult = { CollectResult.NothingToDo },
     openUsageSettings: () -> Unit = {},
     openNotificationSettings: () -> Unit = {},
+    launchExport: (Intent) -> Unit = {},
+    exportError: String? = null,
+    today: () -> LocalDate = LocalDate::now,
     showTimePicker: ((LocalTime, (LocalTime) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -145,6 +150,17 @@ internal fun SettingsScreen(
                 Text("Collect now")
             }
             collectionResult?.let { Text(it) }
+            Button(
+                onClick = {
+                    launchExport(createExportIntent(ExportFormat.JSON, today()))
+                },
+            ) { Text("Export JSON") }
+            Button(
+                onClick = {
+                    launchExport(createExportIntent(ExportFormat.CSV, today()))
+                },
+            ) { Text("Export CSV") }
+            exportError?.let { Text(it) }
         }
     }
 }
@@ -167,6 +183,8 @@ internal fun HomeWithSettings(
     collectNow: () -> CollectResult = { CollectResult.NothingToDo },
     openUsageSettings: () -> Unit = {},
     openNotificationSettings: () -> Unit = {},
+    launchExport: (Intent) -> Unit = {},
+    exportError: String? = null,
     mainContent: @Composable (Settings) -> Unit,
 ) {
     var showingSettings by remember { mutableStateOf(false) }
@@ -182,6 +200,8 @@ internal fun HomeWithSettings(
             collectNow = collectNow,
             openUsageSettings = openUsageSettings,
             openNotificationSettings = openNotificationSettings,
+            launchExport = launchExport,
+            exportError = exportError,
         )
     } else {
         Column {
