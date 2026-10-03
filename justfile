@@ -4,16 +4,13 @@ application_id := "ca.mattmccormick.screenbudget"
 debug_apk := "app/build/outputs/apk/debug/app-debug.apk"
 
 # Build the release APK.
-build:
-    ./gradlew assembleRelease
+build: (_gradle "assembleRelease")
 
 # Build the debug APK; this is the one `install` and `permissions` use.
-debug:
-    ./gradlew assembleDebug
+debug: (_gradle "assembleDebug")
 
 # Run the unit tests.
-test:
-    ./gradlew test
+test: (_gradle "test")
 
 # Install the debug APK on a phone connected via USB (debugging
 # enabled/authorized). The release APK is unsigned and will not install.
@@ -48,5 +45,47 @@ permissions: debug
         | sed 's/^/     expected: /' || true
 
 # Remove build outputs.
-clean:
-    ./gradlew clean
+clean: (_gradle "clean")
+
+# Run Gradle with JDK 17, preferring JAVA_HOME when it is already compatible.
+[private]
+_gradle *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    is_jdk_17() {
+        local home="$1"
+        [[ -x "$home/bin/java" && -x "$home/bin/javac" ]] || return 1
+        "$home/bin/java" -XshowSettings:properties -version 2>&1 \
+            | grep -Eq '^ *java\.specification\.version = 17$'
+    }
+
+    candidates=()
+    [[ -z "${JAVA_HOME:-}" ]] || candidates+=("$JAVA_HOME")
+
+    if [[ "$(uname -s)" == "Darwin" ]] && [[ -x /usr/libexec/java_home ]]; then
+        mac_home="$(/usr/libexec/java_home -v 17 2>/dev/null || true)"
+        [[ -z "$mac_home" ]] || candidates+=("$mac_home")
+    fi
+
+    for home in \
+        /usr/lib/jvm/java-17-openjdk-amd64 \
+        /usr/lib/jvm/java-17-openjdk-* \
+        /usr/lib/jvm/jdk-17* \
+        /usr/java/jdk-17* \
+        /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+        /usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+        /Library/Java/JavaVirtualMachines/*17*/Contents/Home; do
+        [[ -d "$home" ]] && candidates+=("$home")
+    done
+
+    for home in "${candidates[@]}"; do
+        if is_jdk_17 "$home"; then
+            export JAVA_HOME="$home"
+            export PATH="$JAVA_HOME/bin:$PATH"
+            exec ./gradlew "{{args}}"
+        fi
+    done
+
+    echo "error: JDK 17 was not found. Install JDK 17 or set JAVA_HOME to its installation directory." >&2
+    exit 1

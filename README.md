@@ -12,10 +12,11 @@ The plan is at `~/notes/20-29 Projects/Screen Budget/Plan.md`.
 ## Development
 
 Install [just](https://just.systems/man/en/packages.html), JDK 17, and the Android
-SDK (platform 36, build-tools 36.0.0, and platform-tools). Commands use `JAVA_HOME`
-when set, otherwise Java from `PATH`. Set `JAVA_HOME` to your JDK 17 installation
-if needed. `ANDROID_HOME` defaults to `~/Android/Sdk`; set it if your SDK is
-elsewhere.
+SDK (platform 36, build-tools 36.0.0, and platform-tools). Gradle-backed `just`
+commands use `JAVA_HOME` when it points to JDK 17; otherwise they look for JDK 17
+in standard Linux and macOS installation locations. If it cannot be found, install
+JDK 17 or set `JAVA_HOME` to its installation directory. `ANDROID_HOME` defaults
+to `~/Android/Sdk`; set it if your SDK is elsewhere.
 
 Run `just --list` to see the available commands:
 
@@ -29,7 +30,8 @@ Run `just --list` to see the available commands:
   the app's own package.
 - `just clean` removes build outputs.
 
-Gradle remains the build system; you can also run `./gradlew` commands directly.
+Gradle remains the build system. Running `./gradlew` directly uses your existing
+environment and does not perform the JDK 17 selection described above.
 
 ### Release signing
 
