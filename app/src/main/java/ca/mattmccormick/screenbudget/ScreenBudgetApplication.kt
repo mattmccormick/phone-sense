@@ -14,7 +14,9 @@ class ScreenBudgetApplication : Application(), Configuration.Provider {
             applicationContext,
             UsageDatabase::class.java,
             "usage.db",
-        ).build()
+        )
+            .addMigrations(UsageDatabase.MIGRATION_1_2)
+            .build()
     }
 
     override fun onCreate() {

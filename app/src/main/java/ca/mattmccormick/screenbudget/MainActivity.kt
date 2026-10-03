@@ -1,10 +1,12 @@
 package ca.mattmccormick.screenbudget
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,10 +33,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import ca.mattmccormick.screenbudget.data.Settings as AppSettings
+import ca.mattmccormick.screenbudget.data.SettingsRepository
 import ca.mattmccormick.screenbudget.data.UsageDatabase
+
+private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 class MainActivity : ComponentActivity() {
     private lateinit var database: UsageDatabase
+    private val settingsRepository by lazy {
+        SettingsRepository(applicationContext.settingsDataStore)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,14 +51,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
+                val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
                 ScreenBudgetApp(
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
                     mainContent = {
-                        DayDetailScreen(
-                            dao = database.usageDao(),
-                            appInfoSource = AppInfoResolver(packageManager),
-                        )
+                        GoalsRoute(database.goalDao(), settings)
                     },
                 )
             }
