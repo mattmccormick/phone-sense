@@ -13,6 +13,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,6 +47,22 @@ class CollectionSchedulerTest {
 
         val work = workManager.getWorkInfosForUniqueWork(DAILY_COLLECTION_WORK).get()
         assertEquals(1, work.size)
+    }
+
+    @Test
+    fun changingNotificationTimeReplacesThePeriodicRequest() {
+        val clock = Clock.fixed(
+            Instant.parse("2026-03-09T15:00:00Z"),
+            ZoneId.of("America/Los_Angeles"),
+        )
+        scheduleDailyCollection(workManager, clock, LocalTime.of(7, 0))
+        val firstId = workManager.getWorkInfosForUniqueWork(DAILY_COLLECTION_WORK).get().single().id
+
+        scheduleDailyCollection(workManager, clock, LocalTime.of(18, 45))
+
+        val replacement = workManager.getWorkInfosForUniqueWork(DAILY_COLLECTION_WORK).get()
+        assertEquals(1, replacement.size)
+        assertNotEquals(firstId, replacement.single().id)
     }
 
     @Test

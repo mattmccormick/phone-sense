@@ -1,0 +1,128 @@
+package ca.mattmccormick.screenbudget
+
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import ca.mattmccormick.screenbudget.data.Settings
+import java.time.LocalDate
+import java.time.LocalTime
+import java.util.concurrent.atomic.AtomicInteger
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
+class SettingsScreenTest {
+    @get:Rule
+    val compose = createComposeRule()
+
+    @Test
+    fun changingNotificationTimeUsesChosenValue() {
+        var changedTime: LocalTime? = null
+        compose.setContent {
+            SettingsScreen(
+                settings = Settings(notificationTime = LocalTime.of(7, 0)),
+                hasUsageAccess = true,
+                notificationsEnabled = true,
+                onNotificationTimeChange = {
+                    changedTime = it
+                },
+                showTimePicker = { _, onTimeChosen ->
+                    onTimeChosen(LocalTime.of(18, 45))
+                },
+            )
+        }
+
+        compose.onNodeWithText("07:00").performClick()
+
+        compose.runOnIdle {
+            assertEquals(LocalTime.of(18, 45), changedTime)
+        }
+        compose.onNodeWithText("18:45").assertExists()
+    }
+
+    @Test
+    fun changingWeekStartDayIsReflectedOnHome() {
+        compose.setContent {
+            var settings by remember { mutableStateOf(Settings(onboardingDone = true)) }
+            HomeWithSettings(
+                settings = settings,
+                onWeekStartDayChange = { settings = settings.copy(weekStartDay = it) },
+                mainContent = { currentSettings ->
+                    Text(
+                        "Week of ${currentWeekStart(
+                            LocalDate.of(2026, 10, 1),
+                            currentSettings.weekStartDay,
+                        )}",
+                    )
+                },
+            )
+        }
+
+        compose.onNodeWithText("Week of 2026-09-26").assertExists()
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("Saturday").performClick()
+        compose.onNodeWithText("Monday").performClick()
+        compose.onNodeWithText("Back").performClick()
+
+        compose.onNodeWithText("Week of 2026-09-28").assertExists()
+    }
+
+    @Test
+    fun collectNowRunsCollectorAndShowsResult() {
+        val collections = AtomicInteger()
+        compose.setContent {
+            SettingsScreen(
+                settings = Settings(),
+                hasUsageAccess = true,
+                notificationsEnabled = true,
+                collectNow = {
+                    collections.incrementAndGet()
+                    CollectResult.Collected(
+                        listOf(LocalDate.of(2026, 9, 30), LocalDate.of(2026, 10, 1)),
+                    )
+                },
+            )
+        }
+
+        compose.onNodeWithText("Collect now").performScrollTo().performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) { collections.get() == 1 }
+        compose.onNodeWithText("Collected 2 days through 2026-10-01").assertExists()
+    }
+
+    @Test
+    fun notificationBannerAppearsOnlyWhenPermissionIsMissing() {
+        var notificationsEnabled by mutableStateOf(false)
+        var settingsOpened = false
+        compose.setContent {
+            SettingsScreen(
+                settings = Settings(),
+                hasUsageAccess = true,
+                notificationsEnabled = notificationsEnabled,
+                openNotificationSettings = { settingsOpened = true },
+            )
+        }
+
+        compose.onNodeWithText("Notifications are off. Turn them on to get goal reminders.")
+            .assertExists()
+        compose.onNodeWithText("Open notification settings").performClick()
+        compose.runOnIdle {
+            assertEquals(true, settingsOpened)
+            notificationsEnabled = true
+        }
+
+        compose.onNodeWithText("Notifications are off. Turn them on to get goal reminders.")
+            .assertDoesNotExist()
+    }
+}

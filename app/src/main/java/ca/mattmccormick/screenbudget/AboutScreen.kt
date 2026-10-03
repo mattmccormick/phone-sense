@@ -11,10 +11,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -41,47 +37,6 @@ internal val dependencyLicenses = listOf(
     DependencyLicense("Okio", "Apache License 2.0"),
     DependencyLicense("Protocol Buffers", "BSD 3-Clause License"),
 )
-
-@Composable
-internal fun HomeWithAboutSettings(
-    mainContent: @Composable () -> Unit,
-) {
-    var destination by remember { mutableStateOf(AboutDestination.Home) }
-    when (destination) {
-        AboutDestination.Home -> Column {
-            Button(onClick = { destination = AboutDestination.Settings }) {
-                Text(stringResource(R.string.settings))
-            }
-            mainContent()
-        }
-        AboutDestination.Settings -> SettingsAboutScreen(
-            onBack = { destination = AboutDestination.Home },
-            onAbout = { destination = AboutDestination.About },
-        )
-        AboutDestination.About -> AboutScreen(
-            onBack = { destination = AboutDestination.Settings },
-        )
-    }
-}
-
-private enum class AboutDestination { Home, Settings, About }
-
-@Composable
-private fun SettingsAboutScreen(
-    onBack: () -> Unit,
-    onAbout: () -> Unit,
-) {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        Column(
-            modifier = Modifier.padding(innerPadding).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = onBack) { Text(stringResource(R.string.back)) }
-            Button(onClick = onAbout) { Text(stringResource(R.string.about)) }
-        }
-    }
-}
 
 @Composable
 internal fun AboutScreen(

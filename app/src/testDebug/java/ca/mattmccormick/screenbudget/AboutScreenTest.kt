@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import ca.mattmccormick.screenbudget.data.Settings
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,14 +22,16 @@ class AboutScreenTest {
     @Test
     fun aboutIsReachableFromSettingsAndListsLicenses() {
         compose.setContent {
-            HomeWithAboutSettings { Text("Home") }
+            HomeWithSettings(settings = Settings()) { Text("Home") }
         }
 
         compose.onNodeWithText("Settings").performClick()
-        compose.onNodeWithText("About").performClick()
+        compose.onNodeWithText("About").performScrollTo().performClick()
 
-        compose.onNodeWithText("Screen Budget").assertIsDisplayed()
-        compose.onNodeWithText("GNU General Public License v3.0 or later").assertIsDisplayed()
+        compose.onNodeWithText("Screen Budget").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("GNU General Public License v3.0 or later")
+            .performScrollTo()
+            .assertIsDisplayed()
         dependencyLicenses.forEach { dependency ->
             compose.onNodeWithText("${dependency.dependency}: ${dependency.license}")
                 .performScrollTo()
