@@ -19,7 +19,8 @@ elsewhere.
 
 Run `just --list` to see the available commands:
 
-- `just build` builds the unsigned release APK (also the default for `just`).
+- `just build` builds the release APK (also the default for `just`). It is
+  unsigned unless release signing is configured as described below.
 - `just debug` builds the debug APK.
 - `just test` runs the unit tests.
 - `just install` builds and installs the debug APK on a USB-connected phone
@@ -29,6 +30,30 @@ Run `just --list` to see the available commands:
 - `just clean` removes build outputs.
 
 Gradle remains the build system; you can also run `./gradlew` commands directly.
+
+### Release signing
+
+Create the release keystore once and keep it and its passwords private:
+
+```sh
+keytool -genkeypair -v -keystore release.jks -alias upload -keyalg RSA \
+  -keysize 4096 -validity 10000
+```
+
+Create a gitignored `keystore.properties` in the repository root:
+
+```properties
+storeFile=release.jks
+storePassword=your-keystore-password
+keyAlias=upload
+keyPassword=your-key-password
+```
+
+`./gradlew assembleRelease` then signs the APK with that key. CI can provide the
+same values through `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and
+`KEY_PASSWORD`; environment variables fill in any values absent from the
+properties file. With neither source configured, the release build succeeds and
+clearly reports that its APK is unsigned, as required for F-Droid builds.
 
 ### Android Studio
 
