@@ -18,12 +18,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,26 +35,36 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import ca.mattmccormick.screenbudget.data.AppRule
+import ca.mattmccormick.screenbudget.data.AppRuleDao
 import ca.mattmccormick.screenbudget.data.DayWithApps
 import ca.mattmccormick.screenbudget.data.UsageDao
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
 fun DayDetailScreen(
     dao: UsageDao,
+    appRuleDao: AppRuleDao,
     appInfoSource: AppInfoSource,
     today: LocalDate = LocalDate.now(),
     modifier: Modifier = Modifier,
 ) {
     var date by remember(today) { mutableStateOf(today.minusDays(1)) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
+    var excludedKeys by remember { mutableStateOf(emptySet<String>()) }
     var loaded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(date, dao) {
+    LaunchedEffect(date, dao, appRuleDao) {
         loaded = false
-        day = withContext(Dispatchers.IO) { dao.day(date) }
+        val (storedDay, storedExcludedKeys) = withContext(Dispatchers.IO) {
+            dao.day(date) to appRuleDao.excludedKeys().toSet()
+        }
+        day = storedDay
+        excludedKeys = storedExcludedKeys
         loaded = true
     }
 
@@ -99,7 +111,25 @@ fun DayDetailScreen(
                             val appInfo = remember(usage.appKey) {
                                 appInfoSource.resolve(usage.appKey)
                             }
-                            AppUsageRow(appInfo, usage.minutes)
+                            AppUsageRow(
+                                appInfo = appInfo,
+                                minutes = usage.minutes,
+                                excluded = usage.appKey in excludedKeys,
+                                onExcludedChange = { excluded ->
+                                    excludedKeys = if (excluded) {
+                                        excludedKeys + usage.appKey
+                                    } else {
+                                        excludedKeys - usage.appKey
+                                    }
+                                    scope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            appRuleDao.insert(
+                                                AppRule(usage.appKey, appInfo.label, excluded),
+                                            )
+                                        }
+                                    }
+                                },
+                            )
                         }
                     }
                 }
@@ -109,7 +139,12 @@ fun DayDetailScreen(
 }
 
 @Composable
-private fun AppUsageRow(appInfo: AppInfo, minutes: Int) {
+private fun AppUsageRow(
+    appInfo: AppInfo,
+    minutes: Int,
+    excluded: Boolean,
+    onExcludedChange: (Boolean) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -138,5 +173,13 @@ private fun AppUsageRow(appInfo: AppInfo, minutes: Int) {
         Spacer(Modifier.width(16.dp))
         Text(appInfo.label, modifier = Modifier.weight(1f))
         Text("$minutes min")
+        Spacer(Modifier.width(16.dp))
+        Switch(
+            checked = excluded,
+            onCheckedChange = onExcludedChange,
+            modifier = Modifier.semantics {
+                contentDescription = "Exclude ${appInfo.label}"
+            },
+        )
     }
 }

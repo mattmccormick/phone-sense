@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
                     mainContent = {
                         DayDetailScreen(
                             dao = database.usageDao(),
+                            appRuleDao = database.appRuleDao(),
                             appInfoSource = AppInfoResolver(packageManager),
                         )
                     },
