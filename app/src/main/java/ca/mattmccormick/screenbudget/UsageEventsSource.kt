@@ -6,12 +6,16 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.os.Process
 
+fun interface UsageEventSource {
+    fun events(beginMs: Long, endMs: Long): List<UsageEvent>?
+}
+
 class UsageEventsSource internal constructor(
     private val eventsQuery: UsageEventsQuery,
     private val usageAccessQuery: UsageAccessQuery,
     private val uid: Int,
     private val packageName: String,
-) {
+) : UsageEventSource {
     constructor(context: Context) : this(
         eventsQuery = AndroidUsageEventsQuery(
             context.getSystemService(UsageStatsManager::class.java),
@@ -29,7 +33,7 @@ class UsageEventsSource internal constructor(
         packageName,
     ) == AppOpsManager.MODE_ALLOWED
 
-    fun events(beginMs: Long, endMs: Long): List<UsageEvent>? =
+    override fun events(beginMs: Long, endMs: Long): List<UsageEvent>? =
         eventsQuery.queryEvents(beginMs, endMs)?.map { event ->
             UsageEvent(
                 type = event.type,
