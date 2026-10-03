@@ -44,13 +44,14 @@ fun DayDetailScreen(
     dao: UsageDao,
     appInfoSource: AppInfoSource,
     today: LocalDate = LocalDate.now(),
+    refreshKey: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     var date by remember(today) { mutableStateOf(today.minusDays(1)) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
     var loaded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(date, dao) {
+    LaunchedEffect(date, dao, refreshKey) {
         loaded = false
         day = withContext(Dispatchers.IO) { dao.day(date) }
         loaded = true

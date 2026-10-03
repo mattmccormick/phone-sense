@@ -20,6 +20,8 @@ import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDatabase
 import java.time.Instant
 import java.time.LocalDate
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Before
 import org.junit.Assert.assertTrue
@@ -94,6 +96,53 @@ class DayDetailScreenTest {
 
         compose.waitUntilAtLeastOneExists(hasText("Not collected yet"))
         compose.onNodeWithText("Not collected yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun collectionCompletionRefreshesTheDisplayedDay() {
+        val allowCollection = CountDownLatch(1)
+        val date = today.minusDays(1)
+        compose.setContent {
+            MaterialTheme {
+                ScreenBudgetApp(
+                    usageEventsSource = UsageEventsSource(
+                        eventsQuery = UsageEventsQuery { _, _ -> emptyList() },
+                        usageAccessQuery = UsageAccessQuery { _, _, _ ->
+                            android.app.AppOpsManager.MODE_ALLOWED
+                        },
+                        uid = 123,
+                        packageName = "ca.mattmccormick.screenbudget",
+                    ),
+                    launchSettings = {},
+                    collectUsage = {
+                        check(allowCollection.await(5, TimeUnit.SECONDS))
+                        database.usageDao().insert(
+                            DailyUsage(
+                                date,
+                                42,
+                                Source.COLLECTED,
+                                Instant.parse("2026-10-02T07:00:00Z"),
+                            ),
+                            emptyList(),
+                        )
+                    },
+                    mainContent = { collectionVersion ->
+                        DayDetailScreen(
+                            dao = database.usageDao(),
+                            appInfoSource = resolver,
+                            today = today,
+                            refreshKey = collectionVersion,
+                        )
+                    },
+                )
+            }
+        }
+        compose.waitUntilAtLeastOneExists(hasText("Not collected yet"))
+
+        allowCollection.countDown()
+
+        compose.waitUntilAtLeastOneExists(hasText("42 min"))
+        compose.onNodeWithText("42 min").assertIsDisplayed()
     }
 
     @Test
