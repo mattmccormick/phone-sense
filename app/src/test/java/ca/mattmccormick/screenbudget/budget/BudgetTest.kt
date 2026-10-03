@@ -1,0 +1,68 @@
+package ca.mattmccormick.screenbudget.budget
+
+import ca.mattmccormick.screenbudget.data.AppUsage
+import ca.mattmccormick.screenbudget.data.DailyUsage
+import ca.mattmccormick.screenbudget.data.Source
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class BudgetTest {
+    @Test
+    fun distractionMinutesSubtractsExcludedAppsFromTotal() {
+        val date = LocalDate.of(2026, 10, 3)
+        val day = DailyUsage(date, totalMinutes = 120, Source.COLLECTED, Instant.EPOCH)
+        val apps = listOf(
+            AppUsage(date, "com.example.reader", 35),
+            AppUsage(date, "com.example.video", 25),
+            AppUsage(date, "com.example.messages", 10),
+        )
+
+        assertEquals(
+            85,
+            distractionMinutes(day, apps, excluded = setOf("com.example.reader")),
+        )
+    }
+
+    @Test
+    fun distractionMinutesNeverReturnsLessThanZero() {
+        val date = LocalDate.of(2026, 10, 3)
+        val day = DailyUsage(date, totalMinutes = 20, Source.COLLECTED, Instant.EPOCH)
+        val apps = listOf(AppUsage(date, "com.example.reader", 25))
+
+        assertEquals(
+            0,
+            distractionMinutes(day, apps, excluded = setOf("com.example.reader")),
+        )
+    }
+
+    @Test
+    fun weekStartFindsTheMostRecentConfiguredDay() {
+        val wednesday = LocalDate.of(2026, 9, 30)
+
+        assertEquals(
+            LocalDate.of(2026, 9, 26),
+            weekStart(wednesday, DayOfWeek.SATURDAY),
+        )
+        assertEquals(
+            LocalDate.of(2026, 9, 28),
+            weekStart(wednesday, DayOfWeek.MONDAY),
+        )
+        assertEquals(
+            LocalDate.of(2026, 9, 26),
+            weekStart(LocalDate.of(2026, 9, 26), DayOfWeek.SATURDAY),
+        )
+    }
+
+    @Test
+    fun weekDaysListsAllSevenDatesFromTheWeekStart() {
+        val saturday = LocalDate.of(2026, 9, 26)
+
+        assertEquals(
+            (0L..6L).map(saturday::plusDays),
+            weekDays(saturday),
+        )
+    }
+}
