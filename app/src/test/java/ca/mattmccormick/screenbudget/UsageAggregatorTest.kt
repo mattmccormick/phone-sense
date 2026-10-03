@@ -5,6 +5,85 @@ import org.junit.Test
 
 class UsageAggregatorTest {
     @Test
+    fun hiddenPackagesAreExcludedFromPackageAndTotalUsage() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "visible.app", "Main", 1_000),
+                UsageEvent(2, "visible.app", "Main", 3_000),
+                UsageEvent(1, "hidden.app", "Main", 4_000),
+                UsageEvent(2, "hidden.app", "Main", 8_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+            hiddenPackages = setOf("hidden.app"),
+        )
+
+        assertEquals(2_000, usage.totalMillis)
+        assertEquals(mapOf("visible.app" to 2_000L), usage.perPackageMillis)
+    }
+
+    @Test
+    fun defaultHiddenPackagesAreExcludedWhenNoSetIsGiven() {
+        assertEquals(
+            setOf(
+                "com.android.systemui",
+                "com.google.android.apps.nexuslauncher",
+                "ca.mattmccormick.screenbudget",
+            ),
+            UsageAggregator.DEFAULT_HIDDEN_PACKAGES,
+        )
+
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "com.android.systemui", "SystemUI", 1_000),
+                UsageEvent(2, "com.android.systemui", "SystemUI", 3_000),
+                UsageEvent(1, "com.google.android.apps.nexuslauncher", "Launcher", 3_000),
+                UsageEvent(2, "com.google.android.apps.nexuslauncher", "Launcher", 5_000),
+                UsageEvent(1, "ca.mattmccormick.screenbudget", "MainActivity", 5_000),
+                UsageEvent(2, "ca.mattmccormick.screenbudget", "MainActivity", 7_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(0, usage.totalMillis)
+        assertEquals(emptyMap<String, Long>(), usage.perPackageMillis)
+    }
+
+    @Test
+    fun overlappingHiddenPackageDoesNotChangeVisibleUsage() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "visible.app", "Main", 1_000),
+                UsageEvent(1, "hidden.app", "Main", 2_000),
+                UsageEvent(2, "visible.app", "Main", 5_000),
+                UsageEvent(2, "hidden.app", "Main", 8_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+            hiddenPackages = setOf("hidden.app"),
+        )
+
+        assertEquals(4_000, usage.totalMillis)
+        assertEquals(mapOf("visible.app" to 4_000L), usage.perPackageMillis)
+    }
+
+    @Test
+    fun deviceEventFromHiddenPackageStillClosesVisibleUsage() {
+        val usage = UsageAggregator.aggregate(
+            events = listOf(
+                UsageEvent(1, "visible.app", "Main", 1_000),
+                UsageEvent(16, "com.android.systemui", "", 5_000),
+            ),
+            startMs = 0,
+            endMs = 10_000,
+        )
+
+        assertEquals(4_000, usage.totalMillis)
+        assertEquals(mapOf("visible.app" to 4_000L), usage.perPackageMillis)
+    }
+
+    @Test
     fun resumedUntilPausedCountsForPackage() {
         val usage = UsageAggregator.aggregate(
             events = listOf(
