@@ -303,6 +303,7 @@ class DayDetailScreenTest {
         compose.setContent {
             MaterialTheme {
                 AppNavigationShell(
+                    initialDestination = AppDestination.DAY_DETAIL,
                     dayDetail = {
                         DayDetailScreen(
                             dao = database.usageDao(),

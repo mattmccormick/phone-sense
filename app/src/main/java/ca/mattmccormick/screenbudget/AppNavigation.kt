@@ -21,6 +21,7 @@ internal enum class AppDestination(
     val route: String,
     val label: String,
 ) {
+    HOME("home", "Home"),
     DAY_DETAIL("day", "Day"),
     GOALS("goals", "Goals"),
     ;
@@ -28,20 +29,21 @@ internal enum class AppDestination(
     companion object {
         fun from(intent: Intent): AppDestination = entries.firstOrNull {
             it.route == intent.getStringExtra(EXTRA_INITIAL_DESTINATION)
-        } ?: DAY_DETAIL
+        } ?: HOME
     }
 }
 
 @Composable
 internal fun AppNavigationShell(
-    initialDestination: AppDestination = AppDestination.DAY_DETAIL,
+    initialDestination: AppDestination = AppDestination.HOME,
+    home: @Composable (onSetGoal: () -> Unit) -> Unit = {},
     dayDetail: @Composable () -> Unit,
     goals: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var route by rememberSaveable { mutableStateOf(initialDestination.route) }
     val selectedDestination = AppDestination.entries.firstOrNull { it.route == route }
-        ?: AppDestination.DAY_DETAIL
+        ?: AppDestination.HOME
 
     Scaffold(
         modifier = modifier,
@@ -59,6 +61,7 @@ internal fun AppNavigationShell(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedDestination) {
+                AppDestination.HOME -> home { route = AppDestination.GOALS.route }
                 AppDestination.DAY_DETAIL -> dayDetail()
                 AppDestination.GOALS -> goals()
             }

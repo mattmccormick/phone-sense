@@ -225,6 +225,15 @@ class MainActivity : ComponentActivity() {
                             mainContent = { currentSettings ->
                                 AppNavigationShell(
                                     initialDestination = initialDestination,
+                                    home = { openGoals ->
+                                        HomeRoute(
+                                            usageDao = database.usageDao(),
+                                            goalDao = database.goalDao(),
+                                            settings = currentSettings,
+                                            onSetGoal = openGoals,
+                                            refreshKey = collectionVersion,
+                                        )
+                                    },
                                     dayDetail = {
                                         DayDetailScreen(
                                             dao = database.usageDao(),
