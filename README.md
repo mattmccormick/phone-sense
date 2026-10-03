@@ -60,3 +60,15 @@ clearly reports that its APK is unsigned, as required for F-Droid builds.
 ### Android Studio
 
 - **Run the full app without a phone:** Create a virtual Android device in Android Studio’s **Device Manager**, select it, and click **Run**. This installs into the emulator; usage data comes from that virtual device, not your phone or computer. [Android Emulator](<https://developer.android.com/studio/run/emulator>)
+
+#### Clear emulator app storage
+
+To reset saved navigation state and all Screen Budget data, open the emulator's
+**Settings → Apps → Screen Budget → Storage & cache → Clear storage**. This also
+removes stored goals and settings and causes onboarding to appear again.
+
+The equivalent Android Debug Bridge command is:
+
+```sh
+adb shell pm clear ca.mattmccormick.screenbudget
+```
