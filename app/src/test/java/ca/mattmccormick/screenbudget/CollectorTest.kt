@@ -72,6 +72,15 @@ class CollectorTest {
     }
 
     @Test
+    fun returnsNothingToDoWhenEveryDayIsAlreadyStored() {
+        (7L downTo 1L).forEach { insert(today.minusDays(it), Source.COLLECTED) }
+
+        val result = collector(FakeUsageEventsSource { _, _ -> sampleEvents }).collect(today, zone)
+
+        assertEquals(CollectResult.NothingToDo, result)
+    }
+
+    @Test
     fun leavesAManualDayAlone() {
         val manualDate = today.minusDays(3)
         insert(manualDate, Source.MANUAL)

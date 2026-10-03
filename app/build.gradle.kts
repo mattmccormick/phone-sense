@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.work.runtime)
 
     ksp(libs.androidx.room.compiler)
 
@@ -72,4 +73,5 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.work.testing)
 }
