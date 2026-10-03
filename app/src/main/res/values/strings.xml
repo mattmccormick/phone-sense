@@ -12,6 +12,10 @@
     <string name="usage_access_needed_notification">• An alert when usage access is needed</string>
     <string name="turn_on_notifications">Turn on notifications</string>
     <string name="not_now">Not now</string>
+    <string name="schedule_onboarding_title">Choose your schedule</string>
+    <string name="week_starts_on">Week starts on</string>
+    <string name="notification_time">Notification time</string>
+    <string name="finish_onboarding">Finish</string>
     <string name="daily_budget_channel">Daily remaining budget</string>
     <string name="weekly_summary_channel">Weekly summary</string>
     <string name="goal_needed_channel">Goal needed</string>
