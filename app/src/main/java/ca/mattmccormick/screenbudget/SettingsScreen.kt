@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ca.mattmccormick.screenbudget.data.Settings
 import java.time.DayOfWeek
@@ -46,6 +47,7 @@ internal fun SettingsScreen(
     collectNow: () -> CollectResult = { CollectResult.NothingToDo },
     openUsageSettings: () -> Unit = {},
     openNotificationSettings: () -> Unit = {},
+    onAbout: () -> Unit = {},
     showTimePicker: ((LocalTime, (LocalTime) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -78,8 +80,8 @@ internal fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = onBack) { Text("Back") }
+            Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
+            Button(onClick = onBack) { Text(stringResource(R.string.back)) }
             if (!notificationsEnabled) {
                 Text("Notifications are off. Turn them on to get goal reminders.")
                 Button(onClick = openNotificationSettings) {
@@ -145,6 +147,7 @@ internal fun SettingsScreen(
                 Text("Collect now")
             }
             collectionResult?.let { Text(it) }
+            Button(onClick = onAbout) { Text(stringResource(R.string.about)) }
         }
     }
 }
@@ -170,7 +173,10 @@ internal fun HomeWithSettings(
     mainContent: @Composable (Settings) -> Unit,
 ) {
     var showingSettings by remember { mutableStateOf(false) }
-    if (showingSettings) {
+    var showingAbout by remember { mutableStateOf(false) }
+    if (showingAbout) {
+        AboutScreen(onBack = { showingAbout = false })
+    } else if (showingSettings) {
         SettingsScreen(
             settings = settings,
             hasUsageAccess = hasUsageAccess,
@@ -182,10 +188,13 @@ internal fun HomeWithSettings(
             collectNow = collectNow,
             openUsageSettings = openUsageSettings,
             openNotificationSettings = openNotificationSettings,
+            onAbout = { showingAbout = true },
         )
     } else {
         Column {
-            Button(onClick = { showingSettings = true }) { Text("Settings") }
+            Button(onClick = { showingSettings = true }) {
+                Text(stringResource(R.string.settings))
+            }
             mainContent(settings)
         }
     }
