@@ -1,11 +1,15 @@
 package ca.mattmccormick.screenbudget
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +27,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +41,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import ca.mattmccormick.screenbudget.data.Settings as AppSettings
 import ca.mattmccormick.screenbudget.data.SettingsRepository
 import ca.mattmccormick.screenbudget.data.UsageDatabase
+import kotlinx.coroutines.launch
 
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
@@ -52,9 +58,25 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
                 val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
+                val scope = rememberCoroutineScope()
+                val notificationPermission = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission(),
+                ) {}
                 ScreenBudgetApp(
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
+                    notificationOnboardingDone = settings.onboardingDone,
+                    createNotificationChannels = {
+                        NotificationChannels.create(this@MainActivity)
+                    },
+                    requestNotificationPermission = { permission ->
+                        notificationPermission.launch(permission)
+                    },
+                    completeNotificationOnboarding = { declined ->
+                        scope.launch {
+                            settingsRepository.completeNotificationOnboarding(declined)
+                        }
+                    },
                     mainContent = {
                         GoalsRoute(database.goalDao(), settings)
                     },
@@ -68,11 +90,18 @@ class MainActivity : ComponentActivity() {
 internal fun ScreenBudgetApp(
     usageEventsSource: UsageEventsSource,
     launchSettings: (Intent) -> Unit,
+    notificationOnboardingDone: Boolean = false,
+    createNotificationChannels: () -> Unit = {},
+    requestNotificationPermission: (permission: String) -> Unit = {},
+    completeNotificationOnboarding: (notificationsDeclined: Boolean) -> Unit = {},
     mainContent: @Composable () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     var hasUsageAccess by remember(usageEventsSource) {
         mutableStateOf(usageEventsSource.hasUsageAccess())
+    }
+    var notificationStepDone by remember(notificationOnboardingDone) {
+        mutableStateOf(notificationOnboardingDone)
     }
     DisposableEffect(lifecycleOwner, usageEventsSource) {
         val observer = LifecycleEventObserver { _, event ->
@@ -84,14 +113,30 @@ internal fun ScreenBudgetApp(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    if (hasUsageAccess) {
-        mainContent()
-    } else {
+    if (!hasUsageAccess) {
         UsageAccessScreen(
             onAllowUsageAccess = {
                 launchSettings(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
             },
         )
+    } else if (!notificationStepDone) {
+        NotificationOnboardingScreen(
+            onTurnOnNotifications = {
+                createNotificationChannels()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    requestNotificationPermission(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                completeNotificationOnboarding(false)
+                notificationStepDone = true
+            },
+            onNotNow = {
+                createNotificationChannels()
+                completeNotificationOnboarding(true)
+                notificationStepDone = true
+            },
+        )
+    } else {
+        mainContent()
     }
 }
 
