@@ -17,6 +17,9 @@ import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import ca.mattmccormick.screenbudget.data.Settings as AppSettings
+import java.time.DayOfWeek
+import java.time.LocalTime
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
@@ -32,6 +35,19 @@ import org.robolectric.RobolectricTestRunner
 class MainActivityTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun scheduleStepShowsValuesFromSettings() {
+        compose.setContent {
+            ScheduleOnboardingScreen(
+                settings = AppSettings(),
+                onFinish = { _, _ -> },
+            )
+        }
+
+        compose.onNodeWithText("Saturday").assertIsDisplayed()
+        compose.onNodeWithText("07:00").assertIsDisplayed()
+    }
 
     @Test
     fun existingAccessCollectsOnceInTheBackground() {
@@ -132,18 +148,19 @@ class MainActivityTest {
     }
 
     @Test
-    fun completedOnboardingSkipsUsageAccessAndNotificationScreens() {
+    fun nextLaunchWithCompletedSettingsOpensHome() {
         compose.setContent {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { true },
                 launchSettings = {},
-                notificationOnboardingDone = true,
+                settings = AppSettings(onboardingDone = true),
                 mainContent = { Text("Screen Budget") },
             )
         }
 
         compose.onNodeWithText("See your screen time").assertDoesNotExist()
         compose.onNodeWithText("Choose your notifications").assertDoesNotExist()
+        compose.onNodeWithText("Choose your schedule").assertDoesNotExist()
         compose.onNodeWithText("Screen Budget").assertIsDisplayed()
     }
 
@@ -160,7 +177,7 @@ class MainActivityTest {
                 launchSettings = {},
                 createNotificationChannels = { NotificationChannels.create(context) },
                 requestNotificationPermission = { requestedPermission = it },
-                completeNotificationOnboarding = { declined = it },
+                recordNotificationChoice = { declined = it },
                 mainContent = { Text("Screen Budget") },
             )
         }
@@ -173,7 +190,8 @@ class MainActivityTest {
             assertEquals(false, declined)
             assertChannels(notificationManager)
         }
-        compose.onNodeWithText("Screen Budget").assertIsDisplayed()
+        compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
+        compose.onNodeWithText("Screen Budget").assertDoesNotExist()
     }
 
     @Test
@@ -190,7 +208,7 @@ class MainActivityTest {
                 launchSettings = {},
                 createNotificationChannels = { NotificationChannels.create(context) },
                 requestNotificationPermission = { requestedPermission = it },
-                completeNotificationOnboarding = { completed = true },
+                recordNotificationChoice = { completed = true },
                 mainContent = { Text("Screen Budget") },
             )
         }
@@ -202,12 +220,15 @@ class MainActivityTest {
             assertTrue(completed)
             assertChannels(notificationManager)
         }
-        compose.onNodeWithText("Screen Budget").assertIsDisplayed()
+        compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
+        compose.onNodeWithText("Screen Budget").assertDoesNotExist()
     }
 
     @Test
     fun notNowCreatesFourChannelsContinuesAndRecordsDecline() {
         var declined: Boolean? = null
+        var finishedWeekStart: DayOfWeek? = null
+        var finishedNotificationTime: LocalTime? = null
         lateinit var notificationManager: NotificationManager
         compose.setContent {
             val context = LocalContext.current
@@ -216,7 +237,11 @@ class MainActivityTest {
                 usageEventsSource = fakeUsageEventsSource { true },
                 launchSettings = {},
                 createNotificationChannels = { NotificationChannels.create(context) },
-                completeNotificationOnboarding = { declined = it },
+                recordNotificationChoice = { declined = it },
+                finishOnboarding = { weekStart, notificationTime ->
+                    finishedWeekStart = weekStart
+                    finishedNotificationTime = notificationTime
+                },
                 mainContent = { Text("Screen Budget") },
             )
         }
@@ -226,6 +251,12 @@ class MainActivityTest {
         compose.runOnIdle {
             assertEquals(true, declined)
             assertChannels(notificationManager)
+        }
+        compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
+        compose.onNodeWithText("Finish").performClick()
+        compose.runOnIdle {
+            assertEquals(DayOfWeek.SATURDAY, finishedWeekStart)
+            assertEquals(LocalTime.of(7, 0), finishedNotificationTime)
         }
         compose.onNodeWithText("Screen Budget").assertIsDisplayed()
     }

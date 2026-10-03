@@ -40,10 +40,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.work.WorkManager
 import ca.mattmccormick.screenbudget.data.Settings as AppSettings
 import ca.mattmccormick.screenbudget.data.SettingsRepository
 import ca.mattmccormick.screenbudget.data.UsageDatabase
+import java.time.Clock
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -74,16 +78,26 @@ class MainActivity : ComponentActivity() {
                 ScreenBudgetApp(
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
-                    notificationOnboardingDone = settings.onboardingDone,
+                    settings = settings,
                     createNotificationChannels = {
                         NotificationChannels.create(this@MainActivity)
                     },
                     requestNotificationPermission = { permission ->
                         notificationPermission.launch(permission)
                     },
-                    completeNotificationOnboarding = { declined ->
+                    recordNotificationChoice = { declined ->
                         scope.launch {
-                            settingsRepository.completeNotificationOnboarding(declined)
+                            settingsRepository.setNotificationsDeclined(declined)
+                        }
+                    },
+                    finishOnboarding = { weekStartDay, notificationTime ->
+                        scope.launch {
+                            settingsRepository.finishOnboarding(weekStartDay, notificationTime)
+                            scheduleDailyCollection(
+                                WorkManager.getInstance(this@MainActivity),
+                                Clock.systemDefaultZone(),
+                                notificationTime,
+                            )
                         }
                     },
                     collectUsage = {
@@ -102,10 +116,11 @@ class MainActivity : ComponentActivity() {
 internal fun ScreenBudgetApp(
     usageEventsSource: UsageEventsSource,
     launchSettings: (Intent) -> Unit,
-    notificationOnboardingDone: Boolean = false,
+    settings: AppSettings = AppSettings(),
     createNotificationChannels: () -> Unit = {},
     requestNotificationPermission: (permission: String) -> Unit = {},
-    completeNotificationOnboarding: (notificationsDeclined: Boolean) -> Unit = {},
+    recordNotificationChoice: (notificationsDeclined: Boolean) -> Unit = {},
+    finishOnboarding: (DayOfWeek, LocalTime) -> Unit = { _, _ -> },
     collectUsage: () -> Unit = {},
     mainContent: @Composable (collectionVersion: Int) -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
@@ -113,8 +128,11 @@ internal fun ScreenBudgetApp(
     var hasUsageAccess by remember(usageEventsSource) {
         mutableStateOf(usageEventsSource.hasUsageAccess())
     }
-    var notificationStepDone by remember(notificationOnboardingDone) {
-        mutableStateOf(notificationOnboardingDone)
+    var notificationStepDone by remember(settings.onboardingDone) {
+        mutableStateOf(settings.onboardingDone)
+    }
+    var onboardingFinished by remember(settings.onboardingDone) {
+        mutableStateOf(settings.onboardingDone)
     }
     var collectionVersion by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner, usageEventsSource) {
@@ -146,13 +164,21 @@ internal fun ScreenBudgetApp(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     requestNotificationPermission(Manifest.permission.POST_NOTIFICATIONS)
                 }
-                completeNotificationOnboarding(false)
+                recordNotificationChoice(false)
                 notificationStepDone = true
             },
             onNotNow = {
                 createNotificationChannels()
-                completeNotificationOnboarding(true)
+                recordNotificationChoice(true)
                 notificationStepDone = true
+            },
+        )
+    } else if (!onboardingFinished) {
+        ScheduleOnboardingScreen(
+            settings = settings,
+            onFinish = { weekStartDay, notificationTime ->
+                finishOnboarding(weekStartDay, notificationTime)
+                onboardingFinished = true
             },
         )
     } else {

@@ -65,7 +65,8 @@ class SettingsRepositoryTest {
         repository.setWeekStartDay(DayOfWeek.MONDAY)
         repository.setNotificationTime(LocalTime.of(18, 45))
         repository.setReductionPercent(25)
-        repository.completeNotificationOnboarding(notificationsDeclined = true)
+        repository.setNotificationsDeclined(notificationsDeclined = true)
+        repository.finishOnboarding(DayOfWeek.MONDAY, LocalTime.of(18, 45))
 
         assertEquals(
             Settings(
@@ -74,6 +75,23 @@ class SettingsRepositoryTest {
                 reductionPercent = 25,
                 onboardingDone = true,
                 notificationsDeclined = true,
+            ),
+            repository.settings.first(),
+        )
+    }
+
+    @Test
+    fun finishingOnboardingWritesScheduleAndCompletionTogether() = runBlocking {
+        repository.finishOnboarding(
+            weekStartDay = DayOfWeek.MONDAY,
+            notificationTime = LocalTime.of(18, 45),
+        )
+
+        assertEquals(
+            Settings(
+                weekStartDay = DayOfWeek.MONDAY,
+                notificationTime = LocalTime.of(18, 45),
+                onboardingDone = true,
             ),
             repository.settings.first(),
         )

@@ -44,10 +44,15 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[REDUCTION_PERCENT] = percent }
     }
 
-    suspend fun completeNotificationOnboarding(notificationsDeclined: Boolean) {
+    suspend fun setNotificationsDeclined(notificationsDeclined: Boolean) {
+        dataStore.edit { it[NOTIFICATIONS_DECLINED] = notificationsDeclined }
+    }
+
+    suspend fun finishOnboarding(weekStartDay: DayOfWeek, notificationTime: LocalTime) {
         dataStore.edit {
+            it[WEEK_START_DAY] = weekStartDay.name
+            it[NOTIFICATION_TIME] = notificationTime.toString()
             it[ONBOARDING_DONE] = true
-            it[NOTIFICATIONS_DECLINED] = notificationsDeclined
         }
     }
 
