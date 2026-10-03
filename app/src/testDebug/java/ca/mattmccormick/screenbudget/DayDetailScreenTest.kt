@@ -5,6 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import ca.mattmccormick.screenbudget.data.AppUsage
+import ca.mattmccormick.screenbudget.data.AppRule
 import ca.mattmccormick.screenbudget.data.DailyUsage
 import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDatabase
@@ -25,10 +28,10 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
-import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -185,6 +188,7 @@ class DayDetailScreenTest {
                         packageName = "ca.mattmccormick.screenbudget",
                     ),
                     launchSettings = {},
+                    notificationOnboardingDone = true,
                     collectUsage = {
                         check(allowCollection.await(5, TimeUnit.SECONDS))
                         database.usageDao().insert(
@@ -200,6 +204,7 @@ class DayDetailScreenTest {
                     mainContent = { collectionVersion ->
                         DayDetailScreen(
                             dao = database.usageDao(),
+                            appRuleDao = database.appRuleDao(),
                             appInfoSource = resolver,
                             today = today,
                             refreshKey = collectionVersion,
@@ -242,11 +247,62 @@ class DayDetailScreenTest {
         forward.assertIsNotEnabled()
     }
 
+    @Test
+    fun tappingToggleWritesRuleAndShowsExcludedState() {
+        val date = today.minusDays(1)
+        database.usageDao().insert(
+            DailyUsage(date, 45, Source.COLLECTED, Instant.parse("2026-10-02T07:00:00Z")),
+            listOf(AppUsage(date, "com.example.reader", 45)),
+        )
+        setScreen()
+        compose.waitUntilAtLeastOneExists(hasText("Reader"), timeoutMillis = 5_000)
+
+        val toggle = compose.onNodeWithContentDescription("Exclude Reader")
+        toggle.performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            database.appRuleDao().all().isNotEmpty()
+        }
+        assertEquals(
+            listOf(AppRule("com.example.reader", "Reader", excluded = true)),
+            database.appRuleDao().all(),
+        )
+        toggle.assertIsOn()
+    }
+
+    @Test
+    fun tappingToggleAgainClearsExcludedState() {
+        val date = today.minusDays(1)
+        database.usageDao().insert(
+            DailyUsage(date, 45, Source.COLLECTED, Instant.parse("2026-10-02T07:00:00Z")),
+            listOf(AppUsage(date, "com.example.reader", 45)),
+        )
+        setScreen()
+        compose.waitUntilAtLeastOneExists(hasText("Reader"), timeoutMillis = 5_000)
+        val toggle = compose.onNodeWithContentDescription("Exclude Reader")
+        toggle.performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            database.appRuleDao().all().singleOrNull()?.excluded == true
+        }
+
+        toggle.performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            database.appRuleDao().all().singleOrNull()?.excluded == false
+        }
+        assertEquals(
+            listOf(AppRule("com.example.reader", "Reader", excluded = false)),
+            database.appRuleDao().all(),
+        )
+        toggle.assertIsOff()
+    }
+
     private fun setScreen() {
         compose.setContent {
             MaterialTheme {
                 DayDetailScreen(
                     dao = database.usageDao(),
+                    appRuleDao = database.appRuleDao(),
                     appInfoSource = resolver,
                     today = today,
                     loadDispatcher = Dispatchers.Unconfined,

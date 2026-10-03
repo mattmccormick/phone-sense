@@ -54,6 +54,7 @@ class SettingsRepositoryTest {
                 notificationTime = LocalTime.of(7, 0),
                 reductionPercent = 10,
                 onboardingDone = false,
+                notificationsDeclined = false,
             ),
             repository.settings.first(),
         )
@@ -64,7 +65,7 @@ class SettingsRepositoryTest {
         repository.setWeekStartDay(DayOfWeek.MONDAY)
         repository.setNotificationTime(LocalTime.of(18, 45))
         repository.setReductionPercent(25)
-        repository.setOnboardingDone(true)
+        repository.completeNotificationOnboarding(notificationsDeclined = true)
 
         assertEquals(
             Settings(
@@ -72,6 +73,7 @@ class SettingsRepositoryTest {
                 notificationTime = LocalTime.of(18, 45),
                 reductionPercent = 25,
                 onboardingDone = true,
+                notificationsDeclined = true,
             ),
             repository.settings.first(),
         )

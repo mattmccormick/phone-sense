@@ -15,7 +15,7 @@ class ScreenBudgetApplication : Application(), Configuration.Provider {
             UsageDatabase::class.java,
             "usage.db",
         )
-            .addMigrations(UsageDatabase.MIGRATION_1_2)
+            .addMigrations(UsageDatabase.MIGRATION_1_2, UsageDatabase.MIGRATION_2_3)
             .build()
     }
 
