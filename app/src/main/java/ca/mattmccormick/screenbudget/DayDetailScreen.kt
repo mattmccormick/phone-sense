@@ -36,6 +36,7 @@ import androidx.core.graphics.drawable.toBitmap
 import ca.mattmccormick.screenbudget.data.DayWithApps
 import ca.mattmccormick.screenbudget.data.UsageDao
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -44,15 +45,17 @@ fun DayDetailScreen(
     dao: UsageDao,
     appInfoSource: AppInfoSource,
     today: LocalDate = LocalDate.now(),
+    refreshKey: Int = 0,
+    loadDispatcher: CoroutineDispatcher = Dispatchers.IO,
     modifier: Modifier = Modifier,
 ) {
     var date by remember(today) { mutableStateOf(today.minusDays(1)) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
     var loaded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(date, dao) {
+    LaunchedEffect(date, dao, refreshKey) {
         loaded = false
-        day = withContext(Dispatchers.IO) { dao.day(date) }
+        day = withContext(loadDispatcher) { dao.day(date) }
         loaded = true
     }
 
