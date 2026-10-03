@@ -57,3 +57,15 @@ fun weeklySummary(
         recommendation = recommendedGoal(average, goal, reductionPercent, wasAchieved),
     )
 }
+
+fun remainingDailyBudget(goalMinutes: Int, usedSoFar: Int, dayIndex: Int): Int =
+    ((goalMinutes * 7 - usedSoFar) / (7 - dayIndex)).coerceAtLeast(0)
+
+fun displayBudget(goalMinutes: Int, remainingBudget: Int): Int =
+    minOf(goalMinutes, remainingBudget)
+
+fun formatHoursMinutes(minutes: Int): String {
+    val hours = minutes / 60
+    val remainingMinutes = minutes % 60
+    return "${hours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}"
+}
