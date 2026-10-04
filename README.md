@@ -24,9 +24,9 @@ Run `just --list` to see the available commands:
   unsigned unless release signing is configured as described below.
 - `just debug` builds the debug APK.
 - `just test` runs the unit tests.
-- `just emulator` launches the `Pixel_10a` virtual device in a standalone window.
-  Pass another device name with `just emulator DEVICE_NAME`. Once it boots, run
-  `just install` in another terminal to install the app.
+- `just emulator` builds the current checkout, launches the `Pixel_10a` virtual
+  device, installs that build after Android boots, and opens the app. Pass another
+  device name with `just emulator DEVICE_NAME`.
 - `just install` builds and installs the debug APK on a USB-connected phone
   with USB debugging enabled and authorized.
 - `just permissions` builds the debug APK and checks for permissions outside

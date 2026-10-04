@@ -12,9 +12,30 @@ debug: (_gradle "assembleDebug")
 # Run the unit tests.
 test: (_gradle "test")
 
-# Launch a virtual Android device in a standalone window.
-emulator device="Pixel_10a":
-    "{{android_home}}/emulator/emulator" -avd {{quote(device)}}
+# Build this worktree, launch a virtual device, install its APK, and open the app.
+emulator device="Pixel_10a": debug
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    emulator_bin="{{android_home}}/emulator/emulator"
+    adb_bin="{{android_home}}/platform-tools/adb"
+    "$emulator_bin" -avd {{quote(device)}} &
+    emulator_pid=$!
+    trap 'kill "$emulator_pid" 2>/dev/null || true' EXIT INT TERM
+
+    "$adb_bin" wait-for-device
+    boot_completed=""
+    until [[ "${boot_completed//$'\r'/}" == "1" ]]; do
+        if ! kill -0 "$emulator_pid" 2>/dev/null; then
+            wait "$emulator_pid"
+        fi
+        boot_completed="$("$adb_bin" shell getprop sys.boot_completed)"
+        sleep 1
+    done
+
+    "$adb_bin" install -r {{debug_apk}}
+    "$adb_bin" shell am start -n {{application_id}}/.MainActivity
+    wait "$emulator_pid"
 
 # Install the debug APK on a phone connected via USB (debugging
 # enabled/authorized). The release APK is unsigned and will not install.
