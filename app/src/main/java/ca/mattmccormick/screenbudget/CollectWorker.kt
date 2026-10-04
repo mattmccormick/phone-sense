@@ -18,11 +18,21 @@ fun interface DailyNotificationRunner {
     fun daily(today: LocalDate)
 }
 
+fun interface UsageAccessChecker {
+    fun hasUsageAccess(): Boolean
+}
+
+fun interface UsageAccessNotificationRunner {
+    fun usageAccessNeeded()
+}
+
 class CollectWorker internal constructor(
     appContext: Context,
     workerParameters: WorkerParameters,
     private val collector: CollectionRunner,
     private val clock: Clock,
+    private val usageAccessChecker: UsageAccessChecker,
+    private val usageAccessNotifier: UsageAccessNotificationRunner,
     private val dailyNotifier: DailyNotificationRunner,
 ) : Worker(appContext, workerParameters) {
     constructor(appContext: Context, workerParameters: WorkerParameters) : this(
@@ -30,10 +40,17 @@ class CollectWorker internal constructor(
         workerParameters,
         CollectionDependencies.collector(appContext),
         Clock.systemDefaultZone(),
+        CollectionDependencies.usageAccessChecker(appContext),
+        CollectionDependencies.usageAccessNotifier(appContext),
         CollectionDependencies.dailyNotifier(appContext),
     )
 
     override fun doWork(): Result {
+        if (!usageAccessChecker.hasUsageAccess()) {
+            usageAccessNotifier.usageAccessNeeded()
+            return Result.success()
+        }
+
         val zone = clock.zone
         val today = LocalDate.now(clock)
         return when (collector.collect(today, zone)) {
@@ -51,6 +68,14 @@ private object CollectionDependencies {
         dao = (context.applicationContext as ScreenBudgetApplication).database.usageDao(),
         source = UsageEventsSource(context),
     )
+
+    fun usageAccessChecker(context: Context): UsageAccessChecker {
+        val source = UsageEventsSource(context)
+        return UsageAccessChecker(source::hasUsageAccess)
+    }
+
+    fun usageAccessNotifier(context: Context): UsageAccessNotificationRunner =
+        UsageAccessNotificationRunner { Notifier.usageAccessNeeded(context) }
 
     fun dailyNotifier(context: Context): DailyNotificationRunner {
         val application = context.applicationContext as ScreenBudgetApplication
