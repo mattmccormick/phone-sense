@@ -57,6 +57,23 @@ class CollectWorkerTest {
     }
 
     @Test
+    fun weekStartPostsTheWeeklyNotificationInsteadOfTheDailyNotification() {
+        var dailyNotifications = 0
+        var weeklyNotifications = 0
+        val collector = CollectionRunner { _, _ -> CollectResult.NothingToDo }
+
+        worker(
+            collector = collector,
+            weekStartDay = DayOfWeek.MONDAY,
+            dailyNotifier = DailyNotificationRunner { dailyNotifications++ },
+            weeklyNotifier = WeeklyNotificationRunner { weeklyNotifications++ },
+        ).doWork()
+
+        assertEquals(0, dailyNotifications)
+        assertEquals(1, weeklyNotifications)
+    }
+
+    @Test
     fun retriesWhenTheDeviceHasNotBeenUnlocked() {
         val collector = CollectionRunner { _, _ -> CollectResult.NotUnlocked }
 
@@ -84,10 +101,10 @@ class CollectWorkerTest {
         }
         val collector = CollectionRunner { _, _ -> CollectResult.NothingToDo }
 
-        worker(collector, dailyNotifier).doWork()
+        worker(collector, dailyNotifier = dailyNotifier).doWork()
         assertEquals(1, shadowOf(notificationManager).size())
         notificationManager.cancelAll()
-        worker(collector, dailyNotifier).doWork()
+        worker(collector, dailyNotifier = dailyNotifier).doWork()
 
         assertEquals(0, shadowOf(notificationManager).size())
         database.close()
@@ -95,7 +112,9 @@ class CollectWorkerTest {
 
     private fun worker(
         collector: CollectionRunner,
+        weekStartDay: DayOfWeek = DayOfWeek.SATURDAY,
         dailyNotifier: DailyNotificationRunner = DailyNotificationRunner {},
+        weeklyNotifier: WeeklyNotificationRunner = WeeklyNotificationRunner {},
     ): CollectWorker =
         TestListenableWorkerBuilder<CollectWorker>(context)
             .setWorkerFactory(object : WorkerFactory() {
@@ -108,7 +127,9 @@ class CollectWorkerTest {
                     workerParameters,
                     collector,
                     Clock.fixed(instant, zone),
+                    weekStartDay,
                     dailyNotifier,
+                    weeklyNotifier,
                 )
             })
             .build()

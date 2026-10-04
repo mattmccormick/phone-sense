@@ -5,6 +5,7 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import ca.mattmccormick.screenbudget.data.SettingsRepository
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.first
@@ -18,19 +19,27 @@ fun interface DailyNotificationRunner {
     fun daily(today: LocalDate)
 }
 
+fun interface WeeklyNotificationRunner {
+    fun weekly(today: LocalDate)
+}
+
 class CollectWorker internal constructor(
     appContext: Context,
     workerParameters: WorkerParameters,
     private val collector: CollectionRunner,
     private val clock: Clock,
+    private val weekStartDay: DayOfWeek,
     private val dailyNotifier: DailyNotificationRunner,
+    private val weeklyNotifier: WeeklyNotificationRunner,
 ) : Worker(appContext, workerParameters) {
     constructor(appContext: Context, workerParameters: WorkerParameters) : this(
         appContext,
         workerParameters,
         CollectionDependencies.collector(appContext),
         Clock.systemDefaultZone(),
+        CollectionDependencies.settings(appContext).weekStartDay,
         CollectionDependencies.dailyNotifier(appContext),
+        CollectionDependencies.weeklyNotifier(appContext),
     )
 
     override fun doWork(): Result {
@@ -38,7 +47,11 @@ class CollectWorker internal constructor(
         val today = LocalDate.now(clock)
         return when (collector.collect(today, zone)) {
             is CollectResult.Collected, CollectResult.NothingToDo -> {
-                dailyNotifier.daily(today)
+                if (today.dayOfWeek == weekStartDay) {
+                    weeklyNotifier.weekly(today)
+                } else {
+                    dailyNotifier.daily(today)
+                }
                 Result.success()
             }
             CollectResult.NotUnlocked -> Result.retry()
@@ -60,5 +73,14 @@ private object CollectionDependencies {
             }
             Notifier.daily(context, today, settings, application.database)
         }
+    }
+
+    fun weeklyNotifier(context: Context): WeeklyNotificationRunner {
+        val application = context.applicationContext as ScreenBudgetApplication
+        return WeeklyNotificationRunnerImpl(context, settings(context), application.database)
+    }
+
+    fun settings(context: Context) = runBlocking {
+        SettingsRepository(context.settingsDataStore).settings.first()
     }
 }
