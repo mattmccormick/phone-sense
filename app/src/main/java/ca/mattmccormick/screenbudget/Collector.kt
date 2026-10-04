@@ -9,6 +9,8 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
 
+internal val USAGE_QUERY_LOOKBACK: Duration = Duration.ofHours(24)
+
 sealed interface CollectResult {
     data class Collected(val dates: List<LocalDate>) : CollectResult
     data object NothingToDo : CollectResult
@@ -35,7 +37,7 @@ class Collector(
             val start = date.atStartOfDay(zone).toInstant()
             val end = date.plusDays(1).atStartOfDay(zone).toInstant()
             val events = source.events(
-                start.minus(QUERY_LOOKBACK).toEpochMilli(),
+                start.minus(USAGE_QUERY_LOOKBACK).toEpochMilli(),
                 end.toEpochMilli(),
             ) ?: return CollectResult.NotUnlocked
             val usage = aggregate(events, start.toEpochMilli(), end.toEpochMilli())
@@ -67,6 +69,5 @@ class Collector(
     private companion object {
         const val DAYS_TO_COLLECT = 7L
         const val MILLIS_PER_MINUTE = 60_000L
-        val QUERY_LOOKBACK: Duration = Duration.ofHours(24)
     }
 }
