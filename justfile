@@ -43,13 +43,13 @@ emulator device="Pixel_10a": debug
 
     "$just_bin" wait-for-android
     "$just_bin" install
-    "$just_bin" launch
     wait "$emulator_pid"
 
 # The release APK is unsigned and will not install.
-# Build and install the debug APK on a connected Android device.
+# Build and install the debug APK, then open it on a connected Android device.
 install: debug
     "{{android_home}}/platform-tools/adb" install -r {{debug_apk}}
+    {{quote(just_executable())}} launch
 
 # Fail if the built APK declares an unexpected permission. Screen Budget needs
 # usage access for collection; this guards the manifest merge against another

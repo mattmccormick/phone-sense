@@ -31,7 +31,8 @@ Run `just --list` to see the available commands:
   device, installs that build after Android boots, and opens the app. Pass another
   device name with `just emulator DEVICE_NAME`.
 - `just wait-for-android` waits for a connected device to finish booting.
-- `just install` builds and installs the debug APK on a connected device.
+- `just install` builds and installs the debug APK on a connected device, then
+  opens the app.
 - `just launch` opens the installed app on a connected device.
 - `just permissions` builds the debug APK and checks for permissions outside
   the app's own package.
