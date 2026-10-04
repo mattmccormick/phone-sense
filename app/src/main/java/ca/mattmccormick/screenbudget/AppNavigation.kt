@@ -2,6 +2,7 @@ package ca.mattmccormick.screenbudget
 
 import android.content.Intent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -44,7 +45,7 @@ internal fun AppNavigationShell(
         ?: AppDestination.DAY_DETAIL
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar {
                 AppDestination.entries.forEach { destination ->

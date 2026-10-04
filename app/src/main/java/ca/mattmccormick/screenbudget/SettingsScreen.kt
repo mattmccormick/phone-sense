@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -248,7 +249,7 @@ internal fun HomeWithSettings(
             onAbout = { showingAbout = true },
         )
     } else {
-        Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+        Column(modifier = Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
             Button(onClick = { showingSettings = true }) {
                 Text(stringResource(R.string.settings))
             }
