@@ -228,6 +228,7 @@ class MainActivity : ComponentActivity() {
                                         HomeRoute(
                                             usageDao = database.usageDao(),
                                             goalDao = database.goalDao(),
+                                            appRuleDao = database.appRuleDao(),
                                             settings = currentSettings,
                                             onSetGoal = openGoals,
                                             refreshKey = collectionVersion,

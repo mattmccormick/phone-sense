@@ -17,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ca.mattmccormick.screenbudget.budget.displayBudget
+import ca.mattmccormick.screenbudget.budget.distractionMinutes
 import ca.mattmccormick.screenbudget.budget.formatHoursMinutes
 import ca.mattmccormick.screenbudget.budget.remainingDailyBudget
 import ca.mattmccormick.screenbudget.budget.weekStart
+import ca.mattmccormick.screenbudget.data.AppRuleDao
 import ca.mattmccormick.screenbudget.data.Goal
 import ca.mattmccormick.screenbudget.data.GoalDao
 import ca.mattmccormick.screenbudget.data.Settings
@@ -32,12 +34,14 @@ import kotlinx.coroutines.withContext
 private data class HomeData(
     val goal: Goal?,
     val usedSoFar: Int,
+    val chart: HomeChartModel,
 )
 
 @Composable
 internal fun HomeRoute(
     usageDao: UsageDao,
     goalDao: GoalDao,
+    appRuleDao: AppRuleDao,
     settings: Settings,
     onSetGoal: () -> Unit,
     modifier: Modifier = Modifier,
@@ -45,14 +49,26 @@ internal fun HomeRoute(
     refreshKey: Any? = Unit,
 ) {
     val currentWeekStart = weekStart(today, settings.weekStartDay)
-    var data by remember(usageDao, goalDao) { mutableStateOf<HomeData?>(null) }
+    var data by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeData?>(null) }
 
-    LaunchedEffect(usageDao, goalDao, currentWeekStart, today, refreshKey) {
+    LaunchedEffect(usageDao, goalDao, appRuleDao, currentWeekStart, today, refreshKey) {
         data = withContext(Dispatchers.IO) {
+            val chartStart = today.minusDays(41)
+            val firstChartWeek = weekStart(chartStart, settings.weekStartDay)
+            val days = usageDao.daysBetween(firstChartWeek, today)
+            val excluded = appRuleDao.excludedKeys().toSet()
+            val normalizedDays = days.map {
+                it.day.copy(totalMinutes = distractionMinutes(it.day, it.apps, excluded))
+            }
+            val goals = goalDao.between(
+                firstChartWeek,
+                currentWeekStart,
+            )
             HomeData(
-                goal = goalDao.forWeek(currentWeekStart),
-                usedSoFar = usageDao.daysBetween(currentWeekStart, today)
-                    .sumOf { it.day.totalMinutes },
+                goal = goals.firstOrNull { it.weekStart == currentWeekStart },
+                usedSoFar = normalizedDays.filter { it.date >= currentWeekStart }
+                    .sumOf { it.totalMinutes },
+                chart = chartModel(normalizedDays, goals, settings.weekStartDay, today),
             )
         }
     }
@@ -61,6 +77,7 @@ internal fun HomeRoute(
         HomeScreen(
             goal = it.goal,
             usedSoFar = it.usedSoFar,
+            chart = it.chart,
             settings = settings,
             onSetGoal = onSetGoal,
             modifier = modifier,
@@ -77,6 +94,12 @@ internal fun HomeScreen(
     onSetGoal: () -> Unit,
     modifier: Modifier = Modifier,
     today: LocalDate = LocalDate.now(),
+    chart: HomeChartModel = chartModel(
+        days = emptyList(),
+        goals = listOfNotNull(goal),
+        weekStartDay = settings.weekStartDay,
+        end = today,
+    ),
 ) {
     val currentWeekStart = weekStart(today, settings.weekStartDay)
     val dayIndex = ChronoUnit.DAYS.between(currentWeekStart, today).toInt()
@@ -99,5 +122,7 @@ internal fun HomeScreen(
             Text("$usedSoFar minutes used this week")
             Text("Day ${dayIndex + 1} of 7")
         }
+        Text("Last six weeks", style = MaterialTheme.typography.titleMedium)
+        HomeChart(chart)
     }
 }
