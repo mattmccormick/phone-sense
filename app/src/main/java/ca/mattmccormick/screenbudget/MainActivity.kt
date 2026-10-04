@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
                 val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
                 val scope = rememberCoroutineScope()
                 var importStatus by remember { mutableStateOf<ImportStatus?>(null) }
+                var importVersion by remember { mutableIntStateOf(0) }
                 val lifecycleOwner = LocalLifecycleOwner.current
                 var notificationsEnabled by remember {
                     mutableStateOf(notificationManager.areNotificationsEnabled())
@@ -126,7 +127,7 @@ class MainActivity : ComponentActivity() {
                 ) { uri ->
                     if (uri != null) {
                         scope.launch {
-                            importStatus = withContext(Dispatchers.IO) {
+                            val status = withContext(Dispatchers.IO) {
                                 runCatching {
                                     val encoded = contentResolver.openInputStream(uri)
                                         ?.bufferedReader()
@@ -138,6 +139,10 @@ class MainActivity : ComponentActivity() {
                                         error.message ?: "The selected file could not be imported",
                                     )
                                 }
+                            }
+                            importStatus = status
+                            if (status is ImportStatus.Success) {
+                                importVersion++
                             }
                         }
                     }
@@ -231,7 +236,7 @@ class MainActivity : ComponentActivity() {
                                             appRuleDao = database.appRuleDao(),
                                             settings = currentSettings,
                                             onSetGoal = openGoals,
-                                            refreshKey = collectionVersion,
+                                            refreshKey = collectionVersion to importVersion,
                                         )
                                     },
                                     dayDetail = {
