@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings as AndroidSettings
 import ca.mattmccormick.screenbudget.budget.WeeklySummary
 import ca.mattmccormick.screenbudget.budget.displayBudget
 import ca.mattmccormick.screenbudget.budget.distractionMinutes
@@ -19,9 +20,37 @@ import java.time.temporal.ChronoUnit
 internal object Notifier {
     private const val DAILY_NOTIFICATION_ID = 1
     internal const val WEEKLY_NOTIFICATION_ID = 2
+    private const val USAGE_ACCESS_NOTIFICATION_ID = 3
     private const val PREFERENCES = "notifications"
     private const val LAST_DAILY_NOTIFICATION = "last_daily_notification"
     private const val LAST_WEEKLY_NOTIFICATION = "last_weekly_notification"
+
+    @Synchronized
+    fun usageAccessNeeded(context: Context) {
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        if (notificationManager.activeNotifications.any {
+                it.id == USAGE_ACCESS_NOTIFICATION_ID
+            }
+        ) {
+            return
+        }
+
+        val contentIntent = PendingIntent.getActivity(
+            context,
+            USAGE_ACCESS_NOTIFICATION_ID,
+            Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = Notification.Builder(context, NotificationChannels.USAGE_ACCESS_NEEDED)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(context.getString(R.string.app_name))
+            .setContentText("Usage access is needed to collect screen time.")
+            .setContentIntent(contentIntent)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(USAGE_ACCESS_NOTIFICATION_ID, notification)
+    }
 
     @Synchronized
     fun daily(

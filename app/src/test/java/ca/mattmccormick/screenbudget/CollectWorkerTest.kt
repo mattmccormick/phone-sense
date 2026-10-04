@@ -2,6 +2,7 @@ package ca.mattmccormick.screenbudget
 
 import android.app.NotificationManager
 import android.content.Context
+import android.provider.Settings as AndroidSettings
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
@@ -17,6 +18,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -83,6 +85,59 @@ class CollectWorkerTest {
     }
 
     @Test
+    fun missingUsageAccessPostsAnAlertThatOpensUsageAccessSettings() {
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        notificationManager.cancelAll()
+        val collector = CollectionRunner { _, _ -> error("Collection should not run without access") }
+        val usageAccessNotifier = UsageAccessNotificationRunner {
+            Notifier.usageAccessNeeded(context)
+        }
+
+        worker(
+            collector = collector,
+            hasUsageAccess = UsageAccessChecker { false },
+            usageAccessNotifier = usageAccessNotifier,
+        ).doWork()
+
+        val notification = shadowOf(notificationManager).allNotifications.single()
+        assertEquals(NotificationChannels.USAGE_ACCESS_NEEDED, notification.channelId)
+        assertEquals(
+            AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS,
+            shadowOf(notification.contentIntent).savedIntent.action,
+        )
+    }
+
+    @Test
+    fun missingUsageAccessSucceedsWithoutCollecting() {
+        val collector = CollectionRunner { _, _ -> error("Collection should not run without access") }
+
+        val result = worker(
+            collector = collector,
+            hasUsageAccess = UsageAccessChecker { false },
+        ).doWork()
+
+        assertEquals(ListenableWorker.Result.success(), result)
+    }
+
+    @Test
+    fun doesNotPostTheUsageAccessAlertAgainWhileItIsShowing() {
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        notificationManager.cancelAll()
+        val collector = CollectionRunner { _, _ -> error("Collection should not run without access") }
+        val usageAccessNotifier = UsageAccessNotificationRunner {
+            Notifier.usageAccessNeeded(context)
+        }
+        val firstWorker = worker(collector, UsageAccessChecker { false }, usageAccessNotifier)
+        val secondWorker = worker(collector, UsageAccessChecker { false }, usageAccessNotifier)
+
+        firstWorker.doWork()
+        val firstNotification = shadowOf(notificationManager).allNotifications.single()
+        secondWorker.doWork()
+
+        assertSame(firstNotification, shadowOf(notificationManager).allNotifications.single())
+    }
+
+    @Test
     fun postsAtMostOneDailyNotificationWhenTheWorkerRunsTwice() {
         val database = Room.inMemoryDatabaseBuilder(context, UsageDatabase::class.java)
             .allowMainThreadQueries()
@@ -112,6 +167,8 @@ class CollectWorkerTest {
 
     private fun worker(
         collector: CollectionRunner,
+        hasUsageAccess: UsageAccessChecker = UsageAccessChecker { true },
+        usageAccessNotifier: UsageAccessNotificationRunner = UsageAccessNotificationRunner {},
         weekStartDay: DayOfWeek = DayOfWeek.SATURDAY,
         dailyNotifier: DailyNotificationRunner = DailyNotificationRunner {},
         weeklyNotifier: WeeklyNotificationRunner = WeeklyNotificationRunner {},
@@ -127,6 +184,8 @@ class CollectWorkerTest {
                     workerParameters,
                     collector,
                     Clock.fixed(instant, zone),
+                    hasUsageAccess,
+                    usageAccessNotifier,
                     weekStartDay,
                     dailyNotifier,
                     weeklyNotifier,
