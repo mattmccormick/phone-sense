@@ -24,14 +24,19 @@ Run `just --list` to see the available commands:
   unsigned unless release signing is configured as described below.
 - `just debug` builds the debug APK.
 - `just test` runs the unit tests.
+- `just emulator` launches the `Pixel_10a` virtual device in a standalone window.
+  Pass another device name with `just emulator DEVICE_NAME`. Once it boots, run
+  `just install` in another terminal to install the app.
 - `just install` builds and installs the debug APK on a USB-connected phone
   with USB debugging enabled and authorized.
 - `just permissions` builds the debug APK and checks for permissions outside
   the app's own package.
 - `just clean` removes build outputs.
 
-Gradle remains the build system. Running `./gradlew` directly uses your existing
-environment and does not perform the JDK 17 selection described above.
+Gradle remains the build system. The version-controlled
+`gradle/gradle-daemon-jvm.properties` selects JDK 17 for the Gradle daemon,
+including when running `./gradlew` directly. Install JDK 17 locally; automatic
+downloads are not configured.
 
 ### Release signing
 
@@ -58,6 +63,10 @@ properties file. With neither source configured, the release build succeeds and
 clearly reports that its APK is unsigned, as required for F-Droid builds.
 
 ### Android Studio
+
+Android Studio versions that support Gradle daemon JVM criteria use the same
+Java 17 setting when importing the project. New worktrees inherit this setting
+once their branch contains `gradle/gradle-daemon-jvm.properties`.
 
 - **Run the full app without a phone:** Create a virtual Android device in Android Studio’s **Device Manager**, select it, and click **Run**. This installs into the emulator; usage data comes from that virtual device, not your phone or computer. [Android Emulator](<https://developer.android.com/studio/run/emulator>)
 

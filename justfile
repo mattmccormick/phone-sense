@@ -12,6 +12,10 @@ debug: (_gradle "assembleDebug")
 # Run the unit tests.
 test: (_gradle "test")
 
+# Launch a virtual Android device in a standalone window.
+emulator device="Pixel_10a":
+    "{{android_home}}/emulator/emulator" -avd {{quote(device)}}
+
 # Install the debug APK on a phone connected via USB (debugging
 # enabled/authorized). The release APK is unsigned and will not install.
 # Build and install the debug APK on an authorized USB device.
