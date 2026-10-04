@@ -20,9 +20,10 @@ class AppNavigationTest {
     val compose = createComposeRule()
 
     @Test
-    fun dayDetailIsDefaultAndNavigationMovesToGoalsAndBack() {
+    fun navigationMovesFromDayDetailToGoalsAndBack() {
         compose.setContent {
             AppNavigationShell(
+                initialDestination = AppDestination.DAY_DETAIL,
                 dayDetail = { Text("Day detail screen") },
                 goals = { Text("Goals screen") },
             )
