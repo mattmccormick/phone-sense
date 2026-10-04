@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ class HomeScreenTest {
         compose.onNodeWithText("Goal 00:45").assertIsDisplayed()
         compose.onNodeWithText("101 minutes used this week").assertIsDisplayed()
         compose.onNodeWithText("Day 3 of 7").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Six-week distraction chart").assertIsDisplayed()
     }
 
     @Test
@@ -108,6 +110,7 @@ class HomeScreenTest {
             HomeRoute(
                 usageDao = database.usageDao(),
                 goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
                 today = LocalDate.of(2026, 10, 1),
                 onSetGoal = {},
