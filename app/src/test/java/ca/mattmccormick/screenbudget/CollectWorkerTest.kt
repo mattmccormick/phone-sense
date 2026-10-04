@@ -59,6 +59,23 @@ class CollectWorkerTest {
     }
 
     @Test
+    fun weekStartPostsTheWeeklyNotificationInsteadOfTheDailyNotification() {
+        var dailyNotifications = 0
+        var weeklyNotifications = 0
+        val collector = CollectionRunner { _, _ -> CollectResult.NothingToDo }
+
+        worker(
+            collector = collector,
+            weekStartDay = DayOfWeek.MONDAY,
+            dailyNotifier = DailyNotificationRunner { dailyNotifications++ },
+            weeklyNotifier = WeeklyNotificationRunner { weeklyNotifications++ },
+        ).doWork()
+
+        assertEquals(0, dailyNotifications)
+        assertEquals(1, weeklyNotifications)
+    }
+
+    @Test
     fun retriesWhenTheDeviceHasNotBeenUnlocked() {
         val collector = CollectionRunner { _, _ -> CollectResult.NotUnlocked }
 
@@ -152,7 +169,9 @@ class CollectWorkerTest {
         collector: CollectionRunner,
         hasUsageAccess: UsageAccessChecker = UsageAccessChecker { true },
         usageAccessNotifier: UsageAccessNotificationRunner = UsageAccessNotificationRunner {},
+        weekStartDay: DayOfWeek = DayOfWeek.SATURDAY,
         dailyNotifier: DailyNotificationRunner = DailyNotificationRunner {},
+        weeklyNotifier: WeeklyNotificationRunner = WeeklyNotificationRunner {},
     ): CollectWorker =
         TestListenableWorkerBuilder<CollectWorker>(context)
             .setWorkerFactory(object : WorkerFactory() {
@@ -167,7 +186,9 @@ class CollectWorkerTest {
                     Clock.fixed(instant, zone),
                     hasUsageAccess,
                     usageAccessNotifier,
+                    weekStartDay,
                     dailyNotifier,
+                    weeklyNotifier,
                 )
             })
             .build()
