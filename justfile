@@ -12,34 +12,42 @@ debug: (_gradle "assembleDebug")
 # Run the unit tests.
 test: (_gradle "test")
 
-# Build this worktree, launch a virtual device, install its APK, and open the app.
+# Wait until a connected Android device has finished booting.
+wait-for-android:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    adb_bin="{{android_home}}/platform-tools/adb"
+    "$adb_bin" wait-for-device
+    boot_completed=""
+    until [[ "${boot_completed//$'\r'/}" == "1" ]]; do
+        boot_completed="$("$adb_bin" shell getprop sys.boot_completed)"
+        sleep 1
+    done
+
+# Open Screen Budget on a connected Android device.
+launch:
+    "{{android_home}}/platform-tools/adb" shell am start \
+        -n {{application_id}}/.MainActivity
+
+# Build this worktree, start a virtual device, install the app, and open it.
 emulator device="Pixel_10a": debug
     #!/usr/bin/env bash
     set -euo pipefail
 
     emulator_bin="{{android_home}}/emulator/emulator"
-    adb_bin="{{android_home}}/platform-tools/adb"
+    just_bin={{quote(just_executable())}}
     "$emulator_bin" -avd {{quote(device)}} &
     emulator_pid=$!
     trap 'kill "$emulator_pid" 2>/dev/null || true' EXIT INT TERM
 
-    "$adb_bin" wait-for-device
-    boot_completed=""
-    until [[ "${boot_completed//$'\r'/}" == "1" ]]; do
-        if ! kill -0 "$emulator_pid" 2>/dev/null; then
-            wait "$emulator_pid"
-        fi
-        boot_completed="$("$adb_bin" shell getprop sys.boot_completed)"
-        sleep 1
-    done
-
-    "$adb_bin" install -r {{debug_apk}}
-    "$adb_bin" shell am start -n {{application_id}}/.MainActivity
+    "$just_bin" wait-for-android
+    "$just_bin" install
+    "$just_bin" launch
     wait "$emulator_pid"
 
-# Install the debug APK on a phone connected via USB (debugging
-# enabled/authorized). The release APK is unsigned and will not install.
-# Build and install the debug APK on an authorized USB device.
+# The release APK is unsigned and will not install.
+# Build and install the debug APK on a connected Android device.
 install: debug
     "{{android_home}}/platform-tools/adb" install -r {{debug_apk}}
 
