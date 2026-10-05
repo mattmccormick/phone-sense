@@ -2,6 +2,13 @@ package ca.mattmccormick.screenbudget
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -25,7 +32,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import ca.mattmccormick.screenbudget.budget.displayBudget
 import ca.mattmccormick.screenbudget.budget.distractionMinutes
-import ca.mattmccormick.screenbudget.budget.formatHoursMinutes
 import ca.mattmccormick.screenbudget.budget.remainingDailyBudget
 import ca.mattmccormick.screenbudget.budget.weekStart
 import ca.mattmccormick.screenbudget.data.AppRuleDao
@@ -173,25 +179,47 @@ internal fun HomeScreen(
     val currentWeekStart = weekStart(today, settings.weekStartDay)
     val dayIndex = ChronoUnit.DAYS.between(currentWeekStart, today).toInt()
 
+    val usedToday = chart.dailyMinutes.lastOrNull()
+    // Today's allowance is fixed against earlier days, not reduced by today's usage twice.
+    val allowance = goal?.let {
+        displayBudget(it.minutes, remainingDailyBudget(it.minutes, usedSoFar - (usedToday ?: 0), dayIndex))
+    }
+    val colors = MaterialTheme.colorScheme
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (goal == null) {
-            Button(onClick = onSetGoal) {
-                Text("Set a goal")
-            }
+            Text("This week’s goal", style = MaterialTheme.typography.titleMedium)
+            Button(onClick = onSetGoal) { Text("Set a goal") }
         } else {
-            val remaining = remainingDailyBudget(goal.minutes, usedSoFar, dayIndex)
-            val budget = displayBudget(goal.minutes, remaining)
-            Text("Today's remaining budget", style = MaterialTheme.typography.headlineMedium)
-            Text(formatHoursMinutes(budget), style = MaterialTheme.typography.displayLarge)
-            Text("Goal ${formatHoursMinutes(goal.minutes)}")
-            Text("$usedSoFar minutes used this week")
-            Text("Day ${dayIndex + 1} of 7")
+            Row(Modifier.fillMaxWidth()) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("This week’s goal", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text("${goal.minutes}", style = MaterialTheme.typography.headlineLarge)
+                    Text("min/day average", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+                Spacer(Modifier.width(20.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Daily allowance", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text("$allowance", style = MaterialTheme.typography.headlineLarge)
+                    Text("min/day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+            }
+            Text("Allowance adjusted for earlier usage this week.",
+                style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
-        Text("Last six weeks", style = MaterialTheme.typography.titleMedium)
-        HomeChart(chart)
+        HorizontalDivider(color = colors.outlineVariant)
+        HomeToday(usedToday, allowance)
+        HorizontalDivider(color = colors.outlineVariant)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Your trend", style = MaterialTheme.typography.titleLarge)
+                Text("Last 6 weeks", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+            Text("Minutes per day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            HomeChart(chart)
+        }
     }
 }

@@ -18,6 +18,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -250,7 +252,7 @@ internal fun HomeWithSettings(
         )
     } else {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
-            Button(onClick = { showingSettings = true }) {
+            TextButton(onClick = { showingSettings = true }, modifier = Modifier.align(Alignment.End)) {
                 Text(stringResource(R.string.settings))
             }
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {

@@ -60,23 +60,27 @@ class HomeScreenTest {
     }
 
     @Test
-    fun goalShowsTodaysDisplayBudgetAndWeeklyProgress() {
+    fun goalShowsFixedAllowanceAndTodaysProgress() {
         compose.setContent {
             HomeScreen(
                 goal = Goal(LocalDate.of(2026, 9, 28), 45),
                 usedSoFar = 101,
+                chart = chartModel(
+                    listOf(DailyUsage(LocalDate.of(2026, 9, 30), 10, Source.COLLECTED, Instant.EPOCH)),
+                    listOf(Goal(LocalDate.of(2026, 9, 28), 45)), DayOfWeek.MONDAY, LocalDate.of(2026, 9, 30),
+                ),
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
                 today = LocalDate.of(2026, 9, 30),
                 onSetGoal = {},
             )
         }
 
-        compose.onNodeWithText("Today's remaining budget").assertIsDisplayed()
-        compose.onNodeWithText("00:42").assertIsDisplayed()
-        compose.onNodeWithText("Goal 00:45").assertIsDisplayed()
-        compose.onNodeWithText("101 minutes used this week").assertIsDisplayed()
-        compose.onNodeWithText("Day 3 of 7").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Six-week distraction chart").assertIsDisplayed()
+        compose.onNodeWithText("This week’s goal").assertIsDisplayed()
+        compose.onNodeWithText("45").assertIsDisplayed()
+        compose.onNodeWithText("44").assertIsDisplayed()
+        compose.onNodeWithContentDescription("10 minutes used today").assertIsDisplayed()
+        compose.onNodeWithText("34 min left today").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Six-week distraction chart").assertExists()
     }
 
     @Test
@@ -130,11 +134,11 @@ class HomeScreenTest {
         }
 
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Goal 00:45").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("Daily allowance").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Goal 00:45").assertIsDisplayed()
-        compose.onNodeWithText("50 minutes used this week").assertIsDisplayed()
-        compose.onNodeWithText("Day 4 of 7").assertIsDisplayed()
+        compose.onNodeWithText("Daily allowance").assertIsDisplayed()
+        compose.onNodeWithText("Usage unavailable").assertIsDisplayed()
+        compose.onAllNodesWithText("45")[1].assertIsDisplayed()
     }
 
     @Test
@@ -179,13 +183,13 @@ class HomeScreenTest {
         compose.runOnIdle { refreshKey.intValue++ }
 
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("300 minutes used this week")
+            compose.onAllNodesWithText("300")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Goal 01:00").assertIsDisplayed()
-        compose.onNodeWithText("00:30").assertIsDisplayed()
+        compose.onNodeWithText("Daily allowance").assertIsDisplayed()
+        compose.onNodeWithText("240 min over today").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Six-week distraction chart").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Six-week distraction chart").assertExists()
     }
 
     @Test
@@ -218,10 +222,10 @@ class HomeScreenTest {
         }
 
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("120 minutes used this week")
+            compose.onAllNodesWithText("90")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("120 minutes used this week").assertIsDisplayed()
+        compose.onNodeWithText("90").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
     }
 
@@ -245,7 +249,7 @@ class HomeScreenTest {
             )
         }
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("30 minutes used this week")
+            compose.onAllNodesWithText("30")
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -253,7 +257,7 @@ class HomeScreenTest {
         compose.runOnIdle { lifecycleOwner.resume() }
 
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("50 minutes used this week")
+            compose.onAllNodesWithText("50")
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -282,7 +286,7 @@ class HomeScreenTest {
             )
         }
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("40 minutes used this week")
+            compose.onAllNodesWithText("40")
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -291,11 +295,10 @@ class HomeScreenTest {
         compose.runOnIdle { refreshKey.intValue++ }
 
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("0 minutes used this week")
+            compose.onAllNodesWithText("Usage unavailable")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Day 2 of 7").assertIsDisplayed()
-        compose.onNodeWithText("40 minutes used this week").assertDoesNotExist()
+        compose.onNodeWithText("40").assertDoesNotExist()
     }
 
     private fun snapshot(
