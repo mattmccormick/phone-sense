@@ -53,6 +53,7 @@ class CollectorTest {
         expectedDates.forEach { date ->
             val stored = database.usageDao().day(date)!!
             assertEquals(Source.COLLECTED, stored.day.source)
+            assertEquals(true, stored.day.includesAllApps)
             assertEquals(2, stored.day.totalMinutes)
             assertEquals(collectedAt, stored.day.collectedAt)
             assertEquals(listOf("reader" to 1), stored.apps.map { it.appKey to it.minutes })

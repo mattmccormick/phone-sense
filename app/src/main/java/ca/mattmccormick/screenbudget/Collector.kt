@@ -48,6 +48,7 @@ class Collector(
                     totalMinutes = usage.totalMillis.toMinutes(),
                     source = Source.COLLECTED,
                     collectedAt = clock.instant(),
+                    includesAllApps = true,
                 ),
                 usage.perPackageMillis.mapNotNull { (packageName, millis) ->
                     val minutes = millis.toMinutes()

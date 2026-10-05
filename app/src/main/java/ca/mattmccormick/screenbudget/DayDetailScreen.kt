@@ -42,6 +42,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import ca.mattmccormick.screenbudget.budget.distractionMinutes
 import ca.mattmccormick.screenbudget.data.AppRule
 import ca.mattmccormick.screenbudget.data.AppRuleDao
 import ca.mattmccormick.screenbudget.data.AppUsage
@@ -76,6 +77,7 @@ fun DayDetailScreen(
 ) {
     var date by remember(today) { mutableStateOf(today.minusDays(1)) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
+    var rules by remember { mutableStateOf(emptyList<AppRule>()) }
     var excludedKeys by remember { mutableStateOf(emptySet<String>()) }
     var loaded by remember { mutableStateOf(false) }
     var enteringManual by remember(date) { mutableStateOf(false) }
@@ -98,7 +100,7 @@ fun DayDetailScreen(
         loaded = false
         val reader = currentReader
         val previousSnapshot = snapshot
-        val (displayDay, storedExcludedKeys, refreshedSnapshot) = withContext(loadDispatcher) {
+        val (displayDay, storedRules, refreshedSnapshot) = withContext(loadDispatcher) {
             refreshMutex.withLock {
                 val result = if (date == today) reader(zone) else null
                 val current = when (result) {
@@ -113,6 +115,7 @@ fun DayDetailScreen(
                             (it.totalMillis / 60_000L).toInt(),
                             Source.COLLECTED,
                             it.capturedAt,
+                            includesAllApps = true,
                         ),
                         it.perPackageMillis.mapNotNull { (appKey, millis) ->
                             val minutes = (millis / 60_000L).toInt()
@@ -120,12 +123,13 @@ fun DayDetailScreen(
                         },
                     )
                 }
-                Triple(liveDay ?: dao.day(date), appRuleDao.excludedKeys().toSet(), current)
+                Triple(liveDay ?: dao.day(date), appRuleDao.all(), current)
             }
         }
         if (date == today) snapshot = refreshedSnapshot
         day = displayDay
-        excludedKeys = storedExcludedKeys
+        rules = storedRules
+        excludedKeys = storedRules.filter { it.excluded }.map { it.appKey }.toSet()
         loaded = true
     }
 
@@ -186,20 +190,41 @@ fun DayDetailScreen(
                     }
                 } else {
                     Text(
+                        if (storedDay.day.includesAllApps) "Total usage · all apps" else "Recorded usage",
+                        modifier = Modifier.padding(top = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
                         text = "${storedDay.day.totalMinutes} min",
-                        modifier = Modifier.padding(vertical = 24.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
                         style = MaterialTheme.typography.headlineMedium,
                     )
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    val counted = distractionMinutes(storedDay.day, storedDay.apps, excludedKeys)
+                    Text("$counted min counts toward your allowance", style = MaterialTheme.typography.bodyMedium)
+                    if (!storedDay.day.includesAllApps) {
+                        Text("Saved total; previously omitted apps cannot be restored.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text("Switch on to exclude an app from your allowance. Total usage stays the same.",
+                        modifier = Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // Include saved package rules even when an app has no recorded minutes that day.
+                    val listedApps = (storedDay.apps + rules.filterNot { it.appKey.startsWith("label:") }
+                        .map { AppUsage(date, it.appKey, 0) }).distinctBy { it.appKey }
+                    LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         items(
-                            items = storedDay.apps.sortedByDescending { it.minutes },
+                            items = listedApps.sortedByDescending { it.minutes },
                             key = { it.appKey },
                         ) { usage ->
-                            val appInfo = remember(usage.appKey) {
+                            val appInfo = remember(usage.appKey, rules) {
                                 if (usage.appKey.startsWith("label:")) {
                                     AppInfo(usage.appKey.removePrefix("label:"), null)
                                 } else {
-                                    appInfoSource.resolve(usage.appKey)
+                                    val resolved = appInfoSource.resolve(usage.appKey)
+                                    val savedLabel = rules.firstOrNull { it.appKey == usage.appKey }?.label
+                                    if (resolved.label == usage.appKey && savedLabel != null) {
+                                        resolved.copy(label = savedLabel)
+                                    } else resolved
                                 }
                             }
                             AppUsageRow(
@@ -262,7 +287,11 @@ private fun AppUsageRow(
             }
         }
         Spacer(Modifier.width(16.dp))
-        Text(appInfo.label, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text(appInfo.label)
+            Text(if (excluded) "Excluded from allowance" else "Counts toward allowance",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Text("$minutes min")
         Spacer(Modifier.width(16.dp))
         Switch(

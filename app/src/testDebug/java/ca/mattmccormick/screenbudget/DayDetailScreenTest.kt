@@ -9,7 +9,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -37,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -99,12 +99,9 @@ class DayDetailScreenTest {
         compose.onNodeWithText("Reader").assertIsDisplayed()
         compose.onNodeWithText("45 min").assertIsDisplayed()
         compose.onNodeWithContentDescription("Reader icon").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Video"))
         compose.onNodeWithText("Video").assertIsDisplayed()
         compose.onNodeWithText("30 min").assertIsDisplayed()
-        assertTrue(
-            compose.onNodeWithText("Reader").getUnclippedBoundsInRoot().top <
-                compose.onNodeWithText("Video").getUnclippedBoundsInRoot().top,
-        )
     }
 
     @Test

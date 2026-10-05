@@ -47,9 +47,11 @@ internal fun HomeToday(used: Int?, allowance: Int?) {
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(used?.toString() ?: "—", fontSize = 64.sp, lineHeight = 72.sp,
-                modifier = Modifier.semantics { contentDescription = used?.let { "$it minutes used today" } ?: "Today's usage unavailable" })
-            Text("min used", Modifier.padding(bottom = 12.dp), color = colors.onSurfaceVariant)
+                modifier = Modifier.semantics { contentDescription = used?.let { "$it minutes counted today" } ?: "Today's usage unavailable" })
+            Text("min counted", Modifier.padding(bottom = 12.dp), color = colors.onSurfaceVariant)
         }
+        Text("Toward your allowance · selected apps excluded", style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant)
         if (used != null && allowance != null) {
             Canvas(Modifier.fillMaxWidth().height(24.dp).semantics {
                 contentDescription = "$used of $allowance minutes daily allowance used"

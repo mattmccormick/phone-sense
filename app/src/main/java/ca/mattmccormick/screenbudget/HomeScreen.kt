@@ -218,7 +218,7 @@ internal fun HomeScreen(
                 Text("Your trend", style = MaterialTheme.typography.titleLarge)
                 Text("Last 6 weeks", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
-            Text("Minutes per day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text("Counted minutes per day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             HomeChart(chart)
         }
     }

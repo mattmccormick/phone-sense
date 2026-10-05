@@ -78,7 +78,7 @@ class HomeScreenTest {
         compose.onNodeWithText("This week’s goal").assertIsDisplayed()
         compose.onNodeWithText("45").assertIsDisplayed()
         compose.onNodeWithText("44").assertIsDisplayed()
-        compose.onNodeWithContentDescription("10 minutes used today").assertIsDisplayed()
+        compose.onNodeWithContentDescription("10 minutes counted today").assertIsDisplayed()
         compose.onNodeWithText("34 min left today").assertIsDisplayed()
         compose.onNodeWithContentDescription("Six-week distraction chart").assertExists()
     }
