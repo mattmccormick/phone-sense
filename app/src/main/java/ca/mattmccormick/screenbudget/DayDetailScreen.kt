@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -246,19 +245,20 @@ private fun AppUsageRow(
         Text(appInfo.label, modifier = Modifier.weight(1f))
         Text("$minutes min")
         Spacer(Modifier.width(16.dp))
-        val color = if (excluded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
-        Canvas(Modifier.size(20.dp).semantics {
+        val badgeColor = if (excluded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+        val color = if (excluded) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
+        Canvas(Modifier.size(24.dp).semantics {
             contentDescription = "${appInfo.label}: " + if (excluded) "excluded from allowance" else "included in allowance"
         }) {
-            drawCircle(color, radius = size.minDimension / 2 - 1.dp.toPx(), style = Stroke(1.5.dp.toPx()))
+            drawCircle(badgeColor)
             if (excluded) {
                 drawLine(color, Offset(size.width * 0.3f, center.y), Offset(size.width * 0.7f, center.y),
-                    strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+                    strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
             } else {
                 drawLine(color, Offset(size.width * 0.27f, size.height * 0.5f), Offset(size.width * 0.43f, size.height * 0.67f),
-                    strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+                    strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
                 drawLine(color, Offset(size.width * 0.43f, size.height * 0.67f), Offset(size.width * 0.74f, size.height * 0.34f),
-                    strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+                    strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
             }
         }
     }
