@@ -44,7 +44,7 @@ class HomeChartRenderingTest {
             end = today,
         )
         compose.setContent {
-            MaterialTheme {
+            ScreenBudgetTheme {
                 HomeChart(model, Modifier.width(320.dp))
             }
         }
@@ -60,7 +60,7 @@ class HomeChartRenderingTest {
         val hasRecentUsage = ((chartBounds.left + chartBounds.width * 3 / 4).toInt() until chartBounds.right.toInt()).any { x ->
             (chartBounds.top.toInt() until chartBounds.bottom.toInt()).any { y ->
                 val color = pixels[x, y]
-                color.red < 0.2f && color.green in 0.35f..0.55f && color.blue > 0.6f
+                color.red < 0.25f && color.green in 0.35f..0.55f && color.blue in 0.2f..0.45f
             }
         }
         assertTrue("Recent daily usage must be drawn at the right of the six-week chart", hasRecentUsage)

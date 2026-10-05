@@ -8,213 +8,127 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.format.DateTimeFormatter
-import ca.mattmccormick.screenbudget.HomeChartSeries.AVERAGE
-import ca.mattmccormick.screenbudget.HomeChartSeries.DAILY
-import ca.mattmccormick.screenbudget.HomeChartSeries.GOAL
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.CartesianDrawingContext
-import com.patrykandpatrick.vico.compose.cartesian.Zoom
-import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModel
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
-import com.patrykandpatrick.vico.compose.cartesian.data.LineCartesianLayerModel
-import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
-import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
-import com.patrykandpatrick.vico.compose.common.Fill
-import com.patrykandpatrick.vico.compose.common.ProvideVicoTheme
-import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
-import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
-import com.patrykandpatrick.vico.compose.m3.common.rememberM3VicoTheme
-
-private enum class HomeChartSeries(val label: String, val color: Color) {
-    DAILY("Usage", Color(0xFF1F77B4)),
-    GOAL("Daily Goal", Color(0xFFFF7F0E)),
-    AVERAGE("Weekly Average", Color(0xFF008000)),
-}
-
-private data class PlottedSeries(
-    val kind: HomeChartSeries,
-    val x: List<Int>,
-    val y: List<Number>,
-)
+import kotlin.math.ceil
 
 @Composable
 internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
-    val series = remember(model) { model.plottedSeries() }
-    if (series.isEmpty()) {
+    if (model.dailyMinutes.all { it == null } && model.goalMinutes.all { it == null }) {
         Text("No usage data yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
-
     val colors = MaterialTheme.colorScheme
-    val dailyPoint = LineCartesianLayer.Point(
-        component = rememberShapeComponent(Fill(DAILY.color), CircleShape),
-        size = 6.dp,
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = TextStyle(color = colors.onSurfaceVariant, fontSize = 10.sp)
+    val boundaries = (listOf(0) + model.weekBoundaryPositions + model.dates.size).distinct().sorted()
+    val currentWeek = model.weekBoundaryPositions.last()
+    val maximum = maxOf(
+        model.dailyMinutes.filterNotNull().maxOrNull() ?: 0,
+        model.goalMinutes.filterNotNull().maxOrNull() ?: 0,
+        ceil(model.weeklyAverageMinutes.filterNotNull().maxOrNull() ?: 0.0).toInt(),
     )
-    val lines = series.map {
-        when (it.kind) {
-            DAILY -> LineCartesianLayer.rememberLine(
-                fill = LineCartesianLayer.LineFill.single(Fill(DAILY.color)),
-                pointProvider = LineCartesianLayer.PointProvider.single(dailyPoint),
-            )
-            GOAL -> LineCartesianLayer.rememberLine(
-                fill = LineCartesianLayer.LineFill.single(Fill(GOAL.color)),
-                stroke = LineCartesianLayer.LineStroke.Dashed(
-                    thickness = 2.dp,
-                    dashLength = 8.dp,
-                    gapLength = 4.dp,
-                ),
-                interpolator = StepInterpolator,
-            )
-            AVERAGE -> LineCartesianLayer.rememberLine(
-                fill = LineCartesianLayer.LineFill.single(Fill(AVERAGE.color)),
-                stroke = LineCartesianLayer.LineStroke.Dashed(
-                    thickness = 2.dp,
-                    cap = StrokeCap.Round,
-                    dashLength = 2.dp,
-                    gapLength = 4.dp,
-                ),
-            )
-        }
+    val ceiling = (ceil(maximum.coerceAtLeast(60) / 60.0) * 60).toFloat()
+    val description = model.dates.indices.joinToString("; ") { index ->
+        "${model.dates[index]}: ${model.dailyMinutes[index]?.let { "$it minutes" } ?: "no usage data"}, " +
+            "goal ${model.goalMinutes[index]?.let { "$it minutes" } ?: "not set"}, " +
+            "weekly average ${model.weeklyAverageMinutes[index]?.let { "%.1f minutes".format(it) } ?: "unavailable"}"
     }
-    val vicoModel = remember(series) {
-        CartesianChartModel(
-            LineCartesianLayerModel.build {
-                series.forEach { plotted -> series(plotted.x, plotted.y) }
-            },
-        )
-    }
-    val firstBoundary = model.weekBoundaryPositions.first()
-    val boundaryPlacer = remember(firstBoundary) {
-        HorizontalAxis.ItemPlacer.aligned(
-            spacing = { 7 },
-            offset = { firstBoundary },
-        )
-    }
-
-    val dateFormatter = remember(model.dates) {
-        val format = DateTimeFormatter.ofPattern("MMM d")
-        CartesianValueFormatter { _, value, _ ->
-            model.dates.getOrNull(value.toInt())?.format(format).orEmpty()
-        }
-    }
-
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            series.forEach { ChartLegendItem(it.kind) }
+        Canvas(Modifier.fillMaxWidth().height(212.dp).semantics {
+            contentDescription = "Six-week distraction chart"
+            stateDescription = "$description. Today and this week's average are in progress."
+        }) {
+            val left = 28.dp.toPx()
+            val top = 22.dp.toPx()
+            val bottom = size.height - 25.dp.toPx()
+            val plotWidth = size.width - left - 4.dp.toPx()
+            val cell = plotWidth / model.dates.size
+            fun edge(index: Int) = left + index * cell
+            fun y(value: Number) = bottom - value.toFloat() / ceiling * (bottom - top)
+            fun label(value: String, x: Float, y: Float, centered: Boolean = false) {
+                val layout = textMeasurer.measure(value, labelStyle)
+                val start = if (centered) x - layout.size.width / 2 else x
+                drawText(layout, topLeft = Offset(start.coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f)), y))
+            }
+            val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))
+            drawRect(colors.primary.copy(alpha = 0.05f), Offset(edge(currentWeek), top),
+                Size(edge(model.dates.size) - edge(currentWeek), bottom - top))
+            label("This week", size.width - 28.dp.toPx(), 0f, centered = true)
+            listOf(0f, ceiling / 2, ceiling).forEach { value ->
+                drawLine(colors.outlineVariant, Offset(left, y(value)), Offset(size.width, y(value)))
+                label(value.toInt().toString(), 0f, y(value) - 6.dp.toPx())
+            }
+            model.weekBoundaryPositions.forEach { index ->
+                drawLine(colors.outlineVariant, Offset(edge(index), top), Offset(edge(index), bottom))
+                label(model.dates[index].format(DateTimeFormatter.ofPattern("MMM d")),
+                    edge(index), bottom + 8.dp.toPx(), centered = true)
+            }
+            model.dailyMinutes.forEachIndexed { index, value ->
+                if (value != null) {
+                    val barTop = Offset(edge(index) + cell * 0.22f, y(value))
+                    val barSize = Size(cell * 0.56f, bottom - y(value))
+                    if (index == model.dates.lastIndex) {
+                        drawRect(colors.primary, barTop, barSize, style = Stroke(1.5.dp.toPx()))
+                    } else {
+                        drawRect(colors.primary.copy(alpha = 0.15f), barTop, barSize)
+                    }
+                }
+            }
+            boundaries.zipWithNext().forEach { (start, end) ->
+                model.weeklyAverageMinutes[start]?.let { average ->
+                    drawLine(colors.secondary, Offset(edge(start), y(average)), Offset(edge(end), y(average)),
+                        strokeWidth = 2.dp.toPx(), pathEffect = if (start == currentWeek) dash else null)
+                }
+                model.goalMinutes[start]?.let { goal ->
+                    drawLine(colors.outline, Offset(edge(start), y(goal)), Offset(edge(end), y(goal)),
+                        strokeWidth = 1.5.dp.toPx(), pathEffect = dash)
+                    model.goalMinutes.getOrNull(end)?.let { next ->
+                        drawLine(colors.outline, Offset(edge(end), y(goal)), Offset(edge(end), y(next)),
+                            strokeWidth = 1.5.dp.toPx(), pathEffect = dash)
+                    }
+                }
+            }
         }
-        ProvideVicoTheme(rememberM3VicoTheme()) {
-            CartesianChartHost(
-                chart = rememberCartesianChart(
-                    rememberLineCartesianLayer(
-                        lineProvider = LineCartesianLayer.LineProvider.series(lines),
-                        rangeProvider = CartesianLayerRangeProvider.fixed(minX = 0.0, maxX = 41.0, minY = 0.0),
-                    ),
-                    startAxis = VerticalAxis.rememberStart(
-                        title = { "Minutes" },
-                        titleComponent = rememberAxisLabelComponent(),
-                        guideline = rememberLineComponent(Fill(colors.outline.copy(alpha = 0.25f))),
-                    ),
-                    bottomAxis = HorizontalAxis.rememberBottom(
-                        label = rememberAxisLabelComponent(
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = colors.onSurfaceVariant, fontSize = 10.sp,
-                            ),
-                        ),
-                        valueFormatter = dateFormatter,
-                        labelRotationDegrees = -90f,
-                        title = { "Date" },
-                        titleComponent = rememberAxisLabelComponent(),
-                        guideline = rememberLineComponent(Fill(colors.outline.copy(alpha = 0.35f))),
-                        itemPlacer = boundaryPlacer,
-                    ),
-                ),
-                model = vicoModel,
-                modifier = Modifier.fillMaxWidth().height(240.dp).semantics {
-                    contentDescription = "Six-week distraction chart"
-                },
-                scrollState = rememberVicoScrollState(scrollEnabled = false),
-                // Disabling gestures does not change the default zoom; fit all 42 days explicitly.
-                zoomState = rememberVicoZoomState(zoomEnabled = false, initialZoom = Zoom.Content),
-            )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            ChartLegend("Daily usage", bars = true)
+            ChartLegend("Weekly goal", dashed = true)
+            ChartLegend("Weekly average", average = true)
+            ChartLegend("This week · so far", average = true, dashed = true)
         }
+        Text("Outlined bar: today, still in progress", style = MaterialTheme.typography.labelSmall,
+            color = colors.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun ChartLegendItem(series: HomeChartSeries) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Canvas(Modifier.size(22.dp, 12.dp)) {
-            val effect = when (series) {
-                DAILY -> null
-                GOAL -> PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 3.dp.toPx()))
-                AVERAGE -> PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 3.dp.toPx()))
+private fun ChartLegend(label: String, bars: Boolean = false, average: Boolean = false, dashed: Boolean = false) {
+    val colors = MaterialTheme.colorScheme
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Canvas(Modifier.size(20.dp, 16.dp)) {
+            if (bars) {
+                drawRect(colors.primary.copy(alpha = 0.15f), Offset(0f, 5.dp.toPx()), Size(6.dp.toPx(), 10.dp.toPx()))
+                drawRect(colors.primary.copy(alpha = 0.15f), Offset(9.dp.toPx(), 0f), Size(6.dp.toPx(), 15.dp.toPx()))
+            } else {
+                drawLine(if (average) colors.secondary else colors.outline, Offset(0f, center.y), Offset(size.width, center.y),
+                    strokeWidth = 2.dp.toPx(), pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())) else null)
             }
-            drawLine(
-                series.color, Offset(0f, center.y), Offset(size.width, center.y),
-                strokeWidth = 2.dp.toPx(), pathEffect = effect,
-            )
-            if (series == DAILY) drawCircle(series.color, 3.dp.toPx(), center)
         }
-        Text(series.label, style = MaterialTheme.typography.labelSmall)
-    }
-}
-
-private fun HomeChartModel.plottedSeries(): List<PlottedSeries> = buildList {
-    fun appendSeries(kind: HomeChartSeries, values: List<Number?>) {
-        val points = values.mapIndexedNotNull { index, value -> value?.let { index to it } }
-        if (points.isNotEmpty()) {
-            this@buildList.add(
-                PlottedSeries(kind, points.map { it.first }, points.map { it.second }),
-            )
-        }
-    }
-    appendSeries(DAILY, dailyMinutes)
-    appendSeries(GOAL, goalMinutes)
-    appendSeries(AVERAGE, weeklyAverageMinutes)
-}
-
-private object StepInterpolator : LineCartesianLayer.Interpolator {
-    override fun interpolate(
-        context: CartesianDrawingContext,
-        path: Path,
-        points: List<Offset>,
-        visibleIndexRange: IntRange,
-    ) {
-        val first = points[visibleIndexRange.first]
-        path.moveTo(first.x, first.y)
-        for (index in (visibleIndexRange.first + 1)..visibleIndexRange.last) {
-            val point = points[index]
-            path.lineTo(point.x, points[index - 1].y)
-            path.lineTo(point.x, point.y)
-        }
+        Text(label, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
     }
 }
