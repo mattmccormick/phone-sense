@@ -1,16 +1,15 @@
 package ca.mattmccormick.screenbudget
 
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.dp
 import ca.mattmccormick.screenbudget.data.DailyUsage
 import ca.mattmccormick.screenbudget.data.Source
@@ -45,21 +44,23 @@ class HomeChartRenderingTest {
             end = today,
         )
         compose.setContent {
-            MaterialTheme(colorScheme = lightColorScheme(primary = Color.Red)) {
+            MaterialTheme {
                 HomeChart(model, Modifier.width(320.dp))
             }
         }
 
+        val chartBounds = compose.onNodeWithContentDescription("Six-week distraction chart")
+            .fetchSemanticsNode().boundsInWindow
         val pixels = compose.runOnIdle {
             val view = compose.activity.window.decorView
             Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888).also {
                 view.draw(Canvas(it))
             }.asImageBitmap().toPixelMap()
         }
-        val hasRecentUsage = (pixels.width * 3 / 4 until pixels.width).any { x ->
-            (0 until pixels.height).any { y ->
+        val hasRecentUsage = ((chartBounds.left + chartBounds.width * 3 / 4).toInt() until chartBounds.right.toInt()).any { x ->
+            (chartBounds.top.toInt() until chartBounds.bottom.toInt()).any { y ->
                 val color = pixels[x, y]
-                color.red > 0.8f && color.green < 0.2f && color.blue < 0.2f
+                color.red < 0.2f && color.green in 0.35f..0.55f && color.blue > 0.6f
             }
         }
         assertTrue("Recent daily usage must be drawn at the right of the six-week chart", hasRecentUsage)
