@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import ca.mattmccormick.screenbudget.data.DailyUsage
@@ -15,6 +16,13 @@ import ca.mattmccormick.screenbudget.data.Goal
 import ca.mattmccormick.screenbudget.data.Settings
 import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDatabase
+import ca.mattmccormick.screenbudget.export.ExportAppRule
+import ca.mattmccormick.screenbudget.export.ExportAppUsage
+import ca.mattmccormick.screenbudget.export.ExportDailyUsage
+import ca.mattmccormick.screenbudget.export.ExportDocument
+import ca.mattmccormick.screenbudget.export.ExportGoal
+import ca.mattmccormick.screenbudget.export.ImportService
+import ca.mattmccormick.screenbudget.export.encodeExport
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -123,5 +131,56 @@ class HomeScreenTest {
         compose.onNodeWithText("Goal 00:45").assertIsDisplayed()
         compose.onNodeWithText("50 minutes used this week").assertIsDisplayed()
         compose.onNodeWithText("Day 4 of 7").assertIsDisplayed()
+    }
+
+    @Test
+    fun successfulImportRefreshesAnAlreadyLoadedHomeScreen() {
+        val today = LocalDate.of(2026, 10, 1)
+        val weekStart = LocalDate.of(2026, 9, 28)
+        val refreshKey = mutableIntStateOf(0)
+        compose.setContent {
+            HomeRoute(
+                usageDao = database.usageDao(),
+                goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
+                settings = Settings(weekStartDay = DayOfWeek.MONDAY),
+                today = today,
+                onSetGoal = {},
+                refreshKey = refreshKey.intValue,
+            )
+        }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Set a goal").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Set a goal").assertIsDisplayed()
+        compose.onNodeWithText("No usage data yet").assertIsDisplayed()
+
+        ImportService(database).importJson(
+            encodeExport(
+                ExportDocument(
+                    exportedAt = "2026-10-03T18:30:00Z",
+                    weekStartDay = "MONDAY",
+                    dailyUsage = listOf(ExportDailyUsage(today.toString(), 320, "COLLECTED")),
+                    appUsage = listOf(
+                        ExportAppUsage(today.toString(), "com.example.reader", 300),
+                        ExportAppUsage(today.toString(), "com.example.system", 20),
+                    ),
+                    appRules = listOf(
+                        ExportAppRule("com.example.system", "System", excluded = true),
+                    ),
+                    goals = listOf(ExportGoal(weekStart.toString(), 60)),
+                ),
+            ),
+        )
+        compose.runOnIdle { refreshKey.intValue++ }
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("300 minutes used this week")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Goal 01:00").assertIsDisplayed()
+        compose.onNodeWithText("00:30").assertIsDisplayed()
+        compose.onNodeWithText("No usage data yet").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Six-week distraction chart").assertIsDisplayed()
     }
 }
