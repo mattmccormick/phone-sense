@@ -93,7 +93,7 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
             boundaries.zipWithNext().forEach { (start, end) ->
                 model.weeklyAverageMinutes[start]?.let { average ->
                     drawLine(colors.secondary, Offset(edge(start), y(average)), Offset(edge(end), y(average)),
-                        strokeWidth = 2.dp.toPx(), pathEffect = if (start == currentWeek) dash else null)
+                        strokeWidth = 2.dp.toPx())
                 }
                 model.goalMinutes[start]?.let { goal ->
                     drawLine(colors.outline, Offset(edge(start), y(goal)), Offset(edge(end), y(goal)),
@@ -104,12 +104,18 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
                     }
                 }
             }
+            // An open endpoint marks the provisional average without reusing the goal's dash pattern.
+            model.weeklyAverageMinutes.lastOrNull()?.let { average ->
+                val marker = Offset(edge(model.dates.lastIndex) + cell / 2, y(average))
+                drawCircle(colors.surface, 3.5.dp.toPx(), marker)
+                drawCircle(colors.secondary, 3.5.dp.toPx(), marker, style = Stroke(2.dp.toPx()))
+            }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             ChartLegend("Daily usage", bars = true)
             ChartLegend("Weekly goal", dashed = true)
             ChartLegend("Weekly average", average = true)
-            ChartLegend("This week · so far", average = true, dashed = true)
+            ChartLegend("This week · so far", average = true, provisional = true)
         }
         Text("Outlined bar: today, still in progress", style = MaterialTheme.typography.labelSmall,
             color = colors.onSurfaceVariant)
@@ -117,7 +123,7 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ChartLegend(label: String, bars: Boolean = false, average: Boolean = false, dashed: Boolean = false) {
+private fun ChartLegend(label: String, bars: Boolean = false, average: Boolean = false, dashed: Boolean = false, provisional: Boolean = false) {
     val colors = MaterialTheme.colorScheme
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Canvas(Modifier.size(20.dp, 16.dp)) {
@@ -127,6 +133,11 @@ private fun ChartLegend(label: String, bars: Boolean = false, average: Boolean =
             } else {
                 drawLine(if (average) colors.secondary else colors.outline, Offset(0f, center.y), Offset(size.width, center.y),
                     strokeWidth = 2.dp.toPx(), pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())) else null)
+                if (provisional) {
+                    val marker = Offset(size.width - 4.dp.toPx(), center.y)
+                    drawCircle(colors.surface, 3.5.dp.toPx(), marker)
+                    drawCircle(colors.secondary, 3.5.dp.toPx(), marker, style = Stroke(2.dp.toPx()))
+                }
             }
         }
         Text(label, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
