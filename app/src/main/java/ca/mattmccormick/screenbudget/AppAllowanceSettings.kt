@@ -43,24 +43,30 @@ internal fun AppAllowanceSettings(
     readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = { CurrentDayUsageSnapshotResult.Unavailable },
 ) {
     var apps by remember { mutableStateOf<List<AppRule>?>(null) }
+    var appInfos by remember { mutableStateOf(emptyMap<String, AppInfo>()) }
     var saving by remember { mutableStateOf(emptySet<String>()) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     BackHandler(onBack = onBack)
     LaunchedEffect(usageDao, appRuleDao, appInfoSource) {
+        val resolvedInfos = mutableMapOf<String, AppInfo>()
         apps = withContext(Dispatchers.IO) {
             val rules = appRuleDao.all().associateBy { it.appKey }
             val live = (readCurrentDay(ZoneId.systemDefault()) as? CurrentDayUsageSnapshotResult.Available)
                 ?.snapshot?.perPackageMillis?.keys.orEmpty()
             (usageDao.appKeys() + rules.keys + live).distinct().map { key ->
+                val info = if (key.startsWith("label:")) AppInfo(key.removePrefix("label:"), null)
+                    else appInfoSource.resolve(key)
                 val label = if (key.startsWith("label:")) key.removePrefix("label:") else {
-                    appInfoSource.resolve(key).label.let { resolved ->
+                    info.label.let { resolved ->
                         if (resolved == key) rules[key]?.label ?: resolved else resolved
                     }
                 }
+                resolvedInfos[key] = info.copy(label = label)
                 AppRule(key, label, rules[key]?.excluded ?: false)
             }.sortedBy { it.label.lowercase() }
         }
+        appInfos = resolvedInfos
     }
     Scaffold { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp),
@@ -78,6 +84,7 @@ internal fun AppAllowanceSettings(
                         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically) {
+                            AppIcon(appInfos[app.appKey] ?: AppInfo(app.label, null))
                             Text(app.label, Modifier.weight(1f))
                             Switch(
                                 checked = !app.excluded,

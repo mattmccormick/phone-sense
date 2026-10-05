@@ -1,10 +1,7 @@
 package ca.mattmccormick.screenbudget
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -35,12 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -248,25 +241,7 @@ private fun AppUsageRow(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val iconModifier = Modifier
-            .size(40.dp)
-            .semantics { contentDescription = "${appInfo.label} icon" }
-        if (appInfo.icon != null) {
-            val painter = remember(appInfo.icon) {
-                BitmapPainter(appInfo.icon.toBitmap().asImageBitmap())
-            }
-            Image(painter = painter, contentDescription = null, modifier = iconModifier)
-        } else {
-            Box(
-                modifier = iconModifier.background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape,
-                ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(appInfo.label.take(1))
-            }
-        }
+        AppIcon(appInfo)
         Spacer(Modifier.width(16.dp))
         Text(appInfo.label, modifier = Modifier.weight(1f))
         Text("$minutes min")
