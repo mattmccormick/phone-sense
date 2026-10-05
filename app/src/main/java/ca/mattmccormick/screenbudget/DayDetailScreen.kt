@@ -144,22 +144,7 @@ fun DayDetailScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Button(
-                    onClick = { date = date.minusDays(1) },
-                    modifier = Modifier.semantics { contentDescription = "Previous day" },
-                ) { Text("Back") }
-                Text(text = date.toString(), style = MaterialTheme.typography.headlineSmall)
-                Button(
-                    onClick = { date = date.plusDays(1) },
-                    enabled = date < today,
-                    modifier = Modifier.semantics { contentDescription = "Next day" },
-                ) { Text("Forward") }
-            }
+            DayDateHeading(date, today, onDateChange = { date = it })
 
             if (loaded) {
                 val storedDay = day

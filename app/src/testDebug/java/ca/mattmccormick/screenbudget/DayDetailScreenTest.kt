@@ -93,7 +93,7 @@ class DayDetailScreenTest {
             hasText("75 min"),
             timeoutMillis = 5_000,
         )
-        compose.onNodeWithText("2026-10-01").assertIsDisplayed()
+        compose.onNodeWithText(dayDateHeading(LocalDate.parse("2026-10-01"), today, java.util.Locale.getDefault())).assertIsDisplayed()
         compose.onNodeWithContentDescription("Total usage: 75 minutes").assertIsDisplayed()
         compose.onNodeWithText("Reader").assertIsDisplayed()
         compose.onNodeWithText("45 min").assertIsDisplayed()
@@ -233,10 +233,10 @@ class DayDetailScreenTest {
         setScreen()
 
         compose.onNodeWithContentDescription("Previous day").performClick()
-        compose.onNodeWithText("2026-09-30").assertIsDisplayed()
+        compose.onNodeWithText(dayDateHeading(LocalDate.parse("2026-09-30"), today, java.util.Locale.getDefault())).assertIsDisplayed()
 
         compose.onNodeWithContentDescription("Next day").performClick()
-        compose.onNodeWithText("2026-10-01").assertIsDisplayed()
+        compose.onNodeWithText(dayDateHeading(LocalDate.parse("2026-10-01"), today, java.util.Locale.getDefault())).assertIsDisplayed()
     }
 
     @Test
@@ -246,7 +246,7 @@ class DayDetailScreenTest {
         val forward = compose.onNodeWithContentDescription("Next day")
         forward.assertIsEnabled()
         forward.performClick()
-        compose.onNodeWithText("2026-10-02").assertIsDisplayed()
+        compose.onNodeWithText(dayDateHeading(LocalDate.parse("2026-10-02"), today, java.util.Locale.getDefault())).assertIsDisplayed()
         forward.assertIsNotEnabled()
     }
 
