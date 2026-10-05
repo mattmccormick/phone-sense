@@ -17,6 +17,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import ca.mattmccormick.screenbudget.data.AppUsage
@@ -26,6 +30,7 @@ import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDatabase
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -299,7 +304,88 @@ class DayDetailScreenTest {
         toggle.assertIsOff()
     }
 
-    private fun setScreen() {
+    @Test
+    fun todayShowsLiveAppsWithoutSavingAnIncompleteDay() {
+        database.appRuleDao().insert(AppRule("com.example.reader", "Reader", true))
+        var reads = 0
+        setScreen(readCurrentDay = { reads++; snapshot(75) })
+        compose.waitUntilAtLeastOneExists(hasText("Not collected yet"), 5_000)
+        assertEquals(0, reads)
+        compose.onNodeWithContentDescription("Next day").performClick()
+
+        compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
+        compose.onNodeWithText("Reader").assertIsDisplayed()
+        compose.onNodeWithText("45 min").assertIsDisplayed()
+        compose.onNodeWithText("Video").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Exclude Reader").assertIsOn()
+        compose.onNodeWithText("Enter by hand").assertDoesNotExist()
+        assertNull(database.usageDao().day(today))
+    }
+
+    @Test
+    fun returningToForegroundRefreshesTodayAndUnavailableReadsKeepSameDaySnapshot() {
+        val owner = TestLifecycleOwner()
+        var result: CurrentDayUsageSnapshotResult = snapshot(75)
+        setScreen(readCurrentDay = { result }, lifecycleOwner = owner)
+        compose.onNodeWithContentDescription("Next day").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
+
+        result = snapshot(95)
+        compose.runOnIdle { owner.resume() }
+        compose.waitUntilAtLeastOneExists(hasText("95 min"), 5_000)
+
+        result = CurrentDayUsageSnapshotResult.Unavailable
+        compose.runOnIdle { owner.resume() }
+        compose.onNodeWithText("95 min").assertIsDisplayed()
+        assertNull(database.usageDao().day(today))
+
+        compose.onNodeWithContentDescription("Previous day").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Not collected yet"), 5_000)
+        compose.onNodeWithText("95 min").assertDoesNotExist()
+    }
+
+    @Test
+    fun liveTodayReplacesStoredTotalWithoutOverwritingIt() {
+        database.usageDao().insert(DailyUsage(today, 500, Source.IMPORTED, Instant.EPOCH), emptyList())
+        setScreen(readCurrentDay = { snapshot(75) })
+        compose.onNodeWithContentDescription("Next day").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
+        compose.onNodeWithText("500 min").assertDoesNotExist()
+        assertEquals(500, database.usageDao().day(today)!!.day.totalMinutes)
+    }
+
+    @Test
+    fun snapshotForAnotherDateIsNotShownAsToday() {
+        setScreen(readCurrentDay = { snapshot(75, today.plusDays(1)) })
+        compose.onNodeWithContentDescription("Next day").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Not collected yet"), 5_000)
+        compose.onNodeWithText("75 min").assertDoesNotExist()
+    }
+
+    private fun snapshot(minutes: Int, date: LocalDate = today) =
+        CurrentDayUsageSnapshotResult.Available(
+            CurrentDayUsageSnapshot(
+                date, Instant.EPOCH, minutes * 60_000L,
+                mapOf(
+                    "com.example.reader" to 45 * 60_000L,
+                    "com.example.video" to (minutes - 45) * 60_000L,
+                ),
+            ),
+        )
+
+    private class TestLifecycleOwner : LifecycleOwner {
+        private val registry = LifecycleRegistry(this)
+        override val lifecycle: Lifecycle = registry
+        fun resume() {
+            registry.currentState = Lifecycle.State.STARTED
+            registry.currentState = Lifecycle.State.RESUMED
+        }
+    }
+
+    private fun setScreen(
+        readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = { CurrentDayUsageSnapshotResult.Unavailable },
+        lifecycleOwner: LifecycleOwner? = null,
+    ) {
         compose.setContent {
             MaterialTheme {
                 AppNavigationShell(
@@ -310,6 +396,8 @@ class DayDetailScreenTest {
                             appRuleDao = database.appRuleDao(),
                             appInfoSource = resolver,
                             today = today,
+                            readCurrentDay = readCurrentDay,
+                            lifecycleOwner = lifecycleOwner ?: LocalLifecycleOwner.current,
                             loadDispatcher = Dispatchers.Unconfined,
                         )
                     },

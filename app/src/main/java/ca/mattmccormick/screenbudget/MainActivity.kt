@@ -254,6 +254,13 @@ class MainActivity : ComponentActivity() {
                                             dao = database.usageDao(),
                                             appRuleDao = database.appRuleDao(),
                                             appInfoSource = appInfoSource,
+                                            readCurrentDay = { zone ->
+                                                if (usageEventsSource.hasUsageAccess()) {
+                                                    currentDayReader.read(zone)
+                                                } else {
+                                                    CurrentDayUsageSnapshotResult.Unavailable
+                                                }
+                                            },
                                             refreshKey = collectionVersion,
                                         )
                                     },

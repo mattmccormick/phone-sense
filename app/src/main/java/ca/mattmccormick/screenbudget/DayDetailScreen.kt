@@ -21,11 +21,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,17 +38,25 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import ca.mattmccormick.screenbudget.data.AppRule
 import ca.mattmccormick.screenbudget.data.AppRuleDao
-import ca.mattmccormick.screenbudget.data.DayWithApps
+import ca.mattmccormick.screenbudget.data.AppUsage
 import ca.mattmccormick.screenbudget.data.DailyUsage
+import ca.mattmccormick.screenbudget.data.DayWithApps
 import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDao
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -57,6 +68,11 @@ fun DayDetailScreen(
     refreshKey: Int = 0,
     loadDispatcher: CoroutineDispatcher = Dispatchers.IO,
     modifier: Modifier = Modifier,
+    readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = {
+        CurrentDayUsageSnapshotResult.Unavailable
+    },
+    zone: ZoneId = ZoneId.systemDefault(),
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     var date by remember(today) { mutableStateOf(today.minusDays(1)) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
@@ -65,12 +81,50 @@ fun DayDetailScreen(
     var enteringManual by remember(date) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(date, dao, appRuleDao, refreshKey) {
-        loaded = false
-        val (storedDay, storedExcludedKeys) = withContext(loadDispatcher) {
-            dao.day(date) to appRuleDao.excludedKeys().toSet()
+    var snapshot by remember(today) { mutableStateOf<CurrentDayUsageSnapshot?>(null) }
+    var resumeVersion by remember { mutableIntStateOf(0) }
+    val currentReader by rememberUpdatedState(readCurrentDay)
+    val refreshMutex = remember { Mutex() }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) resumeVersion++
         }
-        day = storedDay
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(date, today, dao, appRuleDao, refreshKey, resumeVersion, zone) {
+        loaded = false
+        val reader = currentReader
+        val previousSnapshot = snapshot
+        val (displayDay, storedExcludedKeys, refreshedSnapshot) = withContext(loadDispatcher) {
+            refreshMutex.withLock {
+                val result = if (date == today) reader(zone) else null
+                val current = when (result) {
+                    is CurrentDayUsageSnapshotResult.Available -> result.snapshot.takeIf { it.date == date }
+                    CurrentDayUsageSnapshotResult.Unavailable -> previousSnapshot?.takeIf { it.date == date }
+                    null -> null
+                }
+                val liveDay = current?.let {
+                    DayWithApps(
+                        DailyUsage(
+                            it.date,
+                            (it.totalMillis / 60_000L).toInt(),
+                            Source.COLLECTED,
+                            it.capturedAt,
+                        ),
+                        it.perPackageMillis.mapNotNull { (appKey, millis) ->
+                            val minutes = (millis / 60_000L).toInt()
+                            if (minutes > 0) AppUsage(it.date, appKey, minutes) else null
+                        },
+                    )
+                }
+                Triple(liveDay ?: dao.day(date), appRuleDao.excludedKeys().toSet(), current)
+            }
+        }
+        if (date == today) snapshot = refreshedSnapshot
+        day = displayDay
         excludedKeys = storedExcludedKeys
         loaded = true
     }
