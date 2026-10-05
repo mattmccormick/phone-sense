@@ -76,6 +76,9 @@ class MainActivity : ComponentActivity() {
                 val collector = remember {
                     Collector(database.usageDao(), usageEventsSource)
                 }
+                val currentDayReader = remember {
+                    CurrentDayUsageSnapshotReader(usageEventsSource)
+                }
                 val importer = remember { ImportService(database) }
                 val appInfoSource = remember { AppInfoResolver(packageManager) }
                 val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
@@ -236,6 +239,13 @@ class MainActivity : ComponentActivity() {
                                             appRuleDao = database.appRuleDao(),
                                             settings = currentSettings,
                                             onSetGoal = openGoals,
+                                            readCurrentDay = { zone ->
+                                                if (usageEventsSource.hasUsageAccess()) {
+                                                    currentDayReader.read(zone)
+                                                } else {
+                                                    CurrentDayUsageSnapshotResult.Unavailable
+                                                }
+                                            },
                                             refreshKey = collectionVersion to importVersion,
                                         )
                                     },

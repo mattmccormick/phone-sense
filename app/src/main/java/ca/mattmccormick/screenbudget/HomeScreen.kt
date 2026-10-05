@@ -8,27 +8,40 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import ca.mattmccormick.screenbudget.budget.displayBudget
 import ca.mattmccormick.screenbudget.budget.distractionMinutes
 import ca.mattmccormick.screenbudget.budget.formatHoursMinutes
 import ca.mattmccormick.screenbudget.budget.remainingDailyBudget
 import ca.mattmccormick.screenbudget.budget.weekStart
 import ca.mattmccormick.screenbudget.data.AppRuleDao
+import ca.mattmccormick.screenbudget.data.AppUsage
+import ca.mattmccormick.screenbudget.data.DailyUsage
 import ca.mattmccormick.screenbudget.data.Goal
 import ca.mattmccormick.screenbudget.data.GoalDao
 import ca.mattmccormick.screenbudget.data.Settings
+import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDao
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private data class HomeData(
@@ -45,46 +58,102 @@ internal fun HomeRoute(
     settings: Settings,
     onSetGoal: () -> Unit,
     modifier: Modifier = Modifier,
-    today: LocalDate = LocalDate.now(),
+    readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = {
+        CurrentDayUsageSnapshotResult.Unavailable
+    },
+    today: () -> LocalDate = LocalDate::now,
+    zone: ZoneId = ZoneId.systemDefault(),
     refreshKey: Any? = Unit,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
-    val currentWeekStart = weekStart(today, settings.weekStartDay)
     var data by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeData?>(null) }
+    var snapshot by remember { mutableStateOf<CurrentDayUsageSnapshot?>(null) }
+    var resumeVersion by remember { mutableIntStateOf(0) }
+    val refreshMutex = remember { Mutex() }
+    val currentReader by rememberUpdatedState(readCurrentDay)
 
-    LaunchedEffect(usageDao, goalDao, appRuleDao, currentWeekStart, today, refreshKey) {
-        data = withContext(Dispatchers.IO) {
-            val chartStart = today.minusDays(41)
-            val firstChartWeek = weekStart(chartStart, settings.weekStartDay)
-            val days = usageDao.daysBetween(firstChartWeek, today)
-            val excluded = appRuleDao.excludedKeys().toSet()
-            val normalizedDays = days.map {
-                it.day.copy(totalMinutes = distractionMinutes(it.day, it.apps, excluded))
-            }
-            val goals = goalDao.between(
-                firstChartWeek,
-                currentWeekStart,
-            )
-            HomeData(
-                goal = goals.firstOrNull { it.weekStart == currentWeekStart },
-                usedSoFar = normalizedDays.filter { it.date >= currentWeekStart }
-                    .sumOf { it.totalMinutes },
-                chart = chartModel(normalizedDays, goals, settings.weekStartDay, today),
-            )
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) resumeVersion++
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    data?.let {
+    LaunchedEffect(
+        usageDao,
+        goalDao,
+        appRuleDao,
+        settings.weekStartDay,
+        refreshKey,
+        resumeVersion,
+    ) {
+        val previousSnapshot = snapshot
+        val reader = currentReader
+        val refreshed = withContext(Dispatchers.IO) {
+            refreshMutex.withLock {
+                val result = reader(zone)
+                val refreshDate = when (result) {
+                    is CurrentDayUsageSnapshotResult.Available -> result.snapshot.date
+                    CurrentDayUsageSnapshotResult.Unavailable -> today()
+                }
+                val currentSnapshot = when {
+                    result is CurrentDayUsageSnapshotResult.Available -> result.snapshot
+                    previousSnapshot?.date == refreshDate -> previousSnapshot
+                    else -> null
+                }
+                val currentWeekStart = weekStart(refreshDate, settings.weekStartDay)
+                val chartStart = refreshDate.minusDays(41)
+                val firstChartWeek = weekStart(chartStart, settings.weekStartDay)
+                val days = usageDao.daysBetween(firstChartWeek, refreshDate)
+                val excluded = appRuleDao.excludedKeys().toSet()
+                val normalizedDays = days.map {
+                    it.day.copy(totalMinutes = distractionMinutes(it.day, it.apps, excluded))
+                }.filterNot { it.date == currentSnapshot?.date }.toMutableList()
+                currentSnapshot?.let { current ->
+                    val day = DailyUsage(
+                        current.date,
+                        current.totalMillis.toMinutes(),
+                        Source.COLLECTED,
+                        current.capturedAt,
+                    )
+                    val apps = current.perPackageMillis.map { (appKey, millis) ->
+                        AppUsage(current.date, appKey, millis.toMinutes())
+                    }
+                    normalizedDays += day.copy(
+                        totalMinutes = distractionMinutes(day, apps, excluded),
+                    )
+                }
+                val goals = goalDao.between(
+                    firstChartWeek,
+                    currentWeekStart,
+                )
+                currentSnapshot to HomeData(
+                    goal = goals.firstOrNull { it.weekStart == currentWeekStart },
+                    usedSoFar = normalizedDays.filter { it.date >= currentWeekStart }
+                        .sumOf { it.totalMinutes },
+                    chart = chartModel(normalizedDays, goals, settings.weekStartDay, refreshDate),
+                )
+            }
+        }
+        snapshot = refreshed.first
+        data = refreshed.second
+    }
+
+    data?.let { homeData ->
         HomeScreen(
-            goal = it.goal,
-            usedSoFar = it.usedSoFar,
-            chart = it.chart,
+            goal = homeData.goal,
+            usedSoFar = homeData.usedSoFar,
+            chart = homeData.chart,
             settings = settings,
             onSetGoal = onSetGoal,
             modifier = modifier,
-            today = today,
+            today = homeData.chart.dates.last(),
         )
     }
 }
+
+private fun Long.toMinutes(): Int = (this / 60_000L).toInt()
 
 @Composable
 internal fun HomeScreen(
