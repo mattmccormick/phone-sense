@@ -184,22 +184,6 @@ class MainActivity : ComponentActivity() {
                             hasUsageAccess = usageEventsSource.hasUsageAccess(),
                             notificationsEnabled =
                                 notificationsEnabled && !settings.notificationsDeclined,
-                            onWeekStartDayChange = { day ->
-                                scope.launch { settingsRepository.setWeekStartDay(day) }
-                            },
-                            onNotificationTimeChange = { time ->
-                                scope.launch {
-                                    settingsRepository.setNotificationTime(time)
-                                    scheduleDailyCollection(
-                                        WorkManager.getInstance(this@MainActivity),
-                                        Clock.systemDefaultZone(),
-                                        time,
-                                    )
-                                }
-                            },
-                            onReductionPercentChange = { percent ->
-                                scope.launch { settingsRepository.setReductionPercent(percent) }
-                            },
                             collectNow = {
                                 collector.collect(LocalDate.now(), ZoneId.systemDefault())
                             },

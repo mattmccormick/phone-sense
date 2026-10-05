@@ -1,5 +1,7 @@
 package ca.mattmccormick.screenbudget
 
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
@@ -43,7 +45,9 @@ class UsageExclusionsTest {
                     mapOf("ca.mattmccormick.screenbudget" to 90 * 60_000L, "reader" to 30 * 60_000L),
                 ))
             }
+            lateinit var back: OnBackPressedDispatcher
             compose.setContent {
+                back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
                 ScreenBudgetTheme {
                     HomeWithSettings(
                         settings = settings,
@@ -67,13 +71,13 @@ class UsageExclusionsTest {
             compose.onNodeWithContentDescription("Counted toward allowance: 30 minutes").assertIsDisplayed()
             compose.onNodeWithContentDescription("Screen Budget: excluded from allowance").assertIsDisplayed()
             compose.onNodeWithText("Settings").performClick()
-            compose.onNodeWithText("Apps counted toward allowance").performClick()
+            compose.onNodeWithText("Apps counted").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithText("Screen Budget").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("Count reader toward allowance").assertIsOn()
             compose.onNodeWithContentDescription("Count Screen Budget toward allowance").assertIsOff().performClick()
             compose.waitUntil(5_000) { "ca.mattmccormick.screenbudget" !in database.appRuleDao().excludedKeys() }
-            compose.onNodeWithText("Back").performClick()
-            compose.onNodeWithText("Back").performClick()
+            compose.runOnIdle { back.onBackPressed() }
+            compose.runOnIdle { back.onBackPressed() }
             compose.waitUntil(5_000) { compose.onAllNodesWithText("120 min").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("Total usage: 120 minutes").assertIsDisplayed()
             compose.onNodeWithContentDescription("Counted toward allowance: 120 minutes").assertIsDisplayed()

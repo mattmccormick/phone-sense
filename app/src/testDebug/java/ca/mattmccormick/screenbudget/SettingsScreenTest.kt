@@ -1,6 +1,8 @@
 package ca.mattmccormick.screenbudget
 
 import android.content.Intent
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,10 +32,12 @@ import org.robolectric.annotation.Config
 class SettingsScreenTest {
     @get:Rule
     val compose = createComposeRule()
+    private lateinit var back: OnBackPressedDispatcher
 
     @Test
     fun completedOnboardingKeepsSettingsAndNavigationUsable() {
         compose.setContent {
+            back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
             HomeWithSettings(
                 settings = Settings(onboardingDone = true),
                 mainContent = {
@@ -54,7 +58,13 @@ class SettingsScreenTest {
         compose.onNodeWithText("Day detail screen").assertIsDisplayed()
 
         compose.onNodeWithText("Settings").performClick()
-        compose.onNodeWithText("Back").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Back").assertDoesNotExist()
+        compose.onNodeWithText("Data").performClick()
+        compose.onNodeWithText("Export JSON").assertIsDisplayed()
+        compose.runOnIdle { back.onBackPressed() }
+        compose.onNodeWithText("About").assertIsDisplayed()
+        compose.runOnIdle { back.onBackPressed() }
+        compose.onNodeWithText("Day detail screen").assertIsDisplayed()
         compose.onNodeWithText("Goals").assertDoesNotExist()
     }
 
@@ -62,10 +72,8 @@ class SettingsScreenTest {
     fun exportJsonLaunchesDocumentPickerWithDatedName() {
         var launchedIntent: Intent? = null
         compose.setContent {
-            SettingsScreen(
-                settings = Settings(),
-                hasUsageAccess = true,
-                notificationsEnabled = true,
+            back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            DataSettingsScreen(
                 launchExport = { launchedIntent = it },
                 today = { LocalDate.of(2026, 10, 3) },
             )
@@ -84,10 +92,8 @@ class SettingsScreenTest {
     fun exportCsvLaunchesDocumentPickerWithDatedName() {
         var launchedIntent: Intent? = null
         compose.setContent {
-            SettingsScreen(
-                settings = Settings(),
-                hasUsageAccess = true,
-                notificationsEnabled = true,
+            back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            DataSettingsScreen(
                 launchExport = { launchedIntent = it },
                 today = { LocalDate.of(2026, 10, 3) },
             )
@@ -103,65 +109,27 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun changingNotificationTimeUsesChosenValue() {
-        var changedTime: LocalTime? = null
+    fun hiddenOptionsPreserveCurrentSettings() {
+        val original = Settings(weekStartDay = DayOfWeek.MONDAY, notificationTime = LocalTime.of(18, 45), reductionPercent = 25)
         compose.setContent {
-            SettingsScreen(
-                settings = Settings(notificationTime = LocalTime.of(7, 0)),
-                hasUsageAccess = true,
-                notificationsEnabled = true,
-                onNotificationTimeChange = {
-                    changedTime = it
-                },
-                showTimePicker = { _, onTimeChosen ->
-                    onTimeChosen(LocalTime.of(18, 45))
-                },
-            )
+            back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            HomeWithSettings(settings = original) { current ->
+                Text("${current.weekStartDay} ${current.notificationTime} ${current.reductionPercent}")
+            }
         }
-
-        compose.onNodeWithText("07:00").performClick()
-
-        compose.runOnIdle {
-            assertEquals(LocalTime.of(18, 45), changedTime)
-        }
-        compose.onNodeWithText("18:45").assertExists()
-    }
-
-    @Test
-    fun changingWeekStartDayIsReflectedOnHome() {
-        compose.setContent {
-            var settings by remember { mutableStateOf(Settings(onboardingDone = true)) }
-            HomeWithSettings(
-                settings = settings,
-                onWeekStartDayChange = { settings = settings.copy(weekStartDay = it) },
-                mainContent = { currentSettings ->
-                    Text(
-                        "Week of ${ca.mattmccormick.screenbudget.budget.weekStart(
-                            LocalDate.of(2026, 10, 1),
-                            currentSettings.weekStartDay,
-                        )}",
-                    )
-                },
-            )
-        }
-
-        compose.onNodeWithText("Week of 2026-09-26").assertExists()
         compose.onNodeWithText("Settings").performClick()
-        compose.onNodeWithText("Saturday").performClick()
-        compose.onNodeWithText("Monday").performClick()
-        compose.onNodeWithText("Back").performClick()
-
-        compose.onNodeWithText("Week of 2026-09-28").assertExists()
+        listOf("Week starts on", "Notification time", "Recommendation reduction", "Export JSON", "Import JSON", "Back")
+            .forEach { compose.onNodeWithText(it).assertDoesNotExist() }
+        compose.runOnIdle { back.onBackPressed() }
+        compose.onNodeWithText("MONDAY 18:45 25").assertIsDisplayed()
     }
 
     @Test
     fun collectNowRunsCollectorAndShowsResult() {
         val collections = AtomicInteger()
         compose.setContent {
-            SettingsScreen(
-                settings = Settings(),
-                hasUsageAccess = true,
-                notificationsEnabled = true,
+            back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            DataSettingsScreen(
                 collectNow = {
                     collections.incrementAndGet()
                     CollectResult.Collected(
@@ -185,55 +153,40 @@ class SettingsScreenTest {
         var notificationsEnabled by mutableStateOf(false)
         var settingsOpened = false
         compose.setContent {
+            back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
             SettingsScreen(
-                settings = Settings(),
                 hasUsageAccess = true,
                 notificationsEnabled = notificationsEnabled,
                 openNotificationSettings = { settingsOpened = true },
             )
         }
 
-        compose.onNodeWithText("Notifications are off. Turn them on to get goal reminders.")
+        compose.onNodeWithText("Off · turn on for goal reminders")
             .assertExists()
-        compose.onNodeWithText("Open notification settings").performClick()
+        compose.onNodeWithText("Notifications").performClick()
         compose.runOnIdle {
             assertEquals(true, settingsOpened)
             notificationsEnabled = true
         }
 
-        compose.onNodeWithText("Notifications are off. Turn them on to get goal reminders.")
+        compose.onNodeWithText("Off · turn on for goal reminders")
             .assertDoesNotExist()
     }
 
     @Test
-    fun importResultOffersWeekStartWithoutApplyingIt() {
-        var appliedDay: DayOfWeek? = null
+    fun importResultDoesNotOfferWeekStartChanges() {
         compose.setContent {
-            SettingsScreen(
-                settings = Settings(weekStartDay = DayOfWeek.SATURDAY),
-                hasUsageAccess = true,
-                notificationsEnabled = true,
-                importStatus = ImportStatus.Success(ImportResult(3, 1, DayOfWeek.MONDAY)),
-                onWeekStartDayChange = { appliedDay = it },
-            )
+            DataSettingsScreen(importStatus = ImportStatus.Success(ImportResult(3, 1, DayOfWeek.MONDAY)))
         }
-
         compose.onNodeWithText("Imported 3 days; skipped 1 collected day").assertExists()
-        compose.onNodeWithText("File week starts on Monday").assertExists()
-        compose.runOnIdle { assertEquals(null, appliedDay) }
-
-        compose.onNodeWithText("Use Monday as week start").performScrollTo().performClick()
-
-        compose.runOnIdle { assertEquals(DayOfWeek.MONDAY, appliedDay) }
+        compose.onNodeWithText("Use Monday as week start").assertDoesNotExist()
     }
 
     @Test
     fun importErrorIsShown() {
         compose.setContent {
-            SettingsScreen(
-                settings = Settings(),
-                hasUsageAccess = true,
-                notificationsEnabled = true,
+            back = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            DataSettingsScreen(
                 importStatus = ImportStatus.Error("Expected a JSON object"),
             )
         }

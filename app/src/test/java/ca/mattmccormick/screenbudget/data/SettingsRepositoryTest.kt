@@ -1,5 +1,9 @@
 package ca.mattmccormick.screenbudget.data
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -28,6 +32,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class SettingsRepositoryTest {
     private lateinit var scope: CoroutineScope
+    private lateinit var store: DataStore<Preferences>
     private lateinit var repository: SettingsRepository
 
     @Before
@@ -36,9 +41,8 @@ class SettingsRepositoryTest {
         val file = context.preferencesDataStoreFile("settings-test")
         file.delete()
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        repository = SettingsRepository(
-            PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }),
-        )
+        store = PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
+        repository = SettingsRepository(store)
     }
 
     @After
@@ -62,9 +66,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun settingsReadBackWrittenValues() = runBlocking {
-        repository.setWeekStartDay(DayOfWeek.MONDAY)
-        repository.setNotificationTime(LocalTime.of(18, 45))
-        repository.setReductionPercent(25)
+        store.edit { it[intPreferencesKey("reduction_percent")] = 25 }
         repository.setNotificationsDeclined(notificationsDeclined = true)
         repository.finishOnboarding(DayOfWeek.MONDAY, LocalTime.of(18, 45))
 
@@ -104,9 +106,9 @@ class SettingsRepositoryTest {
             repository.settings.take(2).toList(emissions)
         }
 
-        repository.setReductionPercent(15)
+        repository.setNotificationsDeclined(true)
         collection.join()
 
-        assertEquals(listOf(Settings(), Settings(reductionPercent = 15)), emissions)
+        assertEquals(listOf(Settings(), Settings(notificationsDeclined = true)), emissions)
     }
 }

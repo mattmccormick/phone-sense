@@ -32,18 +32,6 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         )
     }
 
-    suspend fun setWeekStartDay(day: DayOfWeek) {
-        dataStore.edit { it[WEEK_START_DAY] = day.name }
-    }
-
-    suspend fun setNotificationTime(time: LocalTime) {
-        dataStore.edit { it[NOTIFICATION_TIME] = time.toString() }
-    }
-
-    suspend fun setReductionPercent(percent: Int) {
-        dataStore.edit { it[REDUCTION_PERCENT] = percent }
-    }
-
     suspend fun setNotificationsDeclined(notificationsDeclined: Boolean) {
         dataStore.edit { it[NOTIFICATIONS_DECLINED] = notificationsDeclined }
     }
