@@ -17,6 +17,7 @@ import ca.mattmccormick.screenbudget.HomeChartSeries.DAILY
 import ca.mattmccormick.screenbudget.HomeChartSeries.GOAL
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.CartesianDrawingContext
+import com.patrykandpatrick.vico.compose.cartesian.Zoom
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModel
@@ -117,7 +118,8 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
                 contentDescription = "Six-week distraction chart"
             },
             scrollState = rememberVicoScrollState(scrollEnabled = false),
-            zoomState = rememberVicoZoomState(zoomEnabled = false),
+            // Disabling gestures does not change the default zoom; fit all 42 days explicitly.
+            zoomState = rememberVicoZoomState(zoomEnabled = false, initialZoom = Zoom.Content),
         )
     }
 }
