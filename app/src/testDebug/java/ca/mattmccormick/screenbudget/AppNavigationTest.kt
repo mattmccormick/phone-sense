@@ -20,30 +20,31 @@ class AppNavigationTest {
     val compose = createComposeRule()
 
     @Test
-    fun navigationMovesFromDayDetailToGoalsAndBack() {
+    fun navigationMovesBetweenHomeAndDayWithoutGoalsTab() {
         compose.setContent {
             AppNavigationShell(
                 initialDestination = AppDestination.DAY_DETAIL,
                 dayDetail = { Text("Day detail screen") },
-                goals = { Text("Goals screen") },
+                home = { Text("Home screen") },
             )
         }
 
         compose.onNodeWithText("Day detail screen").assertIsDisplayed()
-        compose.onNodeWithText("Goals screen").assertDoesNotExist()
+        compose.onNodeWithText("Home screen").assertDoesNotExist()
 
-        compose.onNodeWithText("Goals").performClick()
-        compose.onNodeWithText("Goals screen").assertIsDisplayed()
+        compose.onNodeWithText("Home").performClick()
+        compose.onNodeWithText("Goals").assertDoesNotExist()
+        compose.onNodeWithText("Home screen").assertIsDisplayed()
 
         compose.onNodeWithText("Day").performClick()
         compose.onNodeWithText("Day detail screen").assertIsDisplayed()
     }
 
     @Test
-    fun goalsIntentSelectsGoalsAsTheInitialDestination() {
+    fun legacyGoalsIntentOpensHome() {
         val intent = Intent().putExtra(
             EXTRA_INITIAL_DESTINATION,
-            AppDestination.GOALS.route,
+            "goals",
         )
         val destination = AppDestination.from(intent)
 
@@ -51,12 +52,12 @@ class AppNavigationTest {
             AppNavigationShell(
                 initialDestination = destination,
                 dayDetail = { Text("Day detail screen") },
-                goals = { Text("Goals screen") },
+                home = { Text("Home screen") },
             )
         }
 
-        assertEquals(AppDestination.GOALS, destination)
-        compose.onNodeWithText("Goals screen").assertIsDisplayed()
+        assertEquals(AppDestination.HOME, destination)
+        compose.onNodeWithText("Home screen").assertIsDisplayed()
         compose.onNodeWithText("Day detail screen").assertDoesNotExist()
     }
 }

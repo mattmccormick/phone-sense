@@ -244,13 +244,12 @@ class MainActivity : ComponentActivity() {
                             mainContent = { currentSettings ->
                                 AppNavigationShell(
                                     initialDestination = initialDestination,
-                                    home = { openGoals ->
+                                    home = {
                                         HomeRoute(
                                             usageDao = database.usageDao(),
                                             goalDao = database.goalDao(),
                                             appRuleDao = database.appRuleDao(),
                                             settings = currentSettings,
-                                            onSetGoal = openGoals,
                                             readCurrentDay = { zone ->
                                                 if (usageEventsSource.hasUsageAccess()) {
                                                     currentDayReader.read(zone)
@@ -275,9 +274,6 @@ class MainActivity : ComponentActivity() {
                                             },
                                             refreshKey = collectionVersion,
                                         )
-                                    },
-                                    goals = {
-                                        GoalsRoute(database.goalDao(), currentSettings)
                                     },
                                 )
                             },

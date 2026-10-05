@@ -68,7 +68,7 @@ internal object Notifier {
             Triple(
                 NotificationChannels.GOAL_NEEDED,
                 "Set a goal for this week.",
-                AppDestination.GOALS,
+                AppDestination.HOME,
             )
         } else {
             val excluded = database.appRuleDao().excludedKeys().toSet()

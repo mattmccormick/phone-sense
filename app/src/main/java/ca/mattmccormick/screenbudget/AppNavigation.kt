@@ -37,7 +37,6 @@ internal enum class AppDestination(
 ) {
     HOME("home", "Home"),
     DAY_DETAIL("day", "Day"),
-    GOALS("goals", "Goals"),
     ;
 
     companion object {
@@ -50,9 +49,8 @@ internal enum class AppDestination(
 @Composable
 internal fun AppNavigationShell(
     initialDestination: AppDestination = AppDestination.HOME,
-    home: @Composable (onSetGoal: () -> Unit) -> Unit = {},
+    home: @Composable () -> Unit = {},
     dayDetail: @Composable () -> Unit,
-    goals: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var dayVisit by remember { mutableIntStateOf(0) }
@@ -90,9 +88,8 @@ internal fun AppNavigationShell(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedDestination) {
-                AppDestination.HOME -> home { route = AppDestination.GOALS.route }
+                AppDestination.HOME -> home()
                 AppDestination.DAY_DETAIL -> key(dayVisit) { dayDetail() }
-                AppDestination.GOALS -> goals()
             }
         }
     }

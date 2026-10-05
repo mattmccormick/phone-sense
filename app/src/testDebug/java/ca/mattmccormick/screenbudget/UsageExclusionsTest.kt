@@ -53,12 +53,11 @@ class UsageExclusionsTest {
                     ) {
                     AppNavigationShell(
                         initialDestination = AppDestination.DAY_DETAIL,
-                        home = { onSetGoal -> HomeRoute(database.usageDao(), database.goalDao(), database.appRuleDao(),
-                            settings, onSetGoal, today = { today }, readCurrentDay = read) },
+                        home = { HomeRoute(database.usageDao(), database.goalDao(), database.appRuleDao(),
+                            settings, today = { today }, readCurrentDay = read) },
                         dayDetail = { DayDetailScreen(database.usageDao(), database.appRuleDao(),
                             AppInfoSource { AppInfo(if (it == "ca.mattmccormick.screenbudget") "Screen Budget" else it, null) },
                             today = today, readCurrentDay = read, loadDispatcher = Dispatchers.Unconfined) },
-                        goals = {},
                     )
                     }
                 }

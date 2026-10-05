@@ -377,7 +377,6 @@ class DayDetailScreenTest {
                             loadDispatcher = Dispatchers.Unconfined,
                         )
                     },
-                    goals = { Text("Goals screen") },
                 )
             }
         }

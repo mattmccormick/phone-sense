@@ -38,8 +38,8 @@ class SettingsScreenTest {
                 settings = Settings(onboardingDone = true),
                 mainContent = {
                     AppNavigationShell(
+                        home = { Text("Home screen") },
                         dayDetail = { Text("Day detail screen") },
-                        goals = { Text("Goals screen") },
                     )
                 },
             )
@@ -47,15 +47,15 @@ class SettingsScreenTest {
 
         compose.onNodeWithText("Settings").assertIsDisplayed()
         compose.onNodeWithText("Day").assertIsDisplayed()
-        compose.onNodeWithText("Goals").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Goals screen").assertIsDisplayed()
+        compose.onNodeWithText("Home").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Home screen").assertIsDisplayed()
 
         compose.onNodeWithText("Day").performClick()
         compose.onNodeWithText("Day detail screen").assertIsDisplayed()
 
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithText("Back").assertIsDisplayed().performClick()
-        compose.onNodeWithText("Goals").assertIsDisplayed()
+        compose.onNodeWithText("Goals").assertDoesNotExist()
     }
 
     @Test
@@ -136,7 +136,7 @@ class SettingsScreenTest {
                 onWeekStartDayChange = { settings = settings.copy(weekStartDay = it) },
                 mainContent = { currentSettings ->
                     Text(
-                        "Week of ${currentWeekStart(
+                        "Week of ${ca.mattmccormick.screenbudget.budget.weekStart(
                             LocalDate.of(2026, 10, 1),
                             currentSettings.weekStartDay,
                         )}",

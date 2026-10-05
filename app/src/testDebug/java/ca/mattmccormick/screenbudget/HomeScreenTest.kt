@@ -84,25 +84,12 @@ class HomeScreenTest {
     }
 
     @Test
-    fun missingGoalButtonOpensGoals() {
+    fun missingGoalShowsInlineInput() {
         compose.setContent {
-            AppNavigationShell(
-                home = { openGoals ->
-                    HomeScreen(
-                        goal = null,
-                        usedSoFar = 0,
-                        settings = Settings(),
-                        onSetGoal = openGoals,
-                    )
-                },
-                dayDetail = { Text("Day detail screen") },
-                goals = { Text("Goals screen") },
-            )
+            HomeScreen(goal = null, usedSoFar = 0, settings = Settings(), onSetGoal = {})
         }
-
-        compose.onNodeWithText("Set a goal").performClick()
-
-        compose.onNodeWithText("Goals screen").assertIsDisplayed()
+        compose.onNodeWithText("Daily average (minutes)").assertIsDisplayed()
+        compose.onNodeWithText("Set goal").assertIsDisplayed()
     }
 
     @Test
@@ -129,7 +116,6 @@ class HomeScreenTest {
                 appRuleDao = database.appRuleDao(),
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
                 today = { LocalDate.of(2026, 10, 1) },
-                onSetGoal = {},
             )
         }
 
@@ -153,15 +139,14 @@ class HomeScreenTest {
                 appRuleDao = database.appRuleDao(),
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
                 today = { today },
-                onSetGoal = {},
                 refreshKey = refreshKey.intValue,
             )
         }
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Set a goal").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("Set goal").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Set a goal").assertIsDisplayed()
-        compose.onNodeWithText("No usage data yet").assertIsDisplayed()
+        compose.onNodeWithText("Set goal").assertIsDisplayed()
+        compose.onNodeWithText("No usage data yet").assertExists()
 
         ImportService(database).importJson(
             encodeExport(
@@ -217,7 +202,6 @@ class HomeScreenTest {
                 readCurrentDay = {
                     snapshot(today, totalMinutes = 120, excludedMinutes = 30)
                 },
-                onSetGoal = {},
             )
         }
 
@@ -245,7 +229,6 @@ class HomeScreenTest {
                 today = { today },
                 readCurrentDay = { snapshot(today, currentMinutes) },
                 lifecycleOwner = lifecycleOwner,
-                onSetGoal = {},
             )
         }
         compose.waitUntil(timeoutMillis = 5_000) {
@@ -282,7 +265,6 @@ class HomeScreenTest {
                     else CurrentDayUsageSnapshotResult.Unavailable
                 },
                 refreshKey = refreshKey.intValue,
-                onSetGoal = {},
             )
         }
         compose.waitUntil(timeoutMillis = 5_000) {

@@ -86,7 +86,7 @@ class NotifierTest {
             notification.extras.getString(Notification.EXTRA_TEXT),
         )
         assertEquals(
-            AppDestination.GOALS,
+            AppDestination.HOME,
             AppDestination.from(shadowOf(notification.contentIntent).savedIntent),
         )
     }

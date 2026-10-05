@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -27,7 +28,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
-class GoalsScreenTest {
+class WeeklyGoalEntryTest {
     @get:Rule
     val compose = createComposeRule()
 
@@ -49,45 +50,53 @@ class GoalsScreenTest {
     }
 
     @Test
-    fun showsStoredGoalsAndWritesCurrentWeekUsingSettings() {
-        goalDao.insert(Goal(LocalDate.of(2026, 9, 26), 45))
-        goalDao.insert(Goal(LocalDate.of(2026, 9, 19), 50))
+    fun newWeekPromptsOnHomeAndSavingPreservesPreviousGoal() {
+        val previousWeek = LocalDate.of(2026, 9, 28)
+        val newWeek = previousWeek.plusWeeks(1)
+        goalDao.insert(Goal(previousWeek, 45))
+        var today = newWeek.minusDays(1)
+        val refresh = androidx.compose.runtime.mutableIntStateOf(0)
         compose.setContent {
             AppNavigationShell(
-                initialDestination = AppDestination.GOALS,
-                dayDetail = { Text("Day detail screen") },
-                goals = {
-                    GoalsRoute(
-                        goalDao = goalDao,
-                        settings = Settings(weekStartDay = DayOfWeek.MONDAY),
-                        today = LocalDate.of(2026, 10, 1),
-                    )
+                home = {
+                    HomeRoute(database.usageDao(), goalDao, database.appRuleDao(),
+                        Settings(weekStartDay = DayOfWeek.MONDAY),
+                        today = { today }, refreshKey = refresh.intValue)
                 },
+                dayDetail = { Text("Day detail screen") },
             )
         }
-
-        compose.onNodeWithText("2026-09-26: 45 minutes").assertIsDisplayed()
-        compose.onNodeWithText("2026-09-19: 50 minutes").assertIsDisplayed()
-        compose.onNodeWithText("Daily minutes").performTextInput("35")
-        compose.onNodeWithText("Set goal").performClick()
-
-        compose.waitUntil {
-            goalDao.forWeek(LocalDate.of(2026, 9, 28)) != null
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Daily allowance").fetchSemanticsNodes().isNotEmpty()
         }
-        assertEquals(
-            Goal(LocalDate.of(2026, 9, 28), 35),
-            goalDao.forWeek(LocalDate.of(2026, 9, 28)),
-        )
+        compose.onNodeWithText("Daily average (minutes)").assertDoesNotExist()
+        compose.onNodeWithText("Goals").assertDoesNotExist()
+        compose.runOnIdle { today = newWeek; refresh.intValue++ }
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Set goal").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Daily average (minutes)").performTextInput("35")
+        compose.onNodeWithText("Set goal").performClick()
+        compose.waitUntil(5_000) { goalDao.forWeek(newWeek) != null }
+        assertEquals(Goal(newWeek, 35), goalDao.forWeek(newWeek))
+        assertEquals(Goal(previousWeek, 45), goalDao.forWeek(previousWeek))
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Daily allowance").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Set goal").assertDoesNotExist()
         compose.onNodeWithText("Day").performClick()
-        compose.onNodeWithText("Goals").performClick()
-        compose.onNodeWithText("2026-09-28: 35 minutes").assertIsDisplayed()
+        compose.onNodeWithText("Home").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Daily allowance").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Set goal").assertDoesNotExist()
     }
 
     @Test
     fun blankMinutesAreRefused() {
         var writtenGoal: Goal? = null
         compose.setContent {
-            GoalsScreen(emptyList(), Settings(), { writtenGoal = it })
+            WeeklyGoalEntry(LocalDate.of(2026, 10, 5), { writtenGoal = it })
         }
 
         compose.onNodeWithText("Set goal").performClick()
@@ -100,10 +109,10 @@ class GoalsScreenTest {
     fun zeroMinutesAreRefused() {
         var writtenGoal: Goal? = null
         compose.setContent {
-            GoalsScreen(emptyList(), Settings(), { writtenGoal = it })
+            WeeklyGoalEntry(LocalDate.of(2026, 10, 5), { writtenGoal = it })
         }
 
-        compose.onNodeWithText("Daily minutes").performTextInput("0")
+        compose.onNodeWithText("Daily average (minutes)").performTextInput("0")
         compose.onNodeWithText("Set goal").performClick()
 
         compose.onNodeWithText("Enter a positive number of minutes").assertIsDisplayed()

@@ -11,7 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,6 +45,10 @@ import ca.mattmccormick.screenbudget.data.UsageDao
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -62,7 +66,6 @@ internal fun HomeRoute(
     goalDao: GoalDao,
     appRuleDao: AppRuleDao,
     settings: Settings,
-    onSetGoal: () -> Unit,
     modifier: Modifier = Modifier,
     readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = {
         CurrentDayUsageSnapshotResult.Unavailable
@@ -75,8 +78,19 @@ internal fun HomeRoute(
     var data by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeData?>(null) }
     var snapshot by remember { mutableStateOf<CurrentDayUsageSnapshot?>(null) }
     var resumeVersion by remember { mutableIntStateOf(0) }
+    var savingGoal by remember { mutableStateOf(false) }
+    var goalError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     val refreshMutex = remember { Mutex() }
     val currentReader by rememberUpdatedState(readCurrentDay)
+
+    LaunchedEffect(zone) {
+        while (true) {
+            val midnight = LocalDate.now(zone).plusDays(1).atStartOfDay(zone).toInstant()
+            delay(Duration.between(Instant.now(), midnight).toMillis().coerceAtLeast(1))
+            resumeVersion++
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -152,7 +166,20 @@ internal fun HomeRoute(
             usedSoFar = homeData.usedSoFar,
             chart = homeData.chart,
             settings = settings,
-            onSetGoal = onSetGoal,
+            onSetGoal = { goal ->
+                savingGoal = true
+                goalError = null
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) { runCatching { goalDao.insert(goal) } }
+                    if (result.isSuccess) {
+                        data = data?.copy(goal = goal)
+                        resumeVersion++
+                    } else goalError = "Could not save your goal. Please try again."
+                    savingGoal = false
+                }
+            },
+            savingGoal = savingGoal,
+            goalError = goalError,
             modifier = modifier,
             today = homeData.chart.dates.last(),
         )
@@ -166,7 +193,9 @@ internal fun HomeScreen(
     goal: Goal?,
     usedSoFar: Int,
     settings: Settings,
-    onSetGoal: () -> Unit,
+    onSetGoal: (Goal) -> Unit,
+    savingGoal: Boolean = false,
+    goalError: String? = null,
     modifier: Modifier = Modifier,
     today: LocalDate = LocalDate.now(),
     chart: HomeChartModel = chartModel(
@@ -190,8 +219,7 @@ internal fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (goal == null) {
-            Text("This week’s goal", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = onSetGoal) { Text("Set a goal") }
+            WeeklyGoalEntry(currentWeekStart, onSetGoal, savingGoal, goalError)
         } else {
             Row(Modifier.fillMaxWidth()) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -97,7 +97,6 @@ class MainActivityTest {
                 mainContent = {
                     AppNavigationShell(
                         dayDetail = { Text("Day detail screen") },
-                        goals = { Text("Goals screen") },
                     )
                 },
             )
