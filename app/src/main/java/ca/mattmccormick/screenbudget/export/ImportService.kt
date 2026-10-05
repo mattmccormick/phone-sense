@@ -28,7 +28,7 @@ class ImportService(private val database: UsageDatabase) {
         val weekStartDay = DayOfWeek.valueOf(document.weekStartDay)
         val days = document.dailyUsage.map { exported ->
             val date = LocalDate.parse(exported.date)
-            DailyUsage(date, exported.totalMinutes, Source.IMPORTED, collectedAt) to
+            DailyUsage(date, exported.totalMinutes, Source.IMPORTED, collectedAt, exported.includesAllApps) to
                 document.appUsage
                     .filter { it.date == exported.date }
                     .map { AppUsage(date, it.appKey, it.minutes) }

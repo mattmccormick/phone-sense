@@ -1,5 +1,6 @@
 package ca.mattmccormick.screenbudget.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -21,6 +22,7 @@ data class DailyUsage(
     val totalMinutes: Int,
     val source: Source,
     val collectedAt: Instant,
+    @ColumnInfo(defaultValue = "0") val includesAllApps: Boolean = false,
 )
 
 @Entity(

@@ -41,6 +41,7 @@ internal fun writeExport(
             date = it.day.date.toString(),
             totalMinutes = it.day.totalMinutes,
             source = it.day.source.name,
+            includesAllApps = it.day.includesAllApps,
         )
     }
     val appUsage = days.flatMap { day ->

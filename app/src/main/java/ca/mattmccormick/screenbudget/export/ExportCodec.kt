@@ -22,6 +22,7 @@ data class ExportDailyUsage(
     val date: String,
     val totalMinutes: Int,
     val source: String,
+    val includesAllApps: Boolean = false,
 )
 
 @Serializable

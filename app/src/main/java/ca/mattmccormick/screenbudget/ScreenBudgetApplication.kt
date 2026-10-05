@@ -16,7 +16,8 @@ class ScreenBudgetApplication : Application(), Configuration.Provider {
             UsageDatabase::class.java,
             "usage.db",
         )
-            .addMigrations(UsageDatabase.MIGRATION_1_2, UsageDatabase.MIGRATION_2_3)
+            .addMigrations(UsageDatabase.MIGRATION_1_2, UsageDatabase.MIGRATION_2_3, UsageDatabase.MIGRATION_3_4)
+            .addCallback(UsageDatabase.DEFAULT_APP_RULES)
             .setAutoCloseTimeout(1, TimeUnit.MINUTES)
             .build()
     }
