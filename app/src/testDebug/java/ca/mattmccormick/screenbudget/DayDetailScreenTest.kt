@@ -6,8 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsOff
-import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.performScrollToNode
@@ -252,53 +251,21 @@ class DayDetailScreenTest {
     }
 
     @Test
-    fun tappingToggleWritesRuleAndShowsExcludedState() {
+    fun appInclusionIsReadOnlyAndExplanatorySubtextIsAbsent() {
         val date = today.minusDays(1)
         database.usageDao().insert(
-            DailyUsage(date, 45, Source.COLLECTED, Instant.parse("2026-10-02T07:00:00Z")),
-            listOf(AppUsage(date, "com.example.reader", 45)),
+            DailyUsage(date, 75, Source.COLLECTED, Instant.EPOCH),
+            listOf(AppUsage(date, "com.example.reader", 45), AppUsage(date, "com.example.video", 30)),
         )
+        database.appRuleDao().insert(AppRule("com.example.reader", "Reader", true))
         setScreen()
-        compose.waitUntilAtLeastOneExists(hasText("Reader"), timeoutMillis = 5_000)
-
-        val toggle = compose.onNodeWithContentDescription("Exclude Reader")
-        toggle.performClick()
-
-        compose.waitUntil(timeoutMillis = 5_000) {
-            database.appRuleDao().all().isNotEmpty()
-        }
-        assertEquals(
-            listOf(AppRule("com.example.reader", "Reader", excluded = true)),
-            database.appRuleDao().all(),
-        )
-        toggle.assertIsOn()
-    }
-
-    @Test
-    fun tappingToggleAgainClearsExcludedState() {
-        val date = today.minusDays(1)
-        database.usageDao().insert(
-            DailyUsage(date, 45, Source.COLLECTED, Instant.parse("2026-10-02T07:00:00Z")),
-            listOf(AppUsage(date, "com.example.reader", 45)),
-        )
-        setScreen()
-        compose.waitUntilAtLeastOneExists(hasText("Reader"), timeoutMillis = 5_000)
-        val toggle = compose.onNodeWithContentDescription("Exclude Reader")
-        toggle.performClick()
-        compose.waitUntil(timeoutMillis = 5_000) {
-            database.appRuleDao().all().singleOrNull()?.excluded == true
-        }
-
-        toggle.performClick()
-
-        compose.waitUntil(timeoutMillis = 5_000) {
-            database.appRuleDao().all().singleOrNull()?.excluded == false
-        }
-        assertEquals(
-            listOf(AppRule("com.example.reader", "Reader", excluded = false)),
-            database.appRuleDao().all(),
-        )
-        toggle.assertIsOff()
+        compose.waitUntilAtLeastOneExists(hasText("Reader"), 5_000)
+        compose.onNodeWithContentDescription("Reader: excluded from allowance").assertIsDisplayed().assertHasNoClickAction()
+        compose.onNodeWithContentDescription("Video: included in allowance").assertIsDisplayed().assertHasNoClickAction()
+        compose.onNodeWithContentDescription("Exclude Reader").assertDoesNotExist()
+        compose.onNodeWithText("Excluded from allowance").assertDoesNotExist()
+        compose.onNodeWithText("Saved total; previously omitted apps cannot be restored.").assertDoesNotExist()
+        compose.onNodeWithText("Switch on to exclude an app from your allowance. Total usage stays the same.").assertDoesNotExist()
     }
 
     @Test
@@ -314,7 +281,7 @@ class DayDetailScreenTest {
         compose.onNodeWithText("Reader").assertIsDisplayed()
         compose.onNodeWithText("45 min").assertIsDisplayed()
         compose.onNodeWithText("Video").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Exclude Reader").assertIsOn()
+        compose.onNodeWithContentDescription("Reader: excluded from allowance").assertIsDisplayed()
         compose.onNodeWithText("Enter by hand").assertDoesNotExist()
         assertNull(database.usageDao().day(today))
     }

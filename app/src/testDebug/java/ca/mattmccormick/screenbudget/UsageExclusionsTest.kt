@@ -45,6 +45,12 @@ class UsageExclusionsTest {
             }
             compose.setContent {
                 ScreenBudgetTheme {
+                    HomeWithSettings(
+                        settings = settings,
+                        appSettings = { back -> AppAllowanceSettings(database.usageDao(), database.appRuleDao(),
+                            AppInfoSource { AppInfo(if (it == "ca.mattmccormick.screenbudget") "Screen Budget" else it, null) },
+                            onBack = back, readCurrentDay = read) },
+                    ) {
                     AppNavigationShell(
                         initialDestination = AppDestination.DAY_DETAIL,
                         home = { onSetGoal -> HomeRoute(database.usageDao(), database.goalDao(), database.appRuleDao(),
@@ -54,14 +60,24 @@ class UsageExclusionsTest {
                             today = today, readCurrentDay = read, loadDispatcher = Dispatchers.Unconfined) },
                         goals = {},
                     )
+                    }
                 }
             }
             compose.onNodeWithContentDescription("Next day").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithText("120 min").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Total usage · all apps").assertIsDisplayed()
             compose.onNodeWithContentDescription("Counted toward allowance: 30 minutes").assertIsDisplayed()
-            compose.onNodeWithContentDescription("Exclude Screen Budget").assertIsOn().performClick()
+            compose.onNodeWithContentDescription("Screen Budget: excluded from allowance").assertIsDisplayed()
+            compose.onNodeWithText("Settings").performClick()
+            compose.onNodeWithText("Apps counted toward allowance").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("Screen Budget").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithContentDescription("Count reader toward allowance").assertIsOn()
+            compose.onNodeWithContentDescription("Count Screen Budget toward allowance").assertIsOff().performClick()
             compose.waitUntil(5_000) { "ca.mattmccormick.screenbudget" !in database.appRuleDao().excludedKeys() }
+            compose.onNodeWithText("Back").performClick()
+            compose.onNodeWithText("Back").performClick()
+            compose.onNodeWithContentDescription("Next day").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("120 min").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("Total usage: 120 minutes").assertIsDisplayed()
             compose.onNodeWithContentDescription("Counted toward allowance: 120 minutes").assertIsDisplayed()
             compose.onNodeWithText("Home").performClick()
@@ -70,7 +86,7 @@ class UsageExclusionsTest {
             compose.onNodeWithText("Day").performClick()
             compose.onNodeWithContentDescription("Next day").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithText("120 min").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithContentDescription("Exclude Screen Budget").assertIsOff()
+            compose.onNodeWithContentDescription("Screen Budget: included in allowance").assertIsDisplayed()
         } finally { database.close() }
     }
 }

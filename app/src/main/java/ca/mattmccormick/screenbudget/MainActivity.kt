@@ -229,6 +229,18 @@ class MainActivity : ComponentActivity() {
                                 importDocument.launch(arrayOf("application/json"))
                             },
                             importStatus = importStatus,
+                            appSettings = { onBack ->
+                                AppAllowanceSettings(
+                                    usageDao = database.usageDao(),
+                                    appRuleDao = database.appRuleDao(),
+                                    appInfoSource = appInfoSource,
+                                    onBack = onBack,
+                                    readCurrentDay = { zone ->
+                                        if (usageEventsSource.hasUsageAccess()) currentDayReader.read(zone)
+                                        else CurrentDayUsageSnapshotResult.Unavailable
+                                    },
+                                )
+                            },
                             mainContent = { currentSettings ->
                                 AppNavigationShell(
                                     initialDestination = initialDestination,

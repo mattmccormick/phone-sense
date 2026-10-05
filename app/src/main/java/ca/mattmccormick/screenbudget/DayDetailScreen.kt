@@ -1,5 +1,6 @@
 package ca.mattmccormick.screenbudget
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -32,6 +32,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.semantics.contentDescription
@@ -207,19 +210,9 @@ fun DayDetailScreen(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    if (!storedDay.day.includesAllApps) {
-                        Text("Saved total; previously omitted apps cannot be restored.",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Text("Switch on to exclude an app from your allowance. Total usage stays the same.",
-                        modifier = Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    // Include saved package rules even when an app has no recorded minutes that day.
-                    val listedApps = (storedDay.apps + rules.filterNot { it.appKey.startsWith("label:") }
-                        .map { AppUsage(date, it.appKey, 0) }).distinctBy { it.appKey }
                     LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         items(
-                            items = listedApps.sortedByDescending { it.minutes },
+                            items = storedDay.apps.sortedByDescending { it.minutes },
                             key = { it.appKey },
                         ) { usage ->
                             val appInfo = remember(usage.appKey, rules) {
@@ -237,20 +230,6 @@ fun DayDetailScreen(
                                 appInfo = appInfo,
                                 minutes = usage.minutes,
                                 excluded = usage.appKey in excludedKeys,
-                                onExcludedChange = { excluded ->
-                                    excludedKeys = if (excluded) {
-                                        excludedKeys + usage.appKey
-                                    } else {
-                                        excludedKeys - usage.appKey
-                                    }
-                                    scope.launch {
-                                        withContext(Dispatchers.IO) {
-                                            appRuleDao.insert(
-                                                AppRule(usage.appKey, appInfo.label, excluded),
-                                            )
-                                        }
-                                    }
-                                },
                             )
                         }
                     }
@@ -277,7 +256,6 @@ private fun AppUsageRow(
     appInfo: AppInfo,
     minutes: Int,
     excluded: Boolean,
-    onExcludedChange: (Boolean) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -305,19 +283,23 @@ private fun AppUsageRow(
             }
         }
         Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
-            Text(appInfo.label)
-            Text(if (excluded) "Excluded from allowance" else "Counts toward allowance",
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text(appInfo.label, modifier = Modifier.weight(1f))
         Text("$minutes min")
         Spacer(Modifier.width(16.dp))
-        Switch(
-            checked = excluded,
-            onCheckedChange = onExcludedChange,
-            modifier = Modifier.semantics {
-                contentDescription = "Exclude ${appInfo.label}"
-            },
-        )
+        val color = if (excluded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+        Canvas(Modifier.size(20.dp).semantics {
+            contentDescription = "${appInfo.label}: " + if (excluded) "excluded from allowance" else "included in allowance"
+        }) {
+            drawCircle(color, radius = size.minDimension / 2 - 1.dp.toPx(), style = Stroke(1.5.dp.toPx()))
+            if (excluded) {
+                drawLine(color, Offset(size.width * 0.3f, center.y), Offset(size.width * 0.7f, center.y),
+                    strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+            } else {
+                drawLine(color, Offset(size.width * 0.27f, size.height * 0.5f), Offset(size.width * 0.43f, size.height * 0.67f),
+                    strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.43f, size.height * 0.67f), Offset(size.width * 0.74f, size.height * 0.34f),
+                    strokeWidth = 1.5.dp.toPx(), cap = StrokeCap.Round)
+            }
+        }
     }
 }

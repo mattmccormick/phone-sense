@@ -62,6 +62,7 @@ internal fun SettingsScreen(
     openImportDocument: () -> Unit = {},
     importStatus: ImportStatus? = null,
     onAbout: () -> Unit = {},
+    onAppAllowances: (() -> Unit)? = null,
     showTimePicker: ((LocalTime, (LocalTime) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -96,6 +97,9 @@ internal fun SettingsScreen(
         ) {
             Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
             Button(onClick = onBack) { Text(stringResource(R.string.back)) }
+            onAppAllowances?.let { openApps ->
+                Button(onClick = openApps) { Text("Apps counted toward allowance") }
+            }
             if (!notificationsEnabled) {
                 Text("Notifications are off. Turn them on to get goal reminders.")
                 Button(onClick = openNotificationSettings) {
@@ -226,11 +230,15 @@ internal fun HomeWithSettings(
     exportError: String? = null,
     openImportDocument: () -> Unit = {},
     importStatus: ImportStatus? = null,
+    appSettings: (@Composable (onBack: () -> Unit) -> Unit)? = null,
     mainContent: @Composable (Settings) -> Unit,
 ) {
     var showingSettings by remember { mutableStateOf(false) }
     var showingAbout by remember { mutableStateOf(false) }
-    if (showingAbout) {
+    var showingAppSettings by remember { mutableStateOf(false) }
+    if (showingAppSettings && appSettings != null) {
+        appSettings { showingAppSettings = false }
+    } else if (showingAbout) {
         AboutScreen(onBack = { showingAbout = false })
     } else if (showingSettings) {
         SettingsScreen(
@@ -249,6 +257,7 @@ internal fun HomeWithSettings(
             openImportDocument = openImportDocument,
             importStatus = importStatus,
             onAbout = { showingAbout = true },
+            onAppAllowances = if (appSettings != null) ({ showingAppSettings = true }) else null,
         )
     } else {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding().imePadding()) {

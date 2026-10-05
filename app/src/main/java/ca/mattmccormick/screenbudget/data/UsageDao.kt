@@ -36,6 +36,9 @@ abstract class UsageDao {
     @Query("SELECT * FROM daily_usage WHERE date BETWEEN :start AND :end ORDER BY date")
     abstract fun daysBetween(start: LocalDate, end: LocalDate): List<DayWithApps>
 
+    @Query("SELECT DISTINCT appKey FROM app_usage ORDER BY appKey")
+    abstract fun appKeys(): List<String>
+
     @Transaction
     @Query("SELECT * FROM daily_usage ORDER BY date")
     abstract fun allDays(): List<DayWithApps>
