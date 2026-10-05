@@ -9,8 +9,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import ca.mattmccormick.screenbudget.data.AppRule
 import ca.mattmccormick.screenbudget.data.DailyUsage
 import ca.mattmccormick.screenbudget.data.Goal
 import ca.mattmccormick.screenbudget.data.Settings
@@ -120,7 +124,7 @@ class HomeScreenTest {
                 goalDao = database.goalDao(),
                 appRuleDao = database.appRuleDao(),
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
-                today = LocalDate.of(2026, 10, 1),
+                today = { LocalDate.of(2026, 10, 1) },
                 onSetGoal = {},
             )
         }
@@ -144,7 +148,7 @@ class HomeScreenTest {
                 goalDao = database.goalDao(),
                 appRuleDao = database.appRuleDao(),
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
-                today = today,
+                today = { today },
                 onSetGoal = {},
                 refreshKey = refreshKey.intValue,
             )
@@ -182,5 +186,143 @@ class HomeScreenTest {
         compose.onNodeWithText("00:30").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
         compose.onNodeWithContentDescription("Six-week distraction chart").assertIsDisplayed()
+    }
+
+    @Test
+    fun currentDaySnapshotReplacesImportedTodayAndAppliesExclusions() {
+        val today = LocalDate.of(2026, 10, 1)
+        val monday = LocalDate.of(2026, 9, 28)
+        database.goalDao().insert(Goal(monday, 120))
+        database.usageDao().insert(
+            DailyUsage(monday, 30, Source.COLLECTED, Instant.EPOCH),
+            emptyList(),
+        )
+        database.usageDao().insert(
+            DailyUsage(today, 500, Source.IMPORTED, Instant.EPOCH),
+            emptyList(),
+        )
+        database.appRuleDao().insert(AppRule("com.example.excluded", "Excluded", true))
+
+        compose.setContent {
+            HomeRoute(
+                usageDao = database.usageDao(),
+                goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
+                settings = Settings(weekStartDay = DayOfWeek.MONDAY),
+                today = { today },
+                readCurrentDay = {
+                    snapshot(today, totalMinutes = 120, excludedMinutes = 30)
+                },
+                onSetGoal = {},
+            )
+        }
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("120 minutes used this week")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("120 minutes used this week").assertIsDisplayed()
+        compose.onNodeWithText("No usage data yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun returningToForegroundRefreshesCurrentDayUsage() {
+        val today = LocalDate.of(2026, 10, 1)
+        val lifecycleOwner = FakeLifecycleOwner()
+        var currentMinutes = 30
+        database.goalDao().insert(Goal(LocalDate.of(2026, 9, 28), 60))
+
+        compose.setContent {
+            HomeRoute(
+                usageDao = database.usageDao(),
+                goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
+                settings = Settings(weekStartDay = DayOfWeek.MONDAY),
+                today = { today },
+                readCurrentDay = { snapshot(today, currentMinutes) },
+                lifecycleOwner = lifecycleOwner,
+                onSetGoal = {},
+            )
+        }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("30 minutes used this week")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        currentMinutes = 50
+        compose.runOnIdle { lifecycleOwner.resume() }
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("50 minutes used this week")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    @Test
+    fun unavailableRefreshAfterMidnightDoesNotReuseYesterdaysSnapshot() {
+        val monday = LocalDate.of(2026, 10, 5)
+        var currentDate = monday
+        var available = true
+        val refreshKey = mutableIntStateOf(0)
+        database.goalDao().insert(Goal(monday, 60))
+
+        compose.setContent {
+            HomeRoute(
+                usageDao = database.usageDao(),
+                goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
+                settings = Settings(weekStartDay = DayOfWeek.MONDAY),
+                today = { currentDate },
+                readCurrentDay = {
+                    if (available) snapshot(monday, 40)
+                    else CurrentDayUsageSnapshotResult.Unavailable
+                },
+                refreshKey = refreshKey.intValue,
+                onSetGoal = {},
+            )
+        }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("40 minutes used this week")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        currentDate = monday.plusDays(1)
+        available = false
+        compose.runOnIdle { refreshKey.intValue++ }
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("0 minutes used this week")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Day 2 of 7").assertIsDisplayed()
+        compose.onNodeWithText("40 minutes used this week").assertDoesNotExist()
+    }
+
+    private fun snapshot(
+        date: LocalDate,
+        totalMinutes: Int,
+        excludedMinutes: Int = 0,
+    ): CurrentDayUsageSnapshotResult.Available = CurrentDayUsageSnapshotResult.Available(
+        CurrentDayUsageSnapshot(
+            date = date,
+            capturedAt = date.atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
+            totalMillis = totalMinutes * 60_000L,
+            perPackageMillis = buildMap {
+                put("com.example.used", (totalMinutes - excludedMinutes) * 60_000L)
+                if (excludedMinutes > 0) {
+                    put("com.example.excluded", excludedMinutes * 60_000L)
+                }
+            },
+        ),
+    )
+
+    private class FakeLifecycleOwner : LifecycleOwner {
+        private val registry = LifecycleRegistry(this)
+
+        override val lifecycle: Lifecycle = registry
+
+        fun resume() {
+            registry.currentState = Lifecycle.State.RESUMED
+        }
     }
 }
