@@ -95,7 +95,7 @@ class DayDetailScreenTest {
             timeoutMillis = 5_000,
         )
         compose.onNodeWithText("2026-10-01").assertIsDisplayed()
-        compose.onNodeWithText("75 min").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Total usage: 75 minutes").assertIsDisplayed()
         compose.onNodeWithText("Reader").assertIsDisplayed()
         compose.onNodeWithText("45 min").assertIsDisplayed()
         compose.onNodeWithContentDescription("Reader icon").assertIsDisplayed()
@@ -226,7 +226,7 @@ class DayDetailScreenTest {
         allowCollection.countDown()
 
         compose.waitUntilAtLeastOneExists(hasText("42 min"), timeoutMillis = 5_000)
-        compose.onNodeWithText("42 min").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Total usage: 42 minutes").assertIsDisplayed()
     }
 
     @Test
@@ -333,12 +333,12 @@ class DayDetailScreenTest {
 
         result = CurrentDayUsageSnapshotResult.Unavailable
         compose.runOnIdle { owner.resume() }
-        compose.onNodeWithText("95 min").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Total usage: 95 minutes").assertIsDisplayed()
         assertNull(database.usageDao().day(today))
 
         compose.onNodeWithContentDescription("Previous day").performClick()
         compose.waitUntilAtLeastOneExists(hasText("Not collected yet"), 5_000)
-        compose.onNodeWithText("95 min").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Total usage: 95 minutes").assertDoesNotExist()
     }
 
     @Test
@@ -347,7 +347,7 @@ class DayDetailScreenTest {
         setScreen(readCurrentDay = { snapshot(75) })
         compose.onNodeWithContentDescription("Next day").performClick()
         compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
-        compose.onNodeWithText("500 min").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Total usage: 500 minutes").assertDoesNotExist()
         assertEquals(500, database.usageDao().day(today)!!.day.totalMinutes)
     }
 
@@ -356,7 +356,7 @@ class DayDetailScreenTest {
         setScreen(readCurrentDay = { snapshot(75, today.plusDays(1)) })
         compose.onNodeWithContentDescription("Next day").performClick()
         compose.waitUntilAtLeastOneExists(hasText("Not collected yet"), 5_000)
-        compose.onNodeWithText("75 min").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Total usage: 75 minutes").assertDoesNotExist()
     }
 
     private fun snapshot(minutes: Int, date: LocalDate = today) =

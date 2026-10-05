@@ -189,18 +189,24 @@ fun DayDetailScreen(
                         Button(onClick = { enteringManual = true }) { Text("Enter by hand") }
                     }
                 } else {
-                    Text(
-                        if (storedDay.day.includesAllApps) "Total usage · all apps" else "Recorded usage",
-                        modifier = Modifier.padding(top = 16.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "${storedDay.day.totalMinutes} min",
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
                     val counted = distractionMinutes(storedDay.day, storedDay.apps, excludedKeys)
-                    Text("$counted min counts toward your allowance", style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        DayUsageMetric(
+                            label = if (storedDay.day.includesAllApps) "Total usage · all apps" else "Recorded usage",
+                            minutes = storedDay.day.totalMinutes,
+                            description = "Total usage",
+                            modifier = Modifier.weight(1f),
+                        )
+                        DayUsageMetric(
+                            label = "Counted toward allowance",
+                            minutes = counted,
+                            description = "Counted toward allowance",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                     if (!storedDay.day.includesAllApps) {
                         Text("Saved total; previously omitted apps cannot be restored.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -251,6 +257,18 @@ fun DayDetailScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DayUsageMetric(label: String, minutes: Int, description: String, modifier: Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("$minutes min", style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.semantics { contentDescription = "$description: $minutes minutes" })
+        Text(label, style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
 

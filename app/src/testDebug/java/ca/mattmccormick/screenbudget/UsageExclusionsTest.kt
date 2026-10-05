@@ -59,11 +59,11 @@ class UsageExclusionsTest {
             compose.onNodeWithContentDescription("Next day").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithText("120 min").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Total usage · all apps").assertIsDisplayed()
-            compose.onNodeWithText("30 min counts toward your allowance").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Counted toward allowance: 30 minutes").assertIsDisplayed()
             compose.onNodeWithContentDescription("Exclude Screen Budget").assertIsOn().performClick()
             compose.waitUntil(5_000) { "ca.mattmccormick.screenbudget" !in database.appRuleDao().excludedKeys() }
-            compose.onNodeWithText("120 min").assertIsDisplayed()
-            compose.onNodeWithText("120 min counts toward your allowance").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Total usage: 120 minutes").assertIsDisplayed()
+            compose.onNodeWithContentDescription("Counted toward allowance: 120 minutes").assertIsDisplayed()
             compose.onNodeWithText("Home").performClick()
             compose.waitUntil(5_000) { compose.onAllNodesWithText("120").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithContentDescription("120 minutes counted today").assertIsDisplayed()
