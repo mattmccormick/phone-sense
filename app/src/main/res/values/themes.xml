@@ -2,5 +2,9 @@
 <resources>
     <!-- Compose draws the UI, so the platform theme only has to stay out of
          the way: no action bar, and a window background Compose paints over. -->
-    <style name="Theme.ScreenBudget" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.ScreenBudget" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowBackground">#FFFFFF</item>
+    </style>
 </resources>

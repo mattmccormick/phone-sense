@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
         database = (application as ScreenBudgetApplication).database
         val initialDestination = AppDestination.from(intent)
         setContent {
-            MaterialTheme {
+            ScreenBudgetTheme {
                 val usageEventsSource = remember { UsageEventsSource(this@MainActivity) }
                 val notificationManager = remember {
                     getSystemService(NotificationManager::class.java)
@@ -393,7 +393,7 @@ private fun UsageAccessScreen(
 @Preview(name = "Usage access", showBackground = true, showSystemUi = true)
 @Composable
 private fun UsageAccessScreenPreview() {
-    MaterialTheme {
+    ScreenBudgetTheme {
         UsageAccessScreen(onAllowUsageAccess = {})
     }
 }
