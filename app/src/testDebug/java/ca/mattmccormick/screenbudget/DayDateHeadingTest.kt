@@ -14,14 +14,14 @@ import java.util.Locale
 class DayDateHeadingTest {
     private val today = LocalDate.of(2026, 10, 5)
 
-    @Test fun recentDatesHaveRelativeLabelsAndShortWeekdays() {
-        assertEquals("Today · Mon", dayDateHeading(today, today, Locale.US))
-        assertEquals("Yesterday · Sun", dayDateHeading(today.minusDays(1), today, Locale.US))
+    @Test fun recentDatesHaveOnlyRelativeLabels() {
+        assertEquals("Today", dayDateHeading(today, today, Locale.US))
+        assertEquals("Yesterday", dayDateHeading(today.minusDays(1), today, Locale.US))
     }
 
     @Test fun labelsAndWeekdaysFollowTheLocale() {
-        assertEquals("Heute · Mo.", dayDateHeading(today, today, Locale.GERMANY))
-        assertEquals("Gestern · So.", dayDateHeading(today.minusDays(1), today, Locale.GERMANY))
+        assertEquals("Heute", dayDateHeading(today, today, Locale.GERMANY))
+        assertEquals("Gestern", dayDateHeading(today.minusDays(1), today, Locale.GERMANY))
         val french = dayDateHeading(today.minusDays(2), today, Locale.FRANCE)
         assertTrue(french, french.contains("sam.") && french.contains("oct.") && french.contains("2026"))
     }

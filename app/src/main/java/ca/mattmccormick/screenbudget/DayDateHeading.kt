@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Locale
 
 internal fun dayDateHeading(date: LocalDate, today: LocalDate, locale: Locale): String {
@@ -33,8 +32,7 @@ internal fun dayDateHeading(date: LocalDate, today: LocalDate, locale: Locale): 
             DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE,
         )
         val direction = if (date == today) RelativeDateTimeFormatter.Direction.THIS else RelativeDateTimeFormatter.Direction.LAST
-        return "${formatter.format(direction, RelativeDateTimeFormatter.AbsoluteUnit.DAY)} · " +
-            date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+        return formatter.format(direction, RelativeDateTimeFormatter.AbsoluteUnit.DAY)
     }
     val pattern = DateFormat.getBestDateTimePattern(locale, "EEE MMM d yyyy")
     return date.format(DateTimeFormatter.ofPattern(pattern, locale))
