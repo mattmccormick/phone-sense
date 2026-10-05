@@ -12,22 +12,22 @@ debug: (_gradle "assembleDebug")
 # Run the unit tests.
 test: (_gradle "test")
 
-# Wait until a connected Android device has finished booting.
-wait-for-android:
+# Wait until a connected physical Android device has finished booting.
+wait-for-android target="-d":
     #!/usr/bin/env bash
     set -euo pipefail
 
     adb_bin="{{android_home}}/platform-tools/adb"
-    "$adb_bin" wait-for-device
+    "$adb_bin" {{quote(target)}} wait-for-device
     boot_completed=""
     until [[ "${boot_completed//$'\r'/}" == "1" ]]; do
-        boot_completed="$("$adb_bin" shell getprop sys.boot_completed)"
+        boot_completed="$("$adb_bin" {{quote(target)}} shell getprop sys.boot_completed)"
         sleep 1
     done
 
-# Open Screen Budget on a connected Android device.
-launch:
-    "{{android_home}}/platform-tools/adb" shell am start \
+# Open Screen Budget on a connected physical Android device.
+launch target="-d":
+    "{{android_home}}/platform-tools/adb" {{quote(target)}} shell am start \
         -n {{application_id}}/.MainActivity
 
 # Build this worktree, start a virtual device, install the app, and open it.
@@ -41,15 +41,15 @@ emulator device="Pixel_10a": debug
     emulator_pid=$!
     trap 'kill "$emulator_pid" 2>/dev/null || true' EXIT INT TERM
 
-    "$just_bin" wait-for-android
-    "$just_bin" install
+    "$just_bin" -- wait-for-android -e
+    "$just_bin" -- install -e
     wait "$emulator_pid"
 
 # The release APK is unsigned and will not install.
-# Build and install the debug APK, then open it on a connected Android device.
-install: debug
-    "{{android_home}}/platform-tools/adb" install -r {{debug_apk}}
-    {{quote(just_executable())}} launch
+# Build and install the debug APK, then open it on a connected physical Android device.
+install target="-d": debug
+    "{{android_home}}/platform-tools/adb" {{quote(target)}} install -r {{debug_apk}}
+    {{quote(just_executable())}} -- launch {{quote(target)}}
 
 # Fail if the built APK declares an unexpected permission. Screen Budget needs
 # usage access for collection; this guards the manifest merge against another
