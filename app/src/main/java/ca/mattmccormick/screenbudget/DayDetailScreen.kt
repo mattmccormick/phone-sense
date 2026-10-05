@@ -78,7 +78,7 @@ fun DayDetailScreen(
     zone: ZoneId = ZoneId.systemDefault(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
-    var date by remember(today) { mutableStateOf(today.minusDays(1)) }
+    var date by remember(today) { mutableStateOf(today) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
     var rules by remember { mutableStateOf(emptyList<AppRule>()) }
     var excludedKeys by remember { mutableStateOf(emptySet<String>()) }

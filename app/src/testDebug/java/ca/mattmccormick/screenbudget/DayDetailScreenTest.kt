@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -74,6 +75,21 @@ class DayDetailScreenTest {
     @After
     fun tearDown() {
         database.close()
+    }
+
+    @Test
+    fun selectingDayAlwaysOpensTodayIncludingReselectingTheActiveTab() {
+        setScreen(showYesterday = false)
+        val heading = dayDateHeading(today, today, java.util.Locale.getDefault())
+        compose.onNodeWithText(heading).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Next day").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Previous day").performClick()
+        compose.onNodeWithText("Day").performClick()
+        compose.onNodeWithText(heading).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Previous day").performClick()
+        compose.onNodeWithText("Home").performClick()
+        compose.onNodeWithText("Day").performClick()
+        compose.onNodeWithText(heading).assertIsDisplayed()
     }
 
     @Test
@@ -222,6 +238,7 @@ class DayDetailScreenTest {
             timeoutMillis = 5_000,
         )
 
+        compose.onNodeWithContentDescription("Previous day").performClick()
         allowCollection.countDown()
 
         compose.waitUntilAtLeastOneExists(hasText("42 min"), timeoutMillis = 5_000)
@@ -272,12 +289,9 @@ class DayDetailScreenTest {
     fun todayShowsLiveAppsWithoutSavingAnIncompleteDay() {
         database.appRuleDao().insert(AppRule("com.example.reader", "Reader", true))
         var reads = 0
-        setScreen(readCurrentDay = { reads++; snapshot(75) })
-        compose.waitUntilAtLeastOneExists(hasText("Not collected yet"), 5_000)
-        assertEquals(0, reads)
-        compose.onNodeWithContentDescription("Next day").performClick()
-
+        setScreen(readCurrentDay = { reads++; snapshot(75) }, showYesterday = false)
         compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
+        assertTrue(reads >= 1)
         compose.onNodeWithText("Reader").assertIsDisplayed()
         compose.onNodeWithText("45 min").assertIsDisplayed()
         compose.onNodeWithText("Video").assertIsDisplayed()
@@ -290,8 +304,7 @@ class DayDetailScreenTest {
     fun returningToForegroundRefreshesTodayAndUnavailableReadsKeepSameDaySnapshot() {
         val owner = TestLifecycleOwner()
         var result: CurrentDayUsageSnapshotResult = snapshot(75)
-        setScreen(readCurrentDay = { result }, lifecycleOwner = owner)
-        compose.onNodeWithContentDescription("Next day").performClick()
+        setScreen(readCurrentDay = { result }, lifecycleOwner = owner, showYesterday = false)
         compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
 
         result = snapshot(95)
@@ -311,8 +324,7 @@ class DayDetailScreenTest {
     @Test
     fun liveTodayReplacesStoredTotalWithoutOverwritingIt() {
         database.usageDao().insert(DailyUsage(today, 500, Source.IMPORTED, Instant.EPOCH), emptyList())
-        setScreen(readCurrentDay = { snapshot(75) })
-        compose.onNodeWithContentDescription("Next day").performClick()
+        setScreen(readCurrentDay = { snapshot(75) }, showYesterday = false)
         compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
         compose.onNodeWithContentDescription("Total usage: 500 minutes").assertDoesNotExist()
         assertEquals(500, database.usageDao().day(today)!!.day.totalMinutes)
@@ -320,8 +332,7 @@ class DayDetailScreenTest {
 
     @Test
     fun snapshotForAnotherDateIsNotShownAsToday() {
-        setScreen(readCurrentDay = { snapshot(75, today.plusDays(1)) })
-        compose.onNodeWithContentDescription("Next day").performClick()
+        setScreen(readCurrentDay = { snapshot(75, today.plusDays(1)) }, showYesterday = false)
         compose.waitUntilAtLeastOneExists(hasText("Not collected yet"), 5_000)
         compose.onNodeWithContentDescription("Total usage: 75 minutes").assertDoesNotExist()
     }
@@ -349,6 +360,7 @@ class DayDetailScreenTest {
     private fun setScreen(
         readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = { CurrentDayUsageSnapshotResult.Unavailable },
         lifecycleOwner: LifecycleOwner? = null,
+        showYesterday: Boolean = true,
     ) {
         compose.setContent {
             MaterialTheme {
@@ -369,5 +381,6 @@ class DayDetailScreenTest {
                 )
             }
         }
+        if (showYesterday) compose.onNodeWithContentDescription("Previous day").performClick()
     }
 }

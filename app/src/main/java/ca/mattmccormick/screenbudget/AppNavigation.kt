@@ -19,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -52,6 +55,7 @@ internal fun AppNavigationShell(
     goals: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var dayVisit by remember { mutableIntStateOf(0) }
     var route by rememberSaveable { mutableStateOf(initialDestination.route) }
     val selectedDestination = AppDestination.entries.firstOrNull { it.route == route }
         ?: AppDestination.HOME
@@ -68,7 +72,10 @@ internal fun AppNavigationShell(
                             Modifier.weight(1f).height(56.dp).selectable(
                                 selected = selected,
                                 role = Role.Tab,
-                                onClick = { route = destination.route },
+                                onClick = {
+                                    if (destination == AppDestination.DAY_DETAIL) dayVisit++
+                                    route = destination.route
+                                },
                             ),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -84,7 +91,7 @@ internal fun AppNavigationShell(
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedDestination) {
                 AppDestination.HOME -> home { route = AppDestination.GOALS.route }
-                AppDestination.DAY_DETAIL -> dayDetail()
+                AppDestination.DAY_DETAIL -> key(dayVisit) { dayDetail() }
                 AppDestination.GOALS -> goals()
             }
         }
