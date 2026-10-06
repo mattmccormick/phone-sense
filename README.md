@@ -12,6 +12,19 @@ permissions.
 
 The plan is at `~/notes/20-29 Projects/Screen Budget/Plan.md`.
 
+## Today widget
+
+Long-press an empty area of your Android home screen, choose **Widgets**, then
+**Screen Budget → Today’s budget**. Open the app first to grant usage access and
+set a weekly goal. The widget shows counted minutes, the adjusted daily allowance,
+and minutes remaining or over budget. Selected app exclusions apply.
+
+Tap **Refresh** for a fresh reading, or tap the widget to open the Home tab.
+It also refreshes when you leave the app and requests background updates every
+15 minutes while installed. Android may delay background updates; the timestamp
+shows when the displayed usage was read. The first version uses a single resizable
+layout, sized for a 4 × 3 home-screen area.
+
 ## Development
 
 Install [just](https://just.systems/man/en/packages.html), JDK 17, and the Android

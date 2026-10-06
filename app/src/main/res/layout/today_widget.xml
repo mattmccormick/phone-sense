@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:text="@string/widget_heading" android:textSize="16sp" android:textStyle="bold"
+            android:textColor="@color/widget_text" />
+        <Button android:id="@+id/widget_refresh" android:layout_width="wrap_content"
+            android:layout_height="48dp" android:minWidth="48dp" android:text="@string/widget_refresh"
+            android:textSize="12sp" android:textAllCaps="false" android:textColor="@color/widget_accent"
+            android:background="?android:attr/selectableItemBackground" />
+    </LinearLayout>
+    <TextView android:id="@+id/widget_usage" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/widget_unknown" android:textSize="36sp" android:textStyle="bold" android:textColor="@color/widget_text" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/widget_counted" android:textSize="12sp" android:textColor="@color/widget_secondary" />
+    <TextView android:id="@+id/widget_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:text="@string/widget_loading" android:textSize="14sp"
+        android:textColor="@color/widget_accent" />
+    <ProgressBar android:id="@+id/widget_progress" style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="10dp"
+        android:progressTint="@color/widget_accent" android:progressBackgroundTint="@color/widget_track"
+        android:visibility="gone" />
+    <TextView android:id="@+id/widget_remaining" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:textSize="14sp" android:textColor="@color/widget_accent"
+        android:visibility="gone" />
+    <TextView android:id="@+id/widget_updated" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:text="@string/widget_open_app" android:textSize="11sp"
+        android:textColor="@color/widget_secondary" />
+</LinearLayout>

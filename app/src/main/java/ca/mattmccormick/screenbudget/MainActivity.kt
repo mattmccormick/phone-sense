@@ -62,6 +62,11 @@ class MainActivity : ComponentActivity() {
         SettingsRepository(applicationContext.settingsDataStore)
     }
 
+    override fun onStop() {
+        super.onStop()
+        TodayWidget.refresh(applicationContext)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
