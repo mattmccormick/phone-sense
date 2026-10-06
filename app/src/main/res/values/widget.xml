@@ -1,30 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <color name="widget_background">#F5F7F5</color>
     <color name="widget_text">#24332B</color>
     <color name="widget_secondary">#626E66</color>
     <color name="widget_accent">#286F56</color>
-    <color name="widget_warning">#946214</color>
     <color name="widget_error">#B34238</color>
     <color name="widget_track">#E1E6E2</color>
     <string name="widget_name">Today’s budget</string>
-    <string name="widget_heading">Screen Budget · Today</string>
-    <string name="widget_description">Today’s counted usage and remaining daily allowance.</string>
-    <string name="widget_refresh">Refresh</string>
-    <string name="widget_loading">Loading today’s usage…</string>
+    <string name="widget_heading">TODAY</string>
+    <string name="widget_description">Today’s usage and allowance. Resize for a compact view.</string>
     <string name="widget_unknown">—</string>
     <string name="widget_minutes">%1$d min</string>
-    <string name="widget_counted">Counted today · selected apps excluded</string>
-    <string name="widget_usage_unavailable">Usage unavailable · check access in app</string>
-    <string name="widget_refresh_failed">Could not refresh · try again</string>
-    <string name="widget_set_goal">Set a weekly goal in the app</string>
-    <string name="widget_over">Over your allowance</string>
-    <string name="widget_reached">Allowance reached</string>
-    <string name="widget_near">Near your allowance</string>
-    <string name="widget_within">Within your allowance</string>
-    <string name="widget_minutes_left">%1$d min left · %2$d min allowance</string>
-    <string name="widget_minutes_over">%1$d min over · %2$d min allowance</string>
-    <string name="widget_progress_description">%1$d of %2$d min daily allowance used</string>
-    <string name="widget_updated">Updated %1$s</string>
-    <string name="widget_open_app">Tap to open Screen Budget</string>
+    <string name="widget_ratio">%1$d / %2$d</string>
+    <string name="widget_ratio_minutes">%1$d / %2$d min</string>
+    <string name="widget_unit">min</string>
+    <!-- "over" does not change with quantity; the unit is abbreviated. -->
+    <string name="widget_small_over" tools:ignore="PluralsCandidate">min · %1$d over</string>
+    <string name="widget_usage_unavailable">Open app</string>
+    <string name="widget_refresh_failed">Open app</string>
+    <string name="widget_set_goal">Set goal</string>
+    <string name="widget_minutes_left">%1$d min left</string>
+    <string name="widget_minutes_over">%1$d min over</string>
+    <string name="widget_progress_description">Today: %1$d of %2$d min daily allowance used</string>
 </resources>

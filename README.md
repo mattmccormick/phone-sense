@@ -19,11 +19,12 @@ Long-press an empty area of your Android home screen, choose **Widgets**, then
 set a weekly goal. The widget shows counted minutes, the adjusted daily allowance,
 and minutes remaining or over budget. Selected app exclusions apply.
 
-Tap **Refresh** for a fresh reading, or tap the widget to open the Home tab.
-It also refreshes when you leave the app and requests background updates every
-15 minutes while installed. Android may delay background updates; the timestamp
-shows when the displayed usage was read. The first version uses a single resizable
-layout, sized for a 4 × 3 home-screen area.
+The widget starts at 2 × 1 cells and can shrink to 1 × 1 where the launcher allows.
+Wide layouts emphasize minutes left (or over); narrow layouts show usage versus
+allowance. Over-budget progress turns red. Tap anywhere to open the Home tab.
+It refreshes when you leave the app and requests background updates every
+15 minutes while installed. Android may delay background updates, so the widget
+is a periodic snapshot rather than a live counter.
 
 ## Development
 

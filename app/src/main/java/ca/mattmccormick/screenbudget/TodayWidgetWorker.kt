@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 
 class TodayWidgetWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        // Manual and periodic refreshes can run together; publish them in read order.
+        // App-triggered and periodic refreshes can run together; publish them in read order.
         refreshMutex.withLock {
             val context = applicationContext
             val ids = TodayWidget.ids(context)
@@ -30,7 +30,7 @@ class TodayWidgetWorker(context: Context, parameters: WorkerParameters) : Corout
                     (CurrentDayUsageSnapshotReader(source).read(zone) as? CurrentDayUsageSnapshotResult.Available)?.snapshot
                 } else null
                 if (snapshot == null) {
-                    manager.updateAppWidget(ids, todayWidgetViews(context, message = context.getString(R.string.widget_usage_unavailable)))
+                    publishTodayWidgets(context, manager, ids, message = context.getString(R.string.widget_usage_unavailable))
                     return@withLock Result.success()
                 }
                 val database = (context as ScreenBudgetApplication).database
@@ -42,13 +42,13 @@ class TodayWidgetWorker(context: Context, parameters: WorkerParameters) : Corout
                 val used = data.chart.dailyMinutes.last()
                 val allowance = todayAllowance(data.goal, data.usedSoFar, used, snapshot.date, settings.weekStartDay)
                 if (snapshot.date != LocalDate.now(zone)) return@withLock Result.retry()
-                manager.updateAppWidget(ids, todayWidgetViews(context, used, allowance, snapshot.capturedAt))
+                publishTodayWidgets(context, manager, ids, used, allowance)
                 Result.success()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 Log.w("TodayWidget", "Could not refresh widget", error)
-                manager.updateAppWidget(ids, todayWidgetViews(context, message = context.getString(R.string.widget_refresh_failed)))
+                publishTodayWidgets(context, manager, ids, message = context.getString(R.string.widget_refresh_failed))
                 Result.retry()
             }
         }

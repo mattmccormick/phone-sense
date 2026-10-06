@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This container is toggled as a unit by RemoteViews; it cannot be merged. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" tools:ignore="MergeRootFrame"
+    android:id="@+id/widget_progress" android:layout_width="match_parent" android:layout_height="6dp"
+    android:layout_marginTop="6dp" android:visibility="gone">
+    <ProgressBar android:id="@+id/widget_bar" style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:progressDrawable="@drawable/widget_progress" android:indeterminate="false" />
+    <ProgressBar android:id="@+id/widget_bar_over" style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:progressDrawable="@drawable/widget_progress_over" android:indeterminate="false" />
+</FrameLayout>

@@ -2,6 +2,7 @@ package ca.mattmccormick.screenbudget
 
 import android.app.AppOpsManager
 import android.os.Process
+import android.os.Bundle
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
@@ -13,7 +14,6 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
-import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -21,54 +21,95 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TodayWidgetTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val capturedAt = Instant.parse("2026-10-05T17:00:00Z")
 
-    @Test fun progressHandlesNearReachedOverAndZeroAllowance() {
-        for ((used, allowance, expected) in listOf(
-            Triple(20, 50, "Within your allowance"),
-            Triple(40, 50, "Near your allowance"),
-            Triple(50, 50, "Allowance reached"),
-            Triple(58, 50, "Over your allowance"),
-            Triple(5, 0, "Over your allowance"),
-        )) {
-            val view = todayWidgetViews(context, used, allowance, capturedAt).apply(context, FrameLayout(context))
-            assertEquals(expected, view.findViewById<TextView>(R.id.widget_status).text.toString())
-            assertEquals("$used min", view.findViewById<TextView>(R.id.widget_usage).text.toString())
-            val progress = view.findViewById<ProgressBar>(R.id.widget_progress)
-            assertEquals(View.VISIBLE, progress.visibility)
-            assertEquals(allowance.coerceAtLeast(1), progress.max)
-            assertEquals(if (used >= allowance) progress.max else used, progress.progress)
-            assertTrue(view.findViewById<TextView>(R.id.widget_updated).text.startsWith("Updated "))
+    @Test fun compactAndSmallLayoutsShowBudgetStates() {
+        for (small in listOf(false, true)) {
+            for ((used, allowance, expected) in listOf(
+                Triple(22, 60, "38 min left"), Triple(48, 60, "12 min left"),
+                Triple(60, 60, "0 min left"), Triple(68, 60, "8 min over"),
+                Triple(5, 0, "5 min over"), Triple(0, 0, "0 min left"),
+            )) {
+                val view = todayWidgetViews(context, used, allowance, small).apply(context, FrameLayout(context))
+                assertEquals(if (small) "$used / $allowance" else expected,
+                    view.findViewById<TextView>(R.id.widget_value).text.toString())
+                val over = used > allowance
+                val progress = view.findViewById<ProgressBar>(if (over) R.id.widget_bar_over else R.id.widget_bar)
+                assertEquals(View.VISIBLE, progress.visibility)
+                assertEquals(allowance.coerceAtLeast(1), progress.max)
+                assertEquals(if (used >= allowance) progress.max else used, progress.progress)
+                assertTrue(view.contentDescription.contains(expected))
+                if (small) assertEquals(if (over) "min · ${used - allowance} over" else "min",
+                    view.findViewById<TextView>(R.id.widget_detail).text.toString())
+                else assertEquals("$used / $allowance min", view.findViewById<TextView>(R.id.widget_usage).text.toString())
+            }
         }
     }
 
     @Test fun unavailableRefreshClearsPreviouslyDisplayedBudget() {
-        val view = todayWidgetViews(context, 30, 60, capturedAt).apply(context, FrameLayout(context))
-        todayWidgetViews(context).reapply(context, view)
-        assertEquals("—", view.findViewById<TextView>(R.id.widget_usage).text.toString())
-        assertEquals(View.GONE, view.findViewById<ProgressBar>(R.id.widget_progress).visibility)
-        assertEquals(View.GONE, view.findViewById<TextView>(R.id.widget_remaining).visibility)
-        assertFalse(view.findViewById<TextView>(R.id.widget_updated).text.startsWith("Updated "))
+        for (small in listOf(false, true)) {
+            val view = todayWidgetViews(context, 30, 60, small).apply(context, FrameLayout(context))
+            todayWidgetViews(context, small = small).reapply(context, view)
+            assertEquals("—", view.findViewById<TextView>(R.id.widget_value).text.toString())
+            assertEquals(View.GONE, view.findViewById<View>(R.id.widget_progress).visibility)
+            assertEquals("Open app", view.findViewById<TextView>(R.id.widget_detail).text.toString())
+            assertFalse(view.contentDescription.contains("60"))
+        }
     }
 
     @Test fun missingGoalStillShowsUsageWithoutInventingAnAllowance() {
-        val view = todayWidgetViews(context, 30, capturedAt = capturedAt).apply(context, FrameLayout(context))
-        assertEquals("30 min", view.findViewById<TextView>(R.id.widget_usage).text.toString())
-        assertEquals("Set a weekly goal in the app", view.findViewById<TextView>(R.id.widget_status).text.toString())
-        assertEquals(View.GONE, view.findViewById<ProgressBar>(R.id.widget_progress).visibility)
+        for (small in listOf(false, true)) {
+            val view = todayWidgetViews(context, 30, small = small).apply(context, FrameLayout(context))
+            assertEquals("30 min", view.findViewById<TextView>(R.id.widget_value).text.toString())
+            assertEquals("Set goal", view.findViewById<TextView>(R.id.widget_detail).text.toString())
+            assertEquals(View.GONE, view.findViewById<View>(R.id.widget_progress).visibility)
+        }
     }
 
-    @Test fun widgetOpensHomeAndRefreshTargetsOnlyItsOwnReceiver() {
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun smallestLayoutFitsLongNumbersAtOneCellSize() {
+        val view = todayWidgetViews(context, 1440, 1200, small = true).apply(context, FrameLayout(context))
+        val density = context.resources.displayMetrics.density
+        val width = (82 * density).toInt()
+        val height = (96 * density).toInt()
+        view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+        view.layout(0, 0, width, height)
+        val value = view.findViewById<TextView>(R.id.widget_value)
+        assertEquals(1, value.lineCount)
+        assertTrue(value.layout.getLineWidth(0) <= value.width)
+        val bar = view.findViewById<View>(R.id.widget_progress)
+        assertTrue("bar=${bar.top}..${bar.bottom}, height=$height padding=${view.paddingBottom} value=${value.top}..${value.bottom}",
+            bar.bottom <= height - view.paddingBottom)
+    }
+
+    @Test @Config(sdk = [30]) fun olderLaunchersChooseLayoutPerWidgetWidth() {
+        val manager = AppWidgetManager.getInstance(context)
+        val info = AppWidgetProviderInfo().apply {
+            provider = ComponentName(context, TodayWidget::class.java)
+            initialLayout = R.layout.today_widget
+        }
+        shadowOf(manager).addInstalledProvider(info)
+        shadowOf(manager).setAllowedToBindAppWidgets(true)
+        for ((id, width) in listOf(41 to 82, 42 to 180)) {
+            assertTrue(manager.bindAppWidgetIdIfAllowed(id, info.provider))
+            manager.updateAppWidgetOptions(id, Bundle().apply {
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, width)
+            })
+        }
+        publishTodayWidgets(context, manager, intArrayOf(41, 42), 22, 60)
+        assertEquals("22 / 60", shadowOf(manager).getViewFor(41).findViewById<TextView>(R.id.widget_value).text.toString())
+        assertEquals("38 min left", shadowOf(manager).getViewFor(42).findViewById<TextView>(R.id.widget_value).text.toString())
+    }
+
+    @Test fun widgetOpensHome() {
         val open = shadowOf(TodayWidget.openIntent(context)).savedIntent
         assertEquals(AppDestination.HOME.route, open.getStringExtra(EXTRA_INITIAL_DESTINATION))
         assertEquals(ComponentName(context, MainActivity::class.java), open.component)
-        val refresh = shadowOf(TodayWidget.refreshIntent(context)).savedIntent
-        assertEquals(ComponentName(context, TodayWidget::class.java), refresh.component)
     }
 
     @Test fun workerPublishesUnavailableStateWhenUsagePermissionIsMissing() = runBlocking {
@@ -87,7 +128,7 @@ class TodayWidgetTest {
         assertEquals(ListenableWorker.Result.success(), worker.doWork())
         val view = shadowOf(manager).getViewFor(42)
         assertEquals(context.getString(R.string.widget_usage_unavailable),
-            view.findViewById<TextView>(R.id.widget_status).text.toString())
-        assertEquals("—", view.findViewById<TextView>(R.id.widget_usage).text.toString())
+            view.findViewById<TextView>(R.id.widget_detail).text.toString())
+        assertEquals("—", view.findViewById<TextView>(R.id.widget_value).text.toString())
     }
 }

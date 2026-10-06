@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -22,9 +23,10 @@ class TodayWidget : AppWidgetProvider() {
         refresh(context)
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == REFRESH_ACTION) refresh(context)
+    override fun onAppWidgetOptionsChanged(
+        context: Context, manager: AppWidgetManager, id: Int, options: Bundle,
+    ) {
+        refresh(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -35,7 +37,6 @@ class TodayWidget : AppWidgetProvider() {
     companion object {
         internal const val PERIODIC_WORK = "today-widget-periodic"
         internal const val REFRESH_WORK = "today-widget-refresh"
-        private const val REFRESH_ACTION = "ca.mattmccormick.screenbudget.REFRESH_WIDGET"
 
         internal fun ids(context: Context): IntArray = AppWidgetManager.getInstance(context)
             .getAppWidgetIds(ComponentName(context, TodayWidget::class.java))
@@ -47,11 +48,6 @@ class TodayWidget : AppWidgetProvider() {
                 OneTimeWorkRequestBuilder<TodayWidgetWorker>().build(),
             )
         }
-
-        internal fun refreshIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
-            context, 0, Intent(context, TodayWidget::class.java).setAction(REFRESH_ACTION),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
 
         internal fun openIntent(context: Context): PendingIntent = PendingIntent.getActivity(
             context, 10,
