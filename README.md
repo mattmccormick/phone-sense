@@ -57,6 +57,8 @@ Gradle remains the build system. The version-controlled
 including when running `./gradlew` directly. Install JDK 17 locally; automatic
 downloads are not configured.
 
+See [the release checklist](docs/releasing.md) for Google Play and F-Droid publication.
+
 ### Release signing
 
 Create the release keystore once and keep it and its passwords private:
