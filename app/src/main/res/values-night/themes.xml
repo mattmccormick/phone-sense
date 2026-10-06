@@ -3,6 +3,6 @@
     <style name="Theme.ScreenBudget" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
-        <item name="android:windowBackground">#161D19</item>
+        <item name="android:windowBackground">#161E1B</item>
     </style>
 </resources>

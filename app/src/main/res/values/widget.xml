@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <color name="widget_background">#F5F7F5</color>
-    <color name="widget_text">#24332B</color>
-    <color name="widget_secondary">#626E66</color>
-    <color name="widget_accent">#286F56</color>
+    <color name="widget_background">#F5F5EC</color>
+    <color name="widget_text">#25332E</color>
+    <color name="widget_secondary">#606D64</color>
+    <color name="widget_accent">#21675E</color>
     <color name="widget_error">#B34238</color>
-    <color name="widget_track">#E1E6E2</color>
+    <color name="widget_track">#DDE3D7</color>
     <string name="widget_name">Today’s budget</string>
     <string name="widget_heading">TODAY</string>
     <string name="widget_description">Today’s usage and allowance. Resize for a compact view.</string>

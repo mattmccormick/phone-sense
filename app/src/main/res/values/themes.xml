@@ -5,6 +5,6 @@
     <style name="Theme.ScreenBudget" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowBackground">#FFFFFF</item>
+        <item name="android:windowBackground">#FFFCF4</item>
     </style>
 </resources>
