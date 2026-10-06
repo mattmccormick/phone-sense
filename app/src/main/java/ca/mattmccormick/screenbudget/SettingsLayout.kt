@@ -17,11 +17,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+// Pages with their own scrolling list opt out of outer scrolling to keep a bounded viewport.
 @Composable
-internal fun SettingsPage(title: String, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+internal fun SettingsPage(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    scrollContent: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     BackHandler(onBack = onBack)
-    Scaffold { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+    Scaffold(modifier = modifier) { padding ->
+        val scrolling = if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier
+        Column(Modifier.fillMaxSize().padding(padding).then(scrolling)) {
             Text(title, Modifier.padding(24.dp), style = MaterialTheme.typography.headlineMedium)
             content()
         }

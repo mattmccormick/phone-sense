@@ -1,6 +1,5 @@
 package ca.mattmccormick.screenbudget
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +44,6 @@ internal fun AppAllowanceSettings(
     var saving by remember { mutableStateOf(emptySet<String>()) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    BackHandler(onBack = onBack)
     LaunchedEffect(usageDao, appRuleDao, appInfoSource) {
         val resolvedInfos = mutableMapOf<String, AppInfo>()
         apps = withContext(Dispatchers.IO) {
@@ -67,10 +64,9 @@ internal fun AppAllowanceSettings(
         }
         appInfos = resolvedInfos
     }
-    Scaffold { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(start = 24.dp, top = 24.dp, end = 24.dp),
+    SettingsPage("Apps counted", onBack, scrollContent = false) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Apps counted", style = MaterialTheme.typography.headlineMedium)
             Text("Switch on to count an app toward your daily allowance.",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

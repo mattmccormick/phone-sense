@@ -1,14 +1,9 @@
 package ca.mattmccormick.screenbudget
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -43,16 +38,11 @@ internal fun AboutScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BackHandler(onBack = onBack)
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
+    SettingsPage(stringResource(R.string.about), onBack, modifier = modifier) {
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.about), style = MaterialTheme.typography.headlineMedium)
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.app_license))
             Text(
