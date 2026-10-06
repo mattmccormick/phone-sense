@@ -31,7 +31,7 @@ class UsageCoverageMigrationTest {
                         UsageDatabase.MIGRATION_1_2.migrate(db)
                         UsageDatabase.MIGRATION_2_3.migrate(db)
                         db.execSQL("INSERT INTO daily_usage VALUES ('2026-10-04', 114, 'COLLECTED', 0)")
-                        db.execSQL("INSERT INTO app_rules VALUES ('ca.mattmccormick.screenbudget', 'Screen Budget', 0)")
+                        db.execSQL("INSERT INTO app_rules VALUES ('ca.mattmccormick.screenbudget', 'Phone Sense', 0)")
                         db.execSQL("INSERT INTO app_rules VALUES ('custom.app', 'Custom', 1)")
                     }
                     override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
@@ -79,7 +79,7 @@ class UsageCoverageMigrationTest {
         Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), UsageDatabase::class.java)
             .addCallback(UsageDatabase.DEFAULT_APP_RULES).allowMainThreadQueries().build().useDatabase { db ->
                 assertEquals(3, db.appRuleDao().excludedKeys().size)
-                db.appRuleDao().insert(AppRule("ca.mattmccormick.screenbudget", "Screen Budget", false))
+                db.appRuleDao().insert(AppRule("ca.mattmccormick.screenbudget", "Phone Sense", false))
                 assertEquals(2, db.appRuleDao().excludedKeys().size)
             }
     }

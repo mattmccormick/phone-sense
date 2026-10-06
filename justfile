@@ -25,7 +25,7 @@ wait-for-android target="-d":
         sleep 1
     done
 
-# Open Screen Budget on a connected physical Android device.
+# Open Phone Sense on a connected physical Android device.
 launch target="-d":
     "{{android_home}}/platform-tools/adb" {{quote(target)}} shell am start \
         -n {{application_id}}/.MainActivity
@@ -51,7 +51,7 @@ install target="-d": debug
     "{{android_home}}/platform-tools/adb" {{quote(target)}} install -r {{debug_apk}}
     {{quote(just_executable())}} -- launch {{quote(target)}}
 
-# Fail if the built APK declares an unexpected permission. Screen Budget needs
+# Fail if the built APK declares an unexpected permission. Phone Sense needs
 # usage access for collection; this guards the manifest merge against another
 # permission arriving from a library.
 #

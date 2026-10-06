@@ -31,7 +31,7 @@ abstract class UsageDatabase : RoomDatabase() {
                 listOf(
                     "com.android.systemui" to "System UI",
                     "com.google.android.apps.nexuslauncher" to "Pixel Launcher",
-                    "ca.mattmccormick.screenbudget" to "Screen Budget",
+                    "ca.mattmccormick.screenbudget" to "Phone Sense",
                 ).forEach { (key, label) ->
                     db.execSQL("INSERT OR IGNORE INTO app_rules (appKey, label, excluded) VALUES (?, ?, 1)",
                         arrayOf(key, label))

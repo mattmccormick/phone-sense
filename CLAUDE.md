@@ -1,4 +1,4 @@
-# Screen Budget
+# Phone Sense
 
 Read the plan first: `/home/matt/notes/20-29 Projects/Screen Budget/Plan.md`.
 It holds the permissions, the version support matrix, the data model, the

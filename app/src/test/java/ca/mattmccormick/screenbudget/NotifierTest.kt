@@ -64,7 +64,7 @@ class NotifierTest {
         )
 
         val notification = shadowOf(notificationManager).allNotifications.single()
-        assertEquals("Screen Budget", notification.extras.getString(Notification.EXTRA_TITLE))
+        assertEquals("Phone Sense", notification.extras.getString(Notification.EXTRA_TITLE))
         assertEquals(
             "Max usage today to meet goal: 00:44",
             notification.extras.getString(Notification.EXTRA_TEXT),

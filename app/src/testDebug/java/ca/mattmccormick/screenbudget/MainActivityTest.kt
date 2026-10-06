@@ -61,7 +61,7 @@ class MainActivityTest {
                     calls.incrementAndGet()
                     ranInBackground.set(Looper.myLooper() != Looper.getMainLooper())
                 },
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
             )
         }
 
@@ -80,7 +80,7 @@ class MainActivityTest {
                 usageEventsSource = fakeUsageEventsSource { false },
                 launchSettings = {},
                 collectUsage = { calls.incrementAndGet() },
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
             )
         }
 
@@ -114,7 +114,7 @@ class MainActivityTest {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { false },
                 launchSettings = { launchedIntent = it },
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
             )
         }
 
@@ -133,7 +133,7 @@ class MainActivityTest {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { hasAccess },
                 launchSettings = {},
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
                 lifecycleOwner = lifecycleOwner,
             )
         }
@@ -149,7 +149,7 @@ class MainActivityTest {
         compose.onNodeWithText("• One weekly summary with a recommended goal").assertIsDisplayed()
         compose.onNodeWithText("• A prompt when a goal is needed").assertIsDisplayed()
         compose.onNodeWithText("• An alert when usage access is needed").assertIsDisplayed()
-        compose.onNodeWithText("Screen Budget").assertDoesNotExist()
+        compose.onNodeWithText("Phone Sense").assertDoesNotExist()
     }
 
     @Test
@@ -159,14 +159,14 @@ class MainActivityTest {
                 usageEventsSource = fakeUsageEventsSource { true },
                 launchSettings = {},
                 settings = AppSettings(onboardingDone = true),
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
             )
         }
 
         compose.onNodeWithText("See your screen time").assertDoesNotExist()
         compose.onNodeWithText("Choose your notifications").assertDoesNotExist()
         compose.onNodeWithText("Choose your schedule").assertDoesNotExist()
-        compose.onNodeWithText("Screen Budget").assertIsDisplayed()
+        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
     }
 
     @Test
@@ -183,7 +183,7 @@ class MainActivityTest {
                 createNotificationChannels = { NotificationChannels.create(context) },
                 requestNotificationPermission = { requestedPermission = it },
                 recordNotificationChoice = { declined = it },
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
             )
         }
 
@@ -196,7 +196,7 @@ class MainActivityTest {
             assertChannels(notificationManager)
         }
         compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
-        compose.onNodeWithText("Screen Budget").assertDoesNotExist()
+        compose.onNodeWithText("Phone Sense").assertDoesNotExist()
     }
 
     @Test
@@ -214,7 +214,7 @@ class MainActivityTest {
                 createNotificationChannels = { NotificationChannels.create(context) },
                 requestNotificationPermission = { requestedPermission = it },
                 recordNotificationChoice = { completed = true },
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
             )
         }
 
@@ -226,7 +226,7 @@ class MainActivityTest {
             assertChannels(notificationManager)
         }
         compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
-        compose.onNodeWithText("Screen Budget").assertDoesNotExist()
+        compose.onNodeWithText("Phone Sense").assertDoesNotExist()
     }
 
     @Test
@@ -247,7 +247,7 @@ class MainActivityTest {
                     finishedWeekStart = weekStart
                     finishedNotificationTime = notificationTime
                 },
-                mainContent = { Text("Screen Budget") },
+                mainContent = { Text("Phone Sense") },
             )
         }
 
@@ -263,7 +263,7 @@ class MainActivityTest {
             assertEquals(DayOfWeek.SATURDAY, finishedWeekStart)
             assertEquals(LocalTime.of(7, 0), finishedNotificationTime)
         }
-        compose.onNodeWithText("Screen Budget").assertIsDisplayed()
+        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
     }
 
     private fun fakeUsageEventsSource(hasAccess: () -> Boolean) = UsageEventsSource(

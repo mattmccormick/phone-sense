@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Screen Budget</string>
+    <string name="app_name">Phone Sense</string>
     <string name="usage_access_title">See your screen time</string>
-    <string name="usage_access_explanation">Screen Budget records which apps are in the foreground and for how long. This information stays on your device and never leaves it.</string>
+    <string name="usage_access_explanation">Phone Sense records which apps are in the foreground and for how long. This information stays on your device and never leaves it.</string>
     <string name="allow_usage_access">Allow usage access</string>
     <string name="notification_onboarding_title">Choose your notifications</string>
-    <string name="notification_onboarding_explanation">Screen Budget can send:</string>
+    <string name="notification_onboarding_explanation">Phone Sense can send:</string>
     <string name="daily_budget_notification">• One daily remaining budget notification at your chosen time</string>
     <string name="weekly_summary_notification">• One weekly summary with a recommended goal</string>
     <string name="goal_needed_notification">• A prompt when a goal is needed</string>

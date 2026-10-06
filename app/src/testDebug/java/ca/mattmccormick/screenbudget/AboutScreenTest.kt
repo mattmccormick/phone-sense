@@ -28,7 +28,7 @@ class AboutScreenTest {
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithText("About").performScrollTo().performClick()
 
-        compose.onNodeWithText("Screen Budget").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Phone Sense").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("GNU General Public License v3.0 or later")
             .performScrollTo()
             .assertIsDisplayed()

@@ -84,7 +84,7 @@ class SettingsScreenTest {
         compose.runOnIdle {
             assertEquals(Intent.ACTION_CREATE_DOCUMENT, launchedIntent?.action)
             assertEquals("application/json", launchedIntent?.type)
-            assertEquals("screen-budget-2026-10-03.json", launchedIntent?.getStringExtra(Intent.EXTRA_TITLE))
+            assertEquals("phone-sense-2026-10-03.json", launchedIntent?.getStringExtra(Intent.EXTRA_TITLE))
         }
     }
 
@@ -104,7 +104,7 @@ class SettingsScreenTest {
         compose.runOnIdle {
             assertEquals(Intent.ACTION_CREATE_DOCUMENT, launchedIntent?.action)
             assertEquals("text/csv", launchedIntent?.type)
-            assertEquals("screen-budget-2026-10-03.csv", launchedIntent?.getStringExtra(Intent.EXTRA_TITLE))
+            assertEquals("phone-sense-2026-10-03.csv", launchedIntent?.getStringExtra(Intent.EXTRA_TITLE))
         }
     }
 

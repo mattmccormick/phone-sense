@@ -25,7 +25,7 @@ internal fun createExportIntent(format: ExportFormat, date: LocalDate): Intent =
     Intent(Intent.ACTION_CREATE_DOCUMENT)
         .addCategory(Intent.CATEGORY_OPENABLE)
         .setType(format.mimeType)
-        .putExtra(Intent.EXTRA_TITLE, "screen-budget-$date.${format.extension}")
+        .putExtra(Intent.EXTRA_TITLE, "phone-sense-$date.${format.extension}")
 
 internal fun writeExport(
     destination: Uri,

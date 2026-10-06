@@ -1,4 +1,4 @@
-# Screen Budget
+# Phone Sense
 
 SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -15,7 +15,7 @@ The plan is at `~/notes/20-29 Projects/Screen Budget/Plan.md`.
 ## Today widget
 
 Long-press an empty area of your Android home screen, choose **Widgets**, then
-**Screen Budget → Today’s budget**. Open the app first to grant usage access and
+**Phone Sense → Today’s budget**. Open the app first to grant usage access and
 set a weekly goal. The widget shows counted minutes, the adjusted daily allowance,
 and minutes remaining or over budget. Selected app exclusions apply.
 
@@ -91,8 +91,8 @@ once their branch contains `gradle/gradle-daemon-jvm.properties`.
 
 #### Clear emulator app storage
 
-To reset saved navigation state and all Screen Budget data, open the emulator's
-**Settings → Apps → Screen Budget → Storage & cache → Clear storage**. This also
+To reset saved navigation state and all Phone Sense data, open the emulator's
+**Settings → Apps → Phone Sense → Storage & cache → Clear storage**. This also
 removes stored goals and settings and causes onboarding to appear again.
 
 The equivalent Android Debug Bridge command is:

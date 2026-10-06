@@ -1,6 +1,6 @@
-# Contributing to Screen Budget
+# Contributing to Phone Sense
 
-Screen Budget welcomes bug reports, documentation fixes, and code changes.
+Phone Sense welcomes bug reports, documentation fixes, and code changes.
 By contributing, you agree that your contribution may be distributed under
 the project's GPL-3.0-or-later license.
 

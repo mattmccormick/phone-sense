@@ -1,8 +1,8 @@
-Screen Budget helps you spend less time on distracting apps. Set a weekly screen-time goal and see how much time you can use today while still meeting it. A six-week chart shows your progress over time.
+Phone Sense helps you understand your phone habits and make deliberate choices about how you spend your time. Reduce your usage at your own pace; Phone Sense does not block apps. Set a weekly screen-time goal and see how much time you can use today while still meeting it. A six-week chart shows your progress over time.
 
 Review each day's activity by app, exclude apps that are not distractions, and enter missed days by hand. You can export a backup or spreadsheet and restore a backup later. Everything stays on your device.
 
-Screen Budget can send four kinds of notification:
+Phone Sense can send four kinds of notification:
 
 * A daily update showing how much screen time remains in today's budget
 * A weekly summary with your average, whether you met your goal, and a suggested goal you can accept
@@ -11,4 +11,4 @@ Screen Budget can send four kinds of notification:
 
 Notifications are optional. You choose their time and can turn them off in Android settings.
 
-To measure screen time, Screen Budget asks for Android's usage access permission. This permission lets the app read when other apps were used. Screen Budget uses that information only on your device to calculate daily totals. It does not read the content of other apps, and it has no internet permission.
+To measure screen time, Phone Sense asks for Android's usage access permission. This permission lets the app read when other apps were used. Phone Sense uses that information only on your device to calculate daily totals. It does not read the content of other apps, and it has no internet permission.

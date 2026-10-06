@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Screen Budget"
+rootProject.name = "Phone Sense"
 include(":app")
