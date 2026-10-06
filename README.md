@@ -26,6 +26,16 @@ It refreshes when you leave the app and requests background updates every
 15 minutes while installed. Android may delay background updates, so the widget
 is a periodic snapshot rather than a live counter.
 
+## Chart widget
+
+Choose **Phone Sense → Six-week chart** in the home-screen widget picker. It shows
+the Home tab’s counted daily usage, weekly goals and weekly averages with the
+same app exclusions. The outlined bar marks today; the open average endpoint
+marks this week’s average so far. Missing days remain empty.
+
+It starts at 4 × 3 cells and can resize down to 3 × 2 where the launcher allows.
+Tap to open Home. Both widgets share the same refresh schedule described above.
+
 ## Development
 
 Install [just](https://just.systems/man/en/packages.html), JDK 17, and the Android

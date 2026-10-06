@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        TodayWidget.refresh(applicationContext)
+        WidgetUpdates.refresh(applicationContext)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

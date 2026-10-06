@@ -54,6 +54,13 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/today_widget_info" />
         </receiver>
 
+        <receiver android:name=".ChartWidget" android:label="@string/chart_widget_name" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/chart_widget_info" />
+        </receiver>
+
         <receiver
             android:name=".AcceptGoalReceiver"
             android:exported="false" />

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="chart_widget_average">#526C47</color>
+    <string name="chart_widget_name">Six-week chart</string>
+    <string name="chart_widget_heading">Last six weeks</string>
+    <string name="chart_widget_unit">min/day</string>
+    <string name="chart_widget_description">Six-week distraction chart with daily usage, weekly goals and weekly averages. Today and this week’s average are in progress. Tap to open Home.</string>
+    <string name="chart_widget_this_week">This week</string>
+    <string name="chart_widget_usage">Usage</string>
+    <string name="chart_widget_goal">Goal</string>
+    <string name="chart_widget_average">Average</string>
+    <string name="chart_widget_note">Outlined: today · this week’s average so far</string>
+    <string name="chart_widget_empty">No usage data yet</string>
+    <string name="chart_widget_loading">Open app to load chart</string>
+    <string name="chart_widget_unavailable">Open app to enable usage access</string>
+    <string name="chart_widget_failed">Open app to refresh chart</string>
+    <string name="chart_widget_day_description">%1$s: usage %2$s min, goal %3$s min, weekly average %4$s min</string>
+</resources>

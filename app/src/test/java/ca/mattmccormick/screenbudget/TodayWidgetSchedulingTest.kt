@@ -1,5 +1,8 @@
 package ca.mattmccormick.screenbudget
 
+import android.appwidget.AppWidgetProviderInfo
+import android.content.ComponentName
+import org.robolectric.Shadows.shadowOf
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -32,16 +35,32 @@ class TodayWidgetSchedulingTest {
         val manager = AppWidgetManager.getInstance(context)
         provider.onUpdate(context, manager, intArrayOf(1))
         provider.onUpdate(context, manager, intArrayOf(2))
-        val scheduled = workManager.getWorkInfosForUniqueWork(TodayWidget.PERIODIC_WORK).get()
+        val scheduled = workManager.getWorkInfosForUniqueWork(WidgetUpdates.PERIODIC_WORK).get()
         assertEquals(1, scheduled.size)
         assertEquals(15 * 60 * 1000L, scheduled.single().periodicityInfo!!.repeatIntervalMillis)
         provider.onDisabled(context)
         assertEquals(WorkInfo.State.CANCELLED,
-            workManager.getWorkInfosForUniqueWork(TodayWidget.PERIODIC_WORK).get().single().state)
+            workManager.getWorkInfosForUniqueWork(WidgetUpdates.PERIODIC_WORK).get().single().state)
+    }
+
+    @Test fun removingTodayKeepsScheduleForRemainingChart() {
+        val manager = AppWidgetManager.getInstance(context)
+        val info = AppWidgetProviderInfo().apply {
+            provider = ComponentName(context, ChartWidget::class.java)
+            initialLayout = R.layout.chart_widget
+        }
+        shadowOf(manager).addInstalledProvider(info)
+        shadowOf(manager).setAllowedToBindAppWidgets(true)
+        assertTrue(manager.bindAppWidgetIdIfAllowed(71, info.provider))
+        ChartWidget().onUpdate(context, manager, intArrayOf(71))
+        TodayWidget().onDisabled(context)
+        val scheduled = workManager.getWorkInfosForUniqueWork(WidgetUpdates.PERIODIC_WORK).get()
+        assertEquals(1, scheduled.size)
+        assertNotEquals(WorkInfo.State.CANCELLED, scheduled.single().state)
     }
 
     @Test fun leavingAppWithoutWidgetsDoesNotEnqueueWork() {
-        TodayWidget.refresh(context)
-        assertTrue(workManager.getWorkInfosForUniqueWork(TodayWidget.REFRESH_WORK).get().isEmpty())
+        WidgetUpdates.refresh(context)
+        assertTrue(workManager.getWorkInfosForUniqueWork(WidgetUpdates.REFRESH_WORK).get().isEmpty())
     }
 }

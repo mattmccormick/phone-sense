@@ -21,7 +21,8 @@ class TodayWidgetWorker(context: Context, parameters: WorkerParameters) : Corout
         refreshMutex.withLock {
             val context = applicationContext
             val ids = TodayWidget.ids(context)
-            if (ids.isEmpty()) return@withLock Result.success()
+            val chartIds = ChartWidget.ids(context)
+            if (ids.isEmpty() && chartIds.isEmpty()) return@withLock Result.success()
             val manager = AppWidgetManager.getInstance(context)
             try {
                 val source = UsageEventsSource(context)
@@ -31,6 +32,7 @@ class TodayWidgetWorker(context: Context, parameters: WorkerParameters) : Corout
                 } else null
                 if (snapshot == null) {
                     publishTodayWidgets(context, manager, ids, message = context.getString(R.string.widget_usage_unavailable))
+                    publishChartWidgets(context, manager, chartIds, message = context.getString(R.string.chart_widget_unavailable))
                     return@withLock Result.success()
                 }
                 val database = (context as ScreenBudgetApplication).database
@@ -43,12 +45,14 @@ class TodayWidgetWorker(context: Context, parameters: WorkerParameters) : Corout
                 val allowance = todayAllowance(data.goal, data.usedSoFar, used, snapshot.date, settings.weekStartDay)
                 if (snapshot.date != LocalDate.now(zone)) return@withLock Result.retry()
                 publishTodayWidgets(context, manager, ids, used, allowance)
+                publishChartWidgets(context, manager, chartIds, data.chart)
                 Result.success()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 Log.w("TodayWidget", "Could not refresh widget", error)
                 publishTodayWidgets(context, manager, ids, message = context.getString(R.string.widget_refresh_failed))
+                publishChartWidgets(context, manager, chartIds, message = context.getString(R.string.chart_widget_failed))
                 Result.retry()
             }
         }
