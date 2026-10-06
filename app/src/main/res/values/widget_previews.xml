@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_preview_ratio" translatable="false">22 / 60 min</string>
+    <string name="widget_preview_remaining" translatable="false">38 min left</string>
+    <string name="widget_preview_sample">Sample usage preview</string>
+</resources>

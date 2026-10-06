@@ -3,5 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools" tools:targetApi="31"
     android:minWidth="280dp" android:minHeight="220dp" android:minResizeWidth="220dp" android:minResizeHeight="160dp"
     android:targetCellWidth="4" android:targetCellHeight="3" android:initialLayout="@layout/chart_widget"
-    android:previewLayout="@layout/chart_widget" android:description="@string/chart_widget_description"
+    android:previewLayout="@layout/chart_widget_preview"
+    android:previewImage="@drawable/chart_widget_preview" android:description="@string/chart_widget_description"
     android:resizeMode="horizontal|vertical" android:updatePeriodMillis="0" android:widgetCategory="home_screen" />

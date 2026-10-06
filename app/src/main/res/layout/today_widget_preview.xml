@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picker-only sample data; never used as a live widget layout. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:gravity="center_vertical" android:padding="12dp"
+    android:background="@drawable/widget_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/widget_heading" android:textSize="11sp" android:textStyle="bold"
+            android:includeFontPadding="false" android:textColor="@color/widget_secondary" />
+        <TextView android:text="@string/widget_preview_ratio" android:id="@+id/widget_usage" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:gravity="end" android:layout_marginStart="6dp"
+            android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp"
+            android:autoSizeMaxTextSize="12sp" android:autoSizeStepGranularity="1sp"
+            android:includeFontPadding="false" android:textColor="@color/widget_text" />
+    </LinearLayout>
+    <TextView android:id="@+id/widget_value" android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:gravity="center_vertical"
+        android:textSize="28sp" android:layout_marginTop="4dp" android:text="@string/widget_preview_remaining" android:textStyle="bold"
+        android:includeFontPadding="false" android:maxLines="1" android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="28sp" android:autoSizeStepGranularity="1sp"
+        android:textColor="@color/widget_text" />
+    <ProgressBar style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="6dp"
+        android:progressDrawable="@drawable/widget_progress" android:indeterminate="false"
+        android:max="60" android:progress="22" android:contentDescription="@string/widget_preview_sample" />
+</LinearLayout>
