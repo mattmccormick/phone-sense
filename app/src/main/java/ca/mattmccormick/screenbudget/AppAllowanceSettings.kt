@@ -68,7 +68,7 @@ internal fun AppAllowanceSettings(
         appInfos = resolvedInfos
     }
     Scaffold { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp),
+        Column(Modifier.fillMaxSize().padding(padding).padding(start = 24.dp, top = 24.dp, end = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Apps counted", style = MaterialTheme.typography.headlineMedium)
             Text("Switch on to count an app toward your daily allowance.",
