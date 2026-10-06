@@ -30,21 +30,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import ca.mattmccormick.screenbudget.budget.displayBudget
-import ca.mattmccormick.screenbudget.budget.distractionMinutes
-import ca.mattmccormick.screenbudget.budget.remainingDailyBudget
 import ca.mattmccormick.screenbudget.budget.weekStart
 import ca.mattmccormick.screenbudget.data.AppRuleDao
-import ca.mattmccormick.screenbudget.data.AppUsage
-import ca.mattmccormick.screenbudget.data.DailyUsage
 import ca.mattmccormick.screenbudget.data.Goal
 import ca.mattmccormick.screenbudget.data.GoalDao
 import ca.mattmccormick.screenbudget.data.Settings
-import ca.mattmccormick.screenbudget.data.Source
 import ca.mattmccormick.screenbudget.data.UsageDao
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -53,12 +46,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-
-private data class HomeData(
-    val goal: Goal?,
-    val usedSoFar: Int,
-    val chart: HomeChartModel,
-)
 
 @Composable
 internal fun HomeRoute(
@@ -122,37 +109,8 @@ internal fun HomeRoute(
                     previousSnapshot?.date == refreshDate -> previousSnapshot
                     else -> null
                 }
-                val currentWeekStart = weekStart(refreshDate, settings.weekStartDay)
-                val chartStart = refreshDate.minusDays(41)
-                val firstChartWeek = weekStart(chartStart, settings.weekStartDay)
-                val days = usageDao.daysBetween(firstChartWeek, refreshDate)
-                val excluded = appRuleDao.excludedKeys().toSet()
-                val normalizedDays = days.map {
-                    it.day.copy(totalMinutes = distractionMinutes(it.day, it.apps, excluded))
-                }.filterNot { it.date == currentSnapshot?.date }.toMutableList()
-                currentSnapshot?.let { current ->
-                    val day = DailyUsage(
-                        current.date,
-                        current.totalMillis.toMinutes(),
-                        Source.COLLECTED,
-                        current.capturedAt,
-                    )
-                    val apps = current.perPackageMillis.map { (appKey, millis) ->
-                        AppUsage(current.date, appKey, millis.toMinutes())
-                    }
-                    normalizedDays += day.copy(
-                        totalMinutes = distractionMinutes(day, apps, excluded),
-                    )
-                }
-                val goals = goalDao.between(
-                    firstChartWeek,
-                    currentWeekStart,
-                )
-                currentSnapshot to HomeData(
-                    goal = goals.firstOrNull { it.weekStart == currentWeekStart },
-                    usedSoFar = normalizedDays.filter { it.date >= currentWeekStart }
-                        .sumOf { it.totalMinutes },
-                    chart = chartModel(normalizedDays, goals, settings.weekStartDay, refreshDate),
+                currentSnapshot to loadHomeData(
+                    usageDao, goalDao, appRuleDao, settings.weekStartDay, refreshDate, currentSnapshot,
                 )
             }
         }
@@ -186,8 +144,6 @@ internal fun HomeRoute(
     }
 }
 
-private fun Long.toMinutes(): Int = (this / 60_000L).toInt()
-
 @Composable
 internal fun HomeScreen(
     goal: Goal?,
@@ -206,13 +162,9 @@ internal fun HomeScreen(
     ),
 ) {
     val currentWeekStart = weekStart(today, settings.weekStartDay)
-    val dayIndex = ChronoUnit.DAYS.between(currentWeekStart, today).toInt()
 
     val usedToday = chart.dailyMinutes.lastOrNull()
-    // Today's allowance is fixed against earlier days, not reduced by today's usage twice.
-    val allowance = goal?.let {
-        displayBudget(it.minutes, remainingDailyBudget(it.minutes, usedSoFar - (usedToday ?: 0), dayIndex))
-    }
+    val allowance = todayAllowance(goal, usedSoFar, usedToday, today, settings.weekStartDay)
     val colors = MaterialTheme.colorScheme
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
