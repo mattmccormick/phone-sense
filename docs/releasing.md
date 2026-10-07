@@ -1,7 +1,7 @@
 # Releasing Phone Sense
 
 Release checklist for Google Play and the official F-Droid repository. Checked
-against the linked official guidance on 2026-10-05; recheck store requirements
+against the linked official guidance on 2026-10-07; recheck store requirements
 before each submission. This guide does not mean the app has been published.
 
 ## Current project state
@@ -14,6 +14,8 @@ before each submission. This guide does not mean the app has been published.
 | Android support | Minimum 26, target and compile 36 |
 | Build environment | Java Development Kit (JDK) 17; Android Software Development Kit (SDK) platform 36 and build-tools 36.0.0 |
 | License | GNU General Public License (GPL), version 3 or later; see `LICENSE` |
+| Canonical source | `https://github.com/mattmccormick/phone-sense` |
+| Issue tracker | `https://github.com/mattmccormick/phone-sense/issues` |
 | Store text and artwork | `fastlane/metadata/android/en-US/` |
 | Signing configuration | `keystore.properties` or environment variables, consumed by `app/build.gradle.kts` |
 
@@ -21,14 +23,30 @@ An Android Package (APK) installs on a device. An Android App Bundle (AAB) is
 uploaded to Google Play, which generates installable packages. F-Droid builds
 packages from public source using its own build recipe.
 
+## Preparation evidence
+
+| Area | Evidence and status |
+| --- | --- |
+| First-install flow | [Onboarding review](onboarding-review/index.html) with real emulator captures; owner review remains. |
+| Store listing | Reviewed text in `fastlane/metadata/android/en-US/`, the refreshed [feature graphic](../fastlane/metadata/android/en-US/images/featureGraphic.png), and current [screenshots](../fastlane/metadata/android/en-US/images/phoneScreenshots/); owner review remains. |
+| Local candidate | [Unsigned release validation](release-validation.md) records passing tests, build, permission, bundle, and static 16-kilobyte checks. Its lint and Room schema blockers were subsequently fixed; functional and runtime validation still remains. |
+| F-Droid | [Readiness audit](fdroid-readiness.md) records source, license, dependency, native-library, and build-tool evidence. F-Droid tooling and publication remain. |
+| Google Play | [Declaration worksheet](play-console-worksheet.md) records evidence-backed draft answers and separates owner and console-only decisions. Nothing has been submitted. |
+
 ## Before the first release
 
-- [ ] Publish the complete source and license to a public Git repository. No Git
-  remote was configured in this checkout when this guide was written. Choose a
-  canonical repository address and an issue tracker.
-- [ ] Decide signing ownership before distributing any release; see below.
-- [ ] Create developer accounts and complete the identity/contact verification
-  requested by Google Play Console. Check application registration under
+- [x] Establish a public canonical source repository with its license and issue
+  tracker. Verified on 2026-10-07 that the GitHub repository is public and
+  unarchived, GitHub recognizes its GPL-3.0 license, and Issues is enabled.
+- [ ] Push the reviewed release source and immutable release tag. Public `main`
+  was still at `aa5d1b3f0b9592629b38a8f9364ebe952b47afd9` on 2026-10-07 and
+  did not yet contain the integrated preparation work.
+- [ ] Create the required developer accounts and complete any remaining account
+  and contact verification requested by Google Play Console.
+- [x] Record the owner's report that Google Android identity verification was
+  completed on 2026-10-07. This does not verify app registration, Play Console
+  configuration, production access, or testing eligibility.
+- [ ] Check application registration under
   [Android developer verification](https://developer.android.com/developer-verification)
   for the distribution channels and countries you intend to support.
 - [x] Publish a stable, public privacy-policy page based on `PRIVACY.md` at
@@ -42,11 +60,21 @@ packages from public source using its own build recipe.
   current implementation and third-party code. Review the current
   [Google Play privacy requirements](https://support.google.com/googleplay/android-developer/answer/18258653)
   and [Data safety guidance](https://support.google.com/googleplay/android-developer/answer/10787469).
-- [ ] Prepare the missing Play feature graphic, refresh screenshots after the
-  theme change, and review the existing descriptions and `changelogs/1.txt`.
-- [ ] Fix the `just permissions` allowlist before using it as a release gate:
-  it currently rejects the app's intentional `POST_NOTIFICATIONS` permission.
-  Continue rejecting unexpected permissions, especially `INTERNET`.
+- [x] Prepare the Play feature graphic, refresh screenshots from the current app,
+  and reconcile the descriptions and `changelogs/1.txt` with implemented behavior.
+- [ ] Review and approve the onboarding flow, feature graphic, screenshots, store
+  descriptions, and initial changelog using the evidence linked above.
+- [x] Make `just permissions` fail closed while allowing the app's intentional
+  `POST_NOTIFICATIONS` permission and rejecting unexpected permissions, including
+  `INTERNET`. The exact unsigned release package passed this gate.
+- [ ] Choose signing ownership, create the production keys required by that plan,
+  and keep a secure backup of every private key and password.
+- [ ] Complete all console-only setup, declarations, legal attestations, testing
+  requirements, and any production-access process shown for the account and app.
+- [ ] Verify the final signed and store-delivered builds, including the functional
+  matrix and runtime 16-kilobyte page support on stable devices.
+- [ ] Tag and push the tested release commit, then submit separately to Google Play
+  and F-Droid and confirm each published installation.
 
 ## Choose signing ownership
 
