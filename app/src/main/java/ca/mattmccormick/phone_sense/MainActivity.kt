@@ -1,11 +1,8 @@
 package ca.mattmccormick.phone_sense
 
-import android.Manifest
 import android.app.NotificationManager
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Build
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
@@ -35,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -48,9 +46,7 @@ import ca.mattmccormick.phone_sense.data.UsageDatabase
 import ca.mattmccormick.phone_sense.export.ImportService
 import ca.mattmccormick.phone_sense.export.ImportStatus
 import java.time.Clock
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,6 +67,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         database = (application as ScreenBudgetApplication).database
+        NotificationChannels.create(this)
         val initialDestination = AppDestination.from(intent)
         setContent {
             ScreenBudgetTheme {
@@ -102,14 +99,6 @@ class MainActivity : ComponentActivity() {
                     }
                     lifecycleOwner.lifecycle.addObserver(observer)
                     onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-                }
-                val notificationPermission = rememberLauncherForActivityResult(
-                    ActivityResultContracts.RequestPermission(),
-                ) { granted ->
-                    notificationsEnabled = granted
-                    scope.launch {
-                        settingsRepository.setNotificationsDeclined(!granted)
-                    }
                 }
                 var pendingExportFormat by remember { mutableStateOf(ExportFormat.JSON) }
                 var exportError by remember { mutableStateOf<String?>(null) }
@@ -159,24 +148,13 @@ class MainActivity : ComponentActivity() {
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
                     settings = settings,
-                    createNotificationChannels = {
-                        NotificationChannels.create(this@MainActivity)
-                    },
-                    requestNotificationPermission = { permission ->
-                        notificationPermission.launch(permission)
-                    },
-                    recordNotificationChoice = { declined ->
+                    finishOnboarding = {
                         scope.launch {
-                            settingsRepository.setNotificationsDeclined(declined)
-                        }
-                    },
-                    finishOnboarding = { weekStartDay, notificationTime ->
-                        scope.launch {
-                            settingsRepository.finishOnboarding(weekStartDay, notificationTime)
+                            settingsRepository.finishOnboarding()
                             scheduleDailyCollection(
                                 WorkManager.getInstance(this@MainActivity),
                                 Clock.systemDefaultZone(),
-                                notificationTime,
+                                settings.notificationTime,
                             )
                         }
                     },
@@ -187,8 +165,7 @@ class MainActivity : ComponentActivity() {
                         HomeWithSettings(
                             settings = settings,
                             hasUsageAccess = usageEventsSource.hasUsageAccess(),
-                            notificationsEnabled =
-                                notificationsEnabled && !settings.notificationsDeclined,
+                            notificationsEnabled = notificationsEnabled,
                             collectNow = {
                                 collector.collect(LocalDate.now(), ZoneId.systemDefault())
                             },
@@ -196,9 +173,6 @@ class MainActivity : ComponentActivity() {
                                 startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                             },
                             openNotificationSettings = {
-                                scope.launch {
-                                    settingsRepository.setNotificationsDeclined(false)
-                                }
                                 startActivity(
                                     Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                                         .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
@@ -279,22 +253,13 @@ internal fun ScreenBudgetApp(
     usageEventsSource: UsageEventsSource,
     launchSettings: (Intent) -> Unit,
     settings: AppSettings = AppSettings(),
-    createNotificationChannels: () -> Unit = {},
-    requestNotificationPermission: (permission: String) -> Unit = {},
-    recordNotificationChoice: (notificationsDeclined: Boolean) -> Unit = {},
-    finishOnboarding: (DayOfWeek, LocalTime) -> Unit = { _, _ -> },
+    finishOnboarding: () -> Unit = {},
     collectUsage: () -> Unit = {},
     mainContent: @Composable (collectionVersion: Int) -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     var hasUsageAccess by remember(usageEventsSource) {
         mutableStateOf(usageEventsSource.hasUsageAccess())
-    }
-    var notificationStepDone by remember(settings.onboardingDone) {
-        mutableStateOf(settings.onboardingDone)
-    }
-    var onboardingFinished by remember(settings.onboardingDone) {
-        mutableStateOf(settings.onboardingDone)
     }
     var collectionVersion by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner, usageEventsSource) {
@@ -312,35 +277,16 @@ internal fun ScreenBudgetApp(
             collectionVersion++
         }
     }
+    LaunchedEffect(hasUsageAccess, settings.onboardingDone) {
+        if (hasUsageAccess && !settings.onboardingDone) {
+            finishOnboarding()
+        }
+    }
 
     if (!hasUsageAccess && !settings.onboardingDone) {
         UsageAccessScreen(
             onAllowUsageAccess = {
                 launchSettings(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-            },
-        )
-    } else if (!notificationStepDone) {
-        NotificationOnboardingScreen(
-            onTurnOnNotifications = {
-                createNotificationChannels()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    requestNotificationPermission(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                recordNotificationChoice(false)
-                notificationStepDone = true
-            },
-            onNotNow = {
-                createNotificationChannels()
-                recordNotificationChoice(true)
-                notificationStepDone = true
-            },
-        )
-    } else if (!onboardingFinished) {
-        ScheduleOnboardingScreen(
-            settings = settings,
-            onFinish = { weekStartDay, notificationTime ->
-                finishOnboarding(weekStartDay, notificationTime)
-                onboardingFinished = true
             },
         )
     } else {
@@ -375,6 +321,7 @@ private fun UsageAccessScreen(
                     text = stringResource(R.string.usage_access_explanation),
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Justify,
                 )
                 Button(
                     onClick = onAllowUsageAccess,

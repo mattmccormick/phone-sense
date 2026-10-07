@@ -16,7 +16,6 @@ data class Settings(
     val notificationTime: LocalTime = LocalTime.of(7, 0),
     val reductionPercent: Int = 10,
     val onboardingDone: Boolean = false,
-    val notificationsDeclined: Boolean = false,
 )
 
 class SettingsRepository(private val dataStore: DataStore<Preferences>) {
@@ -28,20 +27,11 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 ?: LocalTime.of(7, 0),
             reductionPercent = preferences[REDUCTION_PERCENT] ?: 10,
             onboardingDone = preferences[ONBOARDING_DONE] ?: false,
-            notificationsDeclined = preferences[NOTIFICATIONS_DECLINED] ?: false,
         )
     }
 
-    suspend fun setNotificationsDeclined(notificationsDeclined: Boolean) {
-        dataStore.edit { it[NOTIFICATIONS_DECLINED] = notificationsDeclined }
-    }
-
-    suspend fun finishOnboarding(weekStartDay: DayOfWeek, notificationTime: LocalTime) {
-        dataStore.edit {
-            it[WEEK_START_DAY] = weekStartDay.name
-            it[NOTIFICATION_TIME] = notificationTime.toString()
-            it[ONBOARDING_DONE] = true
-        }
+    suspend fun finishOnboarding() {
+        dataStore.edit { it[ONBOARDING_DONE] = true }
     }
 
     private companion object {
@@ -49,6 +39,5 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val NOTIFICATION_TIME = stringPreferencesKey("notification_time")
         val REDUCTION_PERCENT = intPreferencesKey("reduction_percent")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
-        val NOTIFICATIONS_DECLINED = booleanPreferencesKey("notifications_declined")
     }
 }

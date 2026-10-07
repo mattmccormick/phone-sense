@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -58,7 +59,6 @@ class SettingsRepositoryTest {
                 notificationTime = LocalTime.of(7, 0),
                 reductionPercent = 10,
                 onboardingDone = false,
-                notificationsDeclined = false,
             ),
             repository.settings.first(),
         )
@@ -66,9 +66,12 @@ class SettingsRepositoryTest {
 
     @Test
     fun settingsReadBackWrittenValues() = runBlocking {
-        store.edit { it[intPreferencesKey("reduction_percent")] = 25 }
-        repository.setNotificationsDeclined(notificationsDeclined = true)
-        repository.finishOnboarding(DayOfWeek.MONDAY, LocalTime.of(18, 45))
+        store.edit {
+            it[stringPreferencesKey("week_start_day")] = DayOfWeek.MONDAY.name
+            it[stringPreferencesKey("notification_time")] = LocalTime.of(18, 45).toString()
+            it[intPreferencesKey("reduction_percent")] = 25
+        }
+        repository.finishOnboarding()
 
         assertEquals(
             Settings(
@@ -76,18 +79,18 @@ class SettingsRepositoryTest {
                 notificationTime = LocalTime.of(18, 45),
                 reductionPercent = 25,
                 onboardingDone = true,
-                notificationsDeclined = true,
             ),
             repository.settings.first(),
         )
     }
 
     @Test
-    fun finishingOnboardingWritesScheduleAndCompletionTogether() = runBlocking {
-        repository.finishOnboarding(
-            weekStartDay = DayOfWeek.MONDAY,
-            notificationTime = LocalTime.of(18, 45),
-        )
+    fun finishingOnboardingPreservesScheduleAndMarksCompletion() = runBlocking {
+        store.edit {
+            it[stringPreferencesKey("week_start_day")] = DayOfWeek.MONDAY.name
+            it[stringPreferencesKey("notification_time")] = LocalTime.of(18, 45).toString()
+        }
+        repository.finishOnboarding()
 
         assertEquals(
             Settings(
@@ -106,9 +109,9 @@ class SettingsRepositoryTest {
             repository.settings.take(2).toList(emissions)
         }
 
-        repository.setNotificationsDeclined(true)
+        repository.finishOnboarding()
         collection.join()
 
-        assertEquals(listOf(Settings(), Settings(notificationsDeclined = true)), emissions)
+        assertEquals(listOf(Settings(), Settings(onboardingDone = true)), emissions)
     }
 }
