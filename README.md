@@ -7,8 +7,8 @@ exclude apps that are not distractions, sets a weekly goal, and tells you each
 morning how much time you have left. No account, no server, no INTERNET
 permission. Data stays on the phone and can be exported.
 
-Read the [privacy policy](PRIVACY.md) for details about local data storage and
-permissions.
+Read the [privacy policy](https://github.com/mattmccormick/phone-sense/blob/main/PRIVACY.md)
+for details about local data storage and permissions.
 
 The plan is at `~/notes/20-29 Projects/Screen Budget/Plan.md`.
 

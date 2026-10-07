@@ -7,3 +7,5 @@ Android usage access lets Phone Sense read which apps were used and for how long
 If you choose to export your data, Android asks you where to save the file. Phone Sense does not upload exported files or send them to anyone.
 
 You can delete Phone Sense's stored data by clearing its storage or uninstalling the app.
+
+For privacy questions, contact Matt McCormick at [mattmcc@gmail.com](mailto:mattmcc@gmail.com).

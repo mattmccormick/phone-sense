@@ -25,4 +25,13 @@
     <string name="back">Back</string>
     <string name="app_license">GNU General Public License v3.0 or later</string>
     <string name="dependency_licenses">Dependency licenses</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="privacy_policy_public_link">Read the privacy policy online</string>
+    <string name="privacy_contact">Privacy contact</string>
+    <string name="privacy_contact_email">mattmcc@gmail.com</string>
+    <string name="privacy_policy_intro">Phone Sense collects and stores screen-time totals, app usage, goals, and settings only on your device. No data leaves your device through Phone Sense. The app has no INTERNET permission, no account system, no analytics, and no advertising.</string>
+    <string name="privacy_policy_usage_access">Android usage access lets Phone Sense read which apps were used and for how long. This information is used only to calculate the totals and budgets shown in the app. Phone Sense does not read the content of other apps.</string>
+    <string name="privacy_policy_export">If you choose to export your data, Android asks you where to save the file. Phone Sense does not upload exported files or send them to anyone.</string>
+    <string name="privacy_policy_deletion">You can delete Phone Sense\'s stored data by clearing its storage or uninstalling the app.</string>
+    <string name="privacy_contact_prompt">For privacy questions, contact:</string>
 </resources>

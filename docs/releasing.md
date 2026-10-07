@@ -31,9 +31,9 @@ packages from public source using its own build recipe.
   requested by Google Play Console. Check application registration under
   [Android developer verification](https://developer.android.com/developer-verification)
   for the distribution channels and countries you intend to support.
-- [ ] Publish a stable, public privacy-policy page based on `PRIVACY.md`.
-  Add a privacy contact and make the policy available inside the app. The current
-  About screen contains license information but no privacy policy.
+- [x] Publish a stable, public privacy-policy page based on `PRIVACY.md` at
+  `https://github.com/mattmccormick/phone-sense/blob/main/PRIVACY.md`. The policy
+  includes a privacy contact and is available in the app's About screen.
 - [ ] Reconcile privacy statements with actual backup behavior. The manifest
   enables Android backup, and `backup_rules.xml` and `data_extraction_rules.xml`
   include the usage database and preferences for cloud backup and device transfer.
