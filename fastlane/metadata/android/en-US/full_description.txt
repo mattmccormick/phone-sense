@@ -1,4 +1,4 @@
-Phone Sense helps you understand your phone habits and make deliberate choices about how you spend your time. Reduce your usage at your own pace; Phone Sense does not block apps. Set a weekly screen-time goal and see how much time you can use today while still meeting it. A six-week chart shows your progress over time.
+Phone Sense helps you understand your phone habits and make deliberate choices about how you spend your time. Reduce your usage at your own pace; Phone Sense does not block apps. Set a weekly screen-time goal and see how much time you can use today while still meeting it. A six-week chart shows your progress over time, and home-screen widgets keep today's budget and the chart in view.
 
 Review each day's activity by app, exclude apps that are not distractions, and enter missed days by hand. You can export a backup or spreadsheet and restore a backup later. Phone Sense processes data on your device and does not send it to a server. If Android device backup is enabled, Android may back up the app's usage database and settings to your configured backup account or transfer them directly to another device. Manage cloud backup in Android settings.
 

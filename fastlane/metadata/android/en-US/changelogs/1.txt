@@ -3,6 +3,7 @@ Initial release.
 * Track daily screen time by app
 * Set weekly goals and see a daily budget
 * Review six weeks of progress
+* Add home-screen widgets for today's budget and progress
 * Exclude apps that are not distractions
 * Export and import your data
 * Get optional daily and weekly notifications
