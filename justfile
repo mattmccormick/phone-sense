@@ -6,11 +6,15 @@ debug_apk := "app/build/outputs/apk/debug/app-debug.apk"
 # Build the release APK.
 build: (_gradle "assembleRelease")
 
-# Build the debug APK; this is the one `install` and `permissions` use.
+# Build the debug APK; this is the one `install` and default `permissions` use.
 debug: (_gradle "assembleDebug")
 
 # Run the unit tests.
-test: (_gradle "test")
+test: test-permissions (_gradle "test")
+
+# Test the APK permission allowlist and its failure behavior.
+test-permissions:
+    @bash scripts/test-check-apk-permissions.sh
 
 # Wait until a connected physical Android device has finished booting.
 wait-for-android target="-d":
@@ -51,31 +55,20 @@ install target="-d": debug
     "{{android_home}}/platform-tools/adb" {{quote(target)}} install -r {{debug_apk}}
     {{quote(just_executable())}} -- launch {{quote(target)}}
 
-# Fail if the built APK declares an unexpected permission. Phone Sense needs
-# usage access for collection; this guards the manifest merge against another
-# permission arriving from a library.
+# Fail if an APK declares a permission outside the exact allowlist. With no
+# argument, build and check the debug APK. Pass a path to check a built release.
 #
-# androidx.core merges in a signature permission named after the application
-# id (DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION) so ContextCompat can register
-# non-exported receivers. It is the app's own permission, held by this app
-# alone, and it grants no access to the device or the network, so the check
-# reports it and lets it pass. Anything else fails the target.
-# Check the debug APK for permissions outside the app package.
-permissions: debug
-    @"{{build_tools}}/aapt2" dump permissions {{debug_apk}} \
-        | grep "^uses-permission" \
-        | grep -v "name='android.permission.PACKAGE_USAGE_STATS'" \
-        | grep -v "name='{{application_id}}\." > /tmp/screen-budget-permissions.txt \
-        || true
-    @if [ -s /tmp/screen-budget-permissions.txt ]; then \
-        echo "FAIL: the merged manifest declares a permission:"; \
-        cat /tmp/screen-budget-permissions.txt; \
-        exit 1; \
+permissions package="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    package={{quote(package)}}
+    if [[ -z "$package" ]]; then
+        {{quote(just_executable())}} -- debug
+        package={{quote(debug_apk)}}
     fi
-    @echo "OK: the merged manifest declares only expected permissions."
-    @"{{build_tools}}/aapt2" dump permissions {{debug_apk}} \
-        | grep "^uses-permission" \
-        | sed 's/^/     expected: /' || true
+
+    scripts/check-apk-permissions.sh "{{build_tools}}/aapt2" "$package"
 
 # Remove build outputs.
 clean: (_gradle "clean")

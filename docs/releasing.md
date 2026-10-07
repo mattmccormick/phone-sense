@@ -119,16 +119,19 @@ with no configuration, release packages are unsigned.
    ```sh
    just test
    just build
+   just permissions app/build/outputs/apk/release/app-release-unsigned.apk
    ./gradlew lintRelease bundleRelease
    ```
 
    `just` selects JDK 17 automatically. For direct `./gradlew` commands, ensure
    JDK 17 is installed and discoverable; set `JAVA_HOME` if necessary.
-4. Inspect the release package's permissions, identifier, version, and signature:
+   `just permissions` checks the debug package when no path is supplied. Passing
+   the release path checks that exact package and fails if inspection fails or its
+   merged manifest contains a permission outside the release allowlist.
+4. Inspect the release package's identifier, version, and signature:
 
    ```sh
    "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging app/build/outputs/apk/release/app-release.apk
-   "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions app/build/outputs/apk/release/app-release.apk
    "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
    ```
 
