@@ -110,5 +110,5 @@ removes stored goals and settings and causes onboarding to appear again.
 The equivalent Android Debug Bridge command is:
 
 ```sh
-adb shell pm clear ca.mattmccormick.screenbudget
+adb shell pm clear ca.mattmccormick.phone_sense
 ```

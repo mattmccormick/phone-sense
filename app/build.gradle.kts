@@ -37,11 +37,11 @@ if (releaseSigningRequested) {
 }
 
 android {
-    namespace = "ca.mattmccormick.screenbudget"
+    namespace = "ca.mattmccormick.phone_sense"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "ca.mattmccormick.screenbudget"
+        applicationId = "ca.mattmccormick.phone_sense"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

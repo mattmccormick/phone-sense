@@ -1,6 +1,6 @@
 android_home := env_var_or_default("ANDROID_HOME", env_var("HOME") / "Android/Sdk")
 build_tools := android_home / "build-tools/36.0.0"
-application_id := "ca.mattmccormick.screenbudget"
+application_id := "ca.mattmccormick.phone_sense"
 debug_apk := "app/build/outputs/apk/debug/app-debug.apk"
 
 # Build the release APK.

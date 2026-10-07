@@ -9,7 +9,7 @@ before each submission. This guide does not mean the app has been published.
 | Item | Value or location |
 | --- | --- |
 | Display name | Phone Sense |
-| Application identifier | `ca.mattmccormick.screenbudget` — retain this for updates |
+| Application identifier | `ca.mattmccormick.phone_sense` — retain this for updates |
 | Version | `versionName = "0.1.0"`, `versionCode = 1` in `app/build.gradle.kts` |
 | Android support | Minimum 26, target and compile 36 |
 | Build environment | Java Development Kit (JDK) 17; Android Software Development Kit (SDK) platform 36 and build-tools 36.0.0 |
@@ -191,7 +191,7 @@ with no configuration, release packages are unsigned.
    do not assume inclusion solely because the app has no network permission.
 2. Follow the [submission guide](https://f-droid.org/docs/Submitting_to_F-Droid_Quick_Start_Guide/):
    fork `fdroiddata`, create a branch, and add
-   `metadata/ca.mattmccormick.screenbudget.yml`. This recipe belongs in the
+   `metadata/ca.mattmccormick.phone_sense.yml`. This recipe belongs in the
    F-Droid data repository, separately from this app's store metadata.
 3. Use the [build metadata reference](https://f-droid.org/docs/Build_Metadata_Reference/)
    to supply the real source/issue addresses, license `GPL-3.0-or-later`, category,
@@ -209,9 +209,9 @@ with no configuration, release packages are unsigned.
 
    ```sh
    fdroid readmeta
-   fdroid rewritemeta ca.mattmccormick.screenbudget
-   fdroid lint ca.mattmccormick.screenbudget
-   fdroid build ca.mattmccormick.screenbudget
+   fdroid rewritemeta ca.mattmccormick.phone_sense
+   fdroid lint ca.mattmccormick.phone_sense
+   fdroid build ca.mattmccormick.phone_sense
    ```
 
    Test in F-Droid's supported build environment and review the fork's build

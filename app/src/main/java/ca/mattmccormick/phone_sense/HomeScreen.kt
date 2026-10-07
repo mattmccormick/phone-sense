@@ -1,0 +1,205 @@
+package ca.mattmccormick.phone_sense
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import ca.mattmccormick.phone_sense.budget.weekStart
+import ca.mattmccormick.phone_sense.data.AppRuleDao
+import ca.mattmccormick.phone_sense.data.Goal
+import ca.mattmccormick.phone_sense.data.GoalDao
+import ca.mattmccormick.phone_sense.data.Settings
+import ca.mattmccormick.phone_sense.data.UsageDao
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+
+@Composable
+internal fun HomeRoute(
+    usageDao: UsageDao,
+    goalDao: GoalDao,
+    appRuleDao: AppRuleDao,
+    settings: Settings,
+    modifier: Modifier = Modifier,
+    readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = {
+        CurrentDayUsageSnapshotResult.Unavailable
+    },
+    today: () -> LocalDate = LocalDate::now,
+    zone: ZoneId = ZoneId.systemDefault(),
+    refreshKey: Any? = Unit,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+) {
+    var data by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeData?>(null) }
+    var snapshot by remember { mutableStateOf<CurrentDayUsageSnapshot?>(null) }
+    var resumeVersion by remember { mutableIntStateOf(0) }
+    var savingGoal by remember { mutableStateOf(false) }
+    var goalError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val refreshMutex = remember { Mutex() }
+    val currentReader by rememberUpdatedState(readCurrentDay)
+
+    LaunchedEffect(zone) {
+        while (true) {
+            val midnight = LocalDate.now(zone).plusDays(1).atStartOfDay(zone).toInstant()
+            delay(Duration.between(Instant.now(), midnight).toMillis().coerceAtLeast(1))
+            resumeVersion++
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) resumeVersion++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(
+        usageDao,
+        goalDao,
+        appRuleDao,
+        settings.weekStartDay,
+        refreshKey,
+        resumeVersion,
+    ) {
+        val previousSnapshot = snapshot
+        val reader = currentReader
+        val refreshed = withContext(Dispatchers.IO) {
+            refreshMutex.withLock {
+                val result = reader(zone)
+                val refreshDate = when (result) {
+                    is CurrentDayUsageSnapshotResult.Available -> result.snapshot.date
+                    CurrentDayUsageSnapshotResult.Unavailable -> today()
+                }
+                val currentSnapshot = when {
+                    result is CurrentDayUsageSnapshotResult.Available -> result.snapshot
+                    previousSnapshot?.date == refreshDate -> previousSnapshot
+                    else -> null
+                }
+                currentSnapshot to loadHomeData(
+                    usageDao, goalDao, appRuleDao, settings.weekStartDay, refreshDate, currentSnapshot,
+                )
+            }
+        }
+        snapshot = refreshed.first
+        data = refreshed.second
+    }
+
+    data?.let { homeData ->
+        HomeScreen(
+            goal = homeData.goal,
+            usedSoFar = homeData.usedSoFar,
+            chart = homeData.chart,
+            settings = settings,
+            onSetGoal = { goal ->
+                savingGoal = true
+                goalError = null
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) { runCatching { goalDao.insert(goal) } }
+                    if (result.isSuccess) {
+                        data = data?.copy(goal = goal)
+                        resumeVersion++
+                    } else goalError = "Could not save your goal. Please try again."
+                    savingGoal = false
+                }
+            },
+            savingGoal = savingGoal,
+            goalError = goalError,
+            modifier = modifier,
+            today = homeData.chart.dates.last(),
+        )
+    }
+}
+
+@Composable
+internal fun HomeScreen(
+    goal: Goal?,
+    usedSoFar: Int,
+    settings: Settings,
+    onSetGoal: (Goal) -> Unit,
+    savingGoal: Boolean = false,
+    goalError: String? = null,
+    modifier: Modifier = Modifier,
+    today: LocalDate = LocalDate.now(),
+    chart: HomeChartModel = chartModel(
+        days = emptyList(),
+        goals = listOfNotNull(goal),
+        weekStartDay = settings.weekStartDay,
+        end = today,
+    ),
+) {
+    val currentWeekStart = weekStart(today, settings.weekStartDay)
+
+    val usedToday = chart.dailyMinutes.lastOrNull()
+    val allowance = todayAllowance(goal, usedSoFar, usedToday, today, settings.weekStartDay)
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (goal == null) {
+            WeeklyGoalEntry(currentWeekStart, onSetGoal, savingGoal, goalError)
+        } else {
+            Row(Modifier.fillMaxWidth()) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("This week’s goal", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text("${goal.minutes}", style = MaterialTheme.typography.headlineLarge)
+                    Text("min/day average", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+                Spacer(Modifier.width(20.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Daily allowance", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text("$allowance", style = MaterialTheme.typography.headlineLarge)
+                    Text("min/day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+            }
+            Text("Allowance adjusted for earlier usage this week.",
+                style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+        }
+        HorizontalDivider(color = colors.outlineVariant)
+        HomeToday(usedToday, allowance)
+        HorizontalDivider(color = colors.outlineVariant)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Your trend", style = MaterialTheme.typography.titleLarge)
+                Text("Last 6 weeks", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+            Text("Counted minutes per day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            HomeChart(chart)
+        }
+    }
+}
