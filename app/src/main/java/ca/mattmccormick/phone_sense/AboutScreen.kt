@@ -51,6 +51,8 @@ internal fun AboutScreen(
             Text(stringResource(R.string.app_license))
             Text(stringResource(R.string.privacy_policy), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.privacy_policy_intro))
+            Text(stringResource(R.string.privacy_policy_backup))
+            Text(stringResource(R.string.privacy_policy_security))
             Text(stringResource(R.string.privacy_policy_usage_access))
             Text(stringResource(R.string.privacy_policy_export))
             Text(stringResource(R.string.privacy_policy_deletion))

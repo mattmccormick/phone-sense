@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Phone Sense</string>
     <string name="usage_access_title">See your screen time</string>
-    <string name="usage_access_explanation">Phone Sense records which apps are in the foreground and for how long. This information stays on your device and never leaves it.</string>
+    <string name="usage_access_explanation">Phone Sense records which apps are in the foreground and for how long. Phone Sense processes this data on your device and does not send it to us. If Android device backup is enabled, Android may copy the app's usage data and settings to your backup account or transfer them directly to another device. You control cloud backup in Android settings.</string>
     <string name="allow_usage_access">Allow usage access</string>
     <string name="notification_onboarding_title">Choose your notifications</string>
     <string name="notification_onboarding_explanation">Phone Sense can send:</string>
@@ -29,9 +29,11 @@
     <string name="privacy_policy_public_link">Read the privacy policy online</string>
     <string name="privacy_contact">Privacy contact</string>
     <string name="privacy_contact_email">mattmcc@gmail.com</string>
-    <string name="privacy_policy_intro">Phone Sense collects and stores screen-time totals, app usage, goals, and settings only on your device. No data leaves your device through Phone Sense. The app has no INTERNET permission, no account system, no analytics, and no advertising.</string>
+    <string name="privacy_policy_intro">Phone Sense processes screen-time totals, app usage, goals, and settings on your device. It has no INTERNET permission and does not send data to its own or a third-party server. It has no account system, analytics, or advertising.</string>
+    <string name="privacy_policy_backup">Android backup is enabled for Phone Sense. If device backup is enabled, Android may copy the app\'s usage database and settings to the backup account configured on your device. Android may also transfer that app data directly to another device when you use device-to-device transfer. These backups and transfers are handled by Android and the backup provider, not by Phone Sense; their availability and handling depend on your device\'s backup settings and provider. You can manage or turn off cloud backup in Android\'s Settings → Google → Backup. Device-to-device transfer is controlled during the transfer process.</string>
+    <string name="privacy_policy_security">Phone Sense stores its data in Android\'s private app storage and relies on Android\'s app sandbox to restrict access by other apps. Phone Sense does not operate a server that receives your data.</string>
     <string name="privacy_policy_usage_access">Android usage access lets Phone Sense read which apps were used and for how long. This information is used only to calculate the totals and budgets shown in the app. Phone Sense does not read the content of other apps.</string>
-    <string name="privacy_policy_export">If you choose to export your data, Android asks you where to save the file. Phone Sense does not upload exported files or send them to anyone.</string>
-    <string name="privacy_policy_deletion">You can delete Phone Sense\'s stored data by clearing its storage or uninstalling the app.</string>
+    <string name="privacy_policy_export">If you choose to export your data, Android asks you where to save the file. Phone Sense writes the export to the destination you choose and does not upload it or send it to anyone. The destination and any backup service for it are subject to their own settings and terms.</string>
+    <string name="privacy_policy_deletion">You can delete Phone Sense\'s on-device data by clearing its storage or uninstalling the app. This does not necessarily remove a copy already saved by Android backup or an export destination; manage those copies through the relevant backup settings or service.</string>
     <string name="privacy_contact_prompt">For privacy questions, contact:</string>
 </resources>

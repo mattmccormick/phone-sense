@@ -2,10 +2,12 @@
 
 SPDX-License-Identifier: GPL-3.0-or-later
 
-A local-only Android app that measures daily screen time per app, lets you
+A local-processing Android app that measures daily screen time per app, lets you
 exclude apps that are not distractions, sets a weekly goal, and tells you each
 morning how much time you have left. No account, no server, no INTERNET
-permission. Data stays on the phone and can be exported.
+permission. Phone Sense processes its data on the phone. Android may back up the
+app's database and settings to the configured backup account or transfer them
+to another device, depending on Android backup settings. Data can also be exported.
 
 Read the [privacy policy](https://github.com/mattmccormick/phone-sense/blob/main/PRIVACY.md)
 for details about local data storage and permissions.

@@ -34,13 +34,14 @@ packages from public source using its own build recipe.
 - [x] Publish a stable, public privacy-policy page based on `PRIVACY.md` at
   `https://github.com/mattmccormick/phone-sense/blob/main/PRIVACY.md`. The policy
   includes a privacy contact and is available in the app's About screen.
-- [ ] Reconcile privacy statements with actual backup behavior. The manifest
-  enables Android backup, and `backup_rules.xml` and `data_extraction_rules.xml`
-  include the usage database and preferences for cloud backup and device transfer.
-  The present “everything stays on your device” wording needs qualification, or
-  backup behavior needs changing, before release. Check onboarding and store text
-  as well as the policy. Review the
-  [Google Play privacy requirements](https://support.google.com/googleplay/android-developer/answer/18258653).
+- [x] Reconcile privacy statements with actual backup behavior. Phone Sense
+  processes data locally and Android may back up the included database and
+  preferences to the configured account or transfer them to another device.
+  Onboarding, the privacy policy, README, and store description explain this.
+  Before publishing, complete the Play Console Data safety form to match the
+  current implementation and third-party code. Review the current
+  [Google Play privacy requirements](https://support.google.com/googleplay/android-developer/answer/18258653)
+  and [Data safety guidance](https://support.google.com/googleplay/android-developer/answer/10787469).
 - [ ] Prepare the missing Play feature graphic, refresh screenshots after the
   theme change, and review the existing descriptions and `changelogs/1.txt`.
 - [ ] Fix the `just permissions` allowlist before using it as a release gate:
