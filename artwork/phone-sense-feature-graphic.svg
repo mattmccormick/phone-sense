@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <clipPath id="scene">
+      <rect x="612" y="54" width="330" height="392" rx="44"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1024" height="500" fill="#FFF8E8"/>
+  <circle cx="926" cy="68" r="156" fill="#FFF0CB"/>
+  <circle cx="69" cy="470" r="116" fill="#E5ECD9"/>
+
+  <g font-family="Noto Sans, sans-serif">
+    <g transform="translate(82 82)">
+      <path fill="#F7B83D" d="M0 22a22 22 0 0 1 44 0l-22 9z"/>
+      <path fill="#F7B83D" d="M20 0V-12h4V0zm-17 6-9-9 3-3 9 9zm38-3 9-9 3 3-9 9z"/>
+    </g>
+    <text x="82" y="143" fill="#21675E" font-size="22" font-weight="700" letter-spacing="3">PHONE SENSE</text>
+    <text x="78" y="220" fill="#25332E" font-size="46" font-weight="700">
+      <tspan x="78" dy="0">See your habits clearly.</tspan>
+      <tspan x="78" dy="62">Plan your screen time.</tspan>
+    </text>
+    <text x="82" y="345" fill="#526C47" font-size="24">A thoughtful daily budget from your weekly goal.</text>
+  </g>
+
+  <g clip-path="url(#scene)">
+    <rect x="612" y="54" width="330" height="392" fill="#FFF0CB"/>
+    <circle cx="777" cy="173" r="70" fill="#F7B83D"/>
+    <path fill="#8AA374" d="M575 302c63-94 134-94 207 0 69-102 144-92 208 0v180H575z"/>
+    <path fill="#326850" d="M555 362c82-98 168-97 258 0 62-69 125-67 190 0v120H555z"/>
+    <path fill="#125551" d="M568 413c100-70 196-67 289 0 53-38 105-35 156 0v69H568z"/>
+  </g>
+  <rect x="612" y="54" width="330" height="392" rx="44" fill="none" stroke="#21675E" stroke-width="8"/>
+
+  <g transform="translate(654 309)">
+    <rect width="246" height="105" rx="25" fill="#FFFCF4"/>
+    <text x="22" y="30" fill="#526C47" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" letter-spacing="1.5">WEEKLY PROGRESS</text>
+    <g fill="#9DD3C5">
+      <rect x="24" y="61" width="20" height="22" rx="5"/>
+      <rect x="55" y="49" width="20" height="34" rx="5"/>
+      <rect x="86" y="56" width="20" height="27" rx="5"/>
+      <rect x="117" y="39" width="20" height="44" rx="5"/>
+      <rect x="148" y="46" width="20" height="37" rx="5"/>
+      <rect x="179" y="54" width="20" height="29" rx="5"/>
+      <rect x="210" y="65" width="20" height="18" rx="5"/>
+    </g>
+    <path d="M20 53h214" fill="none" stroke="#F7B83D" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 8"/>
+  </g>
+</svg>
