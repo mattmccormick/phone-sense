@@ -36,12 +36,8 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[NOTIFICATIONS_DECLINED] = notificationsDeclined }
     }
 
-    suspend fun finishOnboarding(weekStartDay: DayOfWeek, notificationTime: LocalTime) {
-        dataStore.edit {
-            it[WEEK_START_DAY] = weekStartDay.name
-            it[NOTIFICATION_TIME] = notificationTime.toString()
-            it[ONBOARDING_DONE] = true
-        }
+    suspend fun finishOnboarding() {
+        dataStore.edit { it[ONBOARDING_DONE] = true }
     }
 
     private companion object {

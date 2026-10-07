@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -66,9 +67,13 @@ class SettingsRepositoryTest {
 
     @Test
     fun settingsReadBackWrittenValues() = runBlocking {
-        store.edit { it[intPreferencesKey("reduction_percent")] = 25 }
-        repository.setNotificationsDeclined(notificationsDeclined = true)
-        repository.finishOnboarding(DayOfWeek.MONDAY, LocalTime.of(18, 45))
+        store.edit {
+            it[stringPreferencesKey("week_start_day")] = DayOfWeek.MONDAY.name
+            it[stringPreferencesKey("notification_time")] = LocalTime.of(18, 45).toString()
+            it[intPreferencesKey("reduction_percent")] = 25
+        }
+        repository.setNotificationsDeclined(true)
+        repository.finishOnboarding()
 
         assertEquals(
             Settings(
@@ -83,11 +88,12 @@ class SettingsRepositoryTest {
     }
 
     @Test
-    fun finishingOnboardingWritesScheduleAndCompletionTogether() = runBlocking {
-        repository.finishOnboarding(
-            weekStartDay = DayOfWeek.MONDAY,
-            notificationTime = LocalTime.of(18, 45),
-        )
+    fun finishingOnboardingPreservesScheduleAndMarksCompletion() = runBlocking {
+        store.edit {
+            it[stringPreferencesKey("week_start_day")] = DayOfWeek.MONDAY.name
+            it[stringPreferencesKey("notification_time")] = LocalTime.of(18, 45).toString()
+        }
+        repository.finishOnboarding()
 
         assertEquals(
             Settings(
@@ -106,9 +112,16 @@ class SettingsRepositoryTest {
             repository.settings.take(2).toList(emissions)
         }
 
-        repository.setNotificationsDeclined(true)
+        repository.finishOnboarding()
         collection.join()
 
-        assertEquals(listOf(Settings(), Settings(notificationsDeclined = true)), emissions)
+        assertEquals(listOf(Settings(), Settings(onboardingDone = true)), emissions)
+    }
+
+    @Test
+    fun notificationChoiceIsPersisted() = runBlocking {
+        repository.setNotificationsDeclined(true)
+
+        assertEquals(true, repository.settings.first().notificationsDeclined)
     }
 }

@@ -2,10 +2,9 @@ package ca.mattmccormick.phone_sense
 
 import android.Manifest
 import android.app.NotificationManager
-import android.content.Context
 import android.content.Intent
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
@@ -35,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -48,9 +48,7 @@ import ca.mattmccormick.phone_sense.data.UsageDatabase
 import ca.mattmccormick.phone_sense.export.ImportService
 import ca.mattmccormick.phone_sense.export.ImportStatus
 import java.time.Clock
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -162,21 +160,19 @@ class MainActivity : ComponentActivity() {
                     createNotificationChannels = {
                         NotificationChannels.create(this@MainActivity)
                     },
-                    requestNotificationPermission = { permission ->
-                        notificationPermission.launch(permission)
-                    },
+                    requestNotificationPermission = notificationPermission::launch,
                     recordNotificationChoice = { declined ->
                         scope.launch {
                             settingsRepository.setNotificationsDeclined(declined)
                         }
                     },
-                    finishOnboarding = { weekStartDay, notificationTime ->
+                    finishOnboarding = {
                         scope.launch {
-                            settingsRepository.finishOnboarding(weekStartDay, notificationTime)
+                            settingsRepository.finishOnboarding()
                             scheduleDailyCollection(
                                 WorkManager.getInstance(this@MainActivity),
                                 Clock.systemDefaultZone(),
-                                notificationTime,
+                                settings.notificationTime,
                             )
                         }
                     },
@@ -282,7 +278,7 @@ internal fun ScreenBudgetApp(
     createNotificationChannels: () -> Unit = {},
     requestNotificationPermission: (permission: String) -> Unit = {},
     recordNotificationChoice: (notificationsDeclined: Boolean) -> Unit = {},
-    finishOnboarding: (DayOfWeek, LocalTime) -> Unit = { _, _ -> },
+    finishOnboarding: () -> Unit = {},
     collectUsage: () -> Unit = {},
     mainContent: @Composable (collectionVersion: Int) -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
@@ -291,9 +287,6 @@ internal fun ScreenBudgetApp(
         mutableStateOf(usageEventsSource.hasUsageAccess())
     }
     var notificationStepDone by remember(settings.onboardingDone) {
-        mutableStateOf(settings.onboardingDone)
-    }
-    var onboardingFinished by remember(settings.onboardingDone) {
         mutableStateOf(settings.onboardingDone)
     }
     var collectionVersion by remember { mutableIntStateOf(0) }
@@ -312,7 +305,6 @@ internal fun ScreenBudgetApp(
             collectionVersion++
         }
     }
-
     if (!hasUsageAccess && !settings.onboardingDone) {
         UsageAccessScreen(
             onAllowUsageAccess = {
@@ -327,20 +319,14 @@ internal fun ScreenBudgetApp(
                     requestNotificationPermission(Manifest.permission.POST_NOTIFICATIONS)
                 }
                 recordNotificationChoice(false)
+                finishOnboarding()
                 notificationStepDone = true
             },
             onNotNow = {
                 createNotificationChannels()
                 recordNotificationChoice(true)
+                finishOnboarding()
                 notificationStepDone = true
-            },
-        )
-    } else if (!onboardingFinished) {
-        ScheduleOnboardingScreen(
-            settings = settings,
-            onFinish = { weekStartDay, notificationTime ->
-                finishOnboarding(weekStartDay, notificationTime)
-                onboardingFinished = true
             },
         )
     } else {
@@ -358,13 +344,14 @@ private fun UsageAccessScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(24.dp),
+                .padding(vertical = 24.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 480.dp),
+                    .widthIn(max = 480.dp)
+                    .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -375,6 +362,7 @@ private fun UsageAccessScreen(
                     text = stringResource(R.string.usage_access_explanation),
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Justify,
                 )
                 Button(
                     onClick = onAllowUsageAccess,

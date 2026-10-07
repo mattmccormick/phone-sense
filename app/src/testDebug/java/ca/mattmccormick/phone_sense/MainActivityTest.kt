@@ -18,8 +18,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import ca.mattmccormick.phone_sense.data.Settings as AppSettings
-import java.time.DayOfWeek
-import java.time.LocalTime
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
@@ -35,19 +33,6 @@ import org.robolectric.RobolectricTestRunner
 class MainActivityTest {
     @get:Rule
     val compose = createComposeRule()
-
-    @Test
-    fun scheduleStepShowsValuesFromSettings() {
-        compose.setContent {
-            ScheduleOnboardingScreen(
-                settings = AppSettings(),
-                onFinish = { _, _ -> },
-            )
-        }
-
-        compose.onNodeWithText("Saturday").assertIsDisplayed()
-        compose.onNodeWithText("07:00").assertIsDisplayed()
-    }
 
     @Test
     fun existingAccessCollectsOnceInTheBackground() {
@@ -84,7 +69,7 @@ class MainActivityTest {
             )
         }
 
-        compose.onNodeWithText("See your screen time").assertIsDisplayed()
+        compose.onNodeWithText("Usage Access Required").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, calls.get()) }
     }
 
@@ -102,7 +87,7 @@ class MainActivityTest {
             )
         }
 
-        compose.onNodeWithText("See your screen time").assertIsDisplayed()
+        compose.onNodeWithText("Usage Access Required").assertIsDisplayed()
         compose.onNodeWithText("Day").assertDoesNotExist()
         compose.onNodeWithText("Goals").assertDoesNotExist()
     }
@@ -126,7 +111,7 @@ class MainActivityTest {
     }
 
     @Test
-    fun returningWithAccessReplacesOnboardingWithMainScreen() {
+    fun returningWithAccessShowsNotificationChoice() {
         var hasAccess = false
         val lifecycleOwner = FakeLifecycleOwner()
         compose.setContent {
@@ -137,19 +122,101 @@ class MainActivityTest {
                 lifecycleOwner = lifecycleOwner,
             )
         }
-        compose.onNodeWithText("See your screen time").assertIsDisplayed()
+        compose.onNodeWithText("Usage Access Required").assertIsDisplayed()
 
         hasAccess = true
         compose.runOnIdle { lifecycleOwner.resume() }
 
-        compose.onNodeWithText("See your screen time").assertDoesNotExist()
+        compose.onNodeWithText("Usage Access Required").assertDoesNotExist()
         compose.onNodeWithText("Choose your notifications").assertIsDisplayed()
-        compose.onNodeWithText("• One daily remaining budget notification at your chosen time")
-            .assertIsDisplayed()
-        compose.onNodeWithText("• One weekly summary with a recommended goal").assertIsDisplayed()
-        compose.onNodeWithText("• A prompt when a goal is needed").assertIsDisplayed()
-        compose.onNodeWithText("• An alert when usage access is needed").assertIsDisplayed()
         compose.onNodeWithText("Phone Sense").assertDoesNotExist()
+    }
+
+    @Test
+    fun api33TurnOnNotificationsCreatesChannelsRequestsPermissionAndFinishes() {
+        var requestedPermission: String? = null
+        var declined: Boolean? = null
+        var onboardingFinished = false
+        lateinit var notificationManager: NotificationManager
+        compose.setContent {
+            val context = LocalContext.current
+            notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { true },
+                launchSettings = {},
+                createNotificationChannels = { NotificationChannels.create(context) },
+                requestNotificationPermission = { requestedPermission = it },
+                recordNotificationChoice = { declined = it },
+                finishOnboarding = { onboardingFinished = true },
+                mainContent = { Text("Phone Sense") },
+            )
+        }
+
+        compose.onNodeWithText("Turn on notifications").performClick()
+
+        compose.runOnIdle {
+            assertTrue(Build.VERSION.SDK_INT >= 33)
+            assertEquals(Manifest.permission.POST_NOTIFICATIONS, requestedPermission)
+            assertEquals(false, declined)
+            assertEquals(true, onboardingFinished)
+            assertChannels(notificationManager)
+        }
+        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(sdk = [32])
+    fun olderAndroidEnablesNotificationsWithoutRuntimePermission() {
+        var requestedPermission: String? = null
+        var onboardingFinished = false
+        lateinit var notificationManager: NotificationManager
+        compose.setContent {
+            val context = LocalContext.current
+            notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { true },
+                launchSettings = {},
+                createNotificationChannels = { NotificationChannels.create(context) },
+                requestNotificationPermission = { requestedPermission = it },
+                finishOnboarding = { onboardingFinished = true },
+                mainContent = { Text("Phone Sense") },
+            )
+        }
+
+        compose.onNodeWithText("Turn on notifications").performClick()
+
+        compose.runOnIdle {
+            assertEquals(null, requestedPermission)
+            assertEquals(true, onboardingFinished)
+            assertChannels(notificationManager)
+        }
+        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
+    }
+
+    @Test
+    fun notNowRecordsDeclineAndFinishesWithoutScheduleStep() {
+        var declined: Boolean? = null
+        var onboardingFinished = false
+        compose.setContent {
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { true },
+                launchSettings = {},
+                recordNotificationChoice = { declined = it },
+                finishOnboarding = { onboardingFinished = true },
+                mainContent = { Text("Phone Sense") },
+            )
+        }
+
+        compose.onNodeWithText("Not now").performClick()
+
+        compose.runOnIdle {
+            assertEquals(true, declined)
+            assertEquals(true, onboardingFinished)
+        }
+        compose.onNodeWithText("Choose your schedule").assertDoesNotExist()
+        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
     }
 
     @Test
@@ -163,106 +230,8 @@ class MainActivityTest {
             )
         }
 
-        compose.onNodeWithText("See your screen time").assertDoesNotExist()
+        compose.onNodeWithText("Usage Access Required").assertDoesNotExist()
         compose.onNodeWithText("Choose your notifications").assertDoesNotExist()
-        compose.onNodeWithText("Choose your schedule").assertDoesNotExist()
-        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
-    }
-
-    @Test
-    fun api33TurnOnNotificationsCreatesFourChannelsAndRequestsPermission() {
-        var requestedPermission: String? = null
-        var declined: Boolean? = null
-        lateinit var notificationManager: NotificationManager
-        compose.setContent {
-            val context = LocalContext.current
-            notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            ScreenBudgetApp(
-                usageEventsSource = fakeUsageEventsSource { true },
-                launchSettings = {},
-                createNotificationChannels = { NotificationChannels.create(context) },
-                requestNotificationPermission = { requestedPermission = it },
-                recordNotificationChoice = { declined = it },
-                mainContent = { Text("Phone Sense") },
-            )
-        }
-
-        compose.onNodeWithText("Turn on notifications").performClick()
-
-        compose.runOnIdle {
-            assertTrue(Build.VERSION.SDK_INT >= 33)
-            assertEquals(Manifest.permission.POST_NOTIFICATIONS, requestedPermission)
-            assertEquals(false, declined)
-            assertChannels(notificationManager)
-        }
-        compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
-        compose.onNodeWithText("Phone Sense").assertDoesNotExist()
-    }
-
-    @Test
-    @Config(sdk = [32])
-    fun api26To32TurnOnNotificationsOnlyCreatesChannelsAndContinues() {
-        var requestedPermission: String? = null
-        var completed = false
-        lateinit var notificationManager: NotificationManager
-        compose.setContent {
-            val context = LocalContext.current
-            notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            ScreenBudgetApp(
-                usageEventsSource = fakeUsageEventsSource { true },
-                launchSettings = {},
-                createNotificationChannels = { NotificationChannels.create(context) },
-                requestNotificationPermission = { requestedPermission = it },
-                recordNotificationChoice = { completed = true },
-                mainContent = { Text("Phone Sense") },
-            )
-        }
-
-        compose.onNodeWithText("Turn on notifications").performClick()
-
-        compose.runOnIdle {
-            assertEquals(null, requestedPermission)
-            assertTrue(completed)
-            assertChannels(notificationManager)
-        }
-        compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
-        compose.onNodeWithText("Phone Sense").assertDoesNotExist()
-    }
-
-    @Test
-    fun notNowCreatesFourChannelsContinuesAndRecordsDecline() {
-        var declined: Boolean? = null
-        var finishedWeekStart: DayOfWeek? = null
-        var finishedNotificationTime: LocalTime? = null
-        lateinit var notificationManager: NotificationManager
-        compose.setContent {
-            val context = LocalContext.current
-            notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            ScreenBudgetApp(
-                usageEventsSource = fakeUsageEventsSource { true },
-                launchSettings = {},
-                createNotificationChannels = { NotificationChannels.create(context) },
-                recordNotificationChoice = { declined = it },
-                finishOnboarding = { weekStart, notificationTime ->
-                    finishedWeekStart = weekStart
-                    finishedNotificationTime = notificationTime
-                },
-                mainContent = { Text("Phone Sense") },
-            )
-        }
-
-        compose.onNodeWithText("Not now").performClick()
-
-        compose.runOnIdle {
-            assertEquals(true, declined)
-            assertChannels(notificationManager)
-        }
-        compose.onNodeWithText("Choose your schedule").assertIsDisplayed()
-        compose.onNodeWithText("Finish").performClick()
-        compose.runOnIdle {
-            assertEquals(DayOfWeek.SATURDAY, finishedWeekStart)
-            assertEquals(LocalTime.of(7, 0), finishedNotificationTime)
-        }
         compose.onNodeWithText("Phone Sense").assertIsDisplayed()
     }
 
