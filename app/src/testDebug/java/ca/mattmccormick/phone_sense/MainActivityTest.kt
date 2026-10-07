@@ -1,10 +1,15 @@
 package ca.mattmccormick.phone_sense
 
+import android.Manifest
 import android.app.AppOpsManager
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Looper
 import android.provider.Settings
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -16,6 +21,7 @@ import ca.mattmccormick.phone_sense.data.Settings as AppSettings
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -105,15 +111,13 @@ class MainActivityTest {
     }
 
     @Test
-    fun returningWithAccessReplacesOnboardingWithMainScreen() {
+    fun returningWithAccessShowsNotificationChoice() {
         var hasAccess = false
-        var onboardingFinished = false
         val lifecycleOwner = FakeLifecycleOwner()
         compose.setContent {
             ScreenBudgetApp(
                 usageEventsSource = fakeUsageEventsSource { hasAccess },
                 launchSettings = {},
-                finishOnboarding = { onboardingFinished = true },
                 mainContent = { Text("Phone Sense") },
                 lifecycleOwner = lifecycleOwner,
             )
@@ -124,8 +128,95 @@ class MainActivityTest {
         compose.runOnIdle { lifecycleOwner.resume() }
 
         compose.onNodeWithText("See your screen time").assertDoesNotExist()
+        compose.onNodeWithText("Choose your notifications").assertIsDisplayed()
+        compose.onNodeWithText("Phone Sense").assertDoesNotExist()
+    }
+
+    @Test
+    fun api33TurnOnNotificationsCreatesChannelsRequestsPermissionAndFinishes() {
+        var requestedPermission: String? = null
+        var declined: Boolean? = null
+        var onboardingFinished = false
+        lateinit var notificationManager: NotificationManager
+        compose.setContent {
+            val context = LocalContext.current
+            notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { true },
+                launchSettings = {},
+                createNotificationChannels = { NotificationChannels.create(context) },
+                requestNotificationPermission = { requestedPermission = it },
+                recordNotificationChoice = { declined = it },
+                finishOnboarding = { onboardingFinished = true },
+                mainContent = { Text("Phone Sense") },
+            )
+        }
+
+        compose.onNodeWithText("Turn on notifications").performClick()
+
+        compose.runOnIdle {
+            assertTrue(Build.VERSION.SDK_INT >= 33)
+            assertEquals(Manifest.permission.POST_NOTIFICATIONS, requestedPermission)
+            assertEquals(false, declined)
+            assertEquals(true, onboardingFinished)
+            assertChannels(notificationManager)
+        }
         compose.onNodeWithText("Phone Sense").assertIsDisplayed()
-        compose.runOnIdle { assertEquals(true, onboardingFinished) }
+    }
+
+    @Test
+    @Config(sdk = [32])
+    fun olderAndroidEnablesNotificationsWithoutRuntimePermission() {
+        var requestedPermission: String? = null
+        var onboardingFinished = false
+        lateinit var notificationManager: NotificationManager
+        compose.setContent {
+            val context = LocalContext.current
+            notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { true },
+                launchSettings = {},
+                createNotificationChannels = { NotificationChannels.create(context) },
+                requestNotificationPermission = { requestedPermission = it },
+                finishOnboarding = { onboardingFinished = true },
+                mainContent = { Text("Phone Sense") },
+            )
+        }
+
+        compose.onNodeWithText("Turn on notifications").performClick()
+
+        compose.runOnIdle {
+            assertEquals(null, requestedPermission)
+            assertEquals(true, onboardingFinished)
+            assertChannels(notificationManager)
+        }
+        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
+    }
+
+    @Test
+    fun notNowRecordsDeclineAndFinishesWithoutScheduleStep() {
+        var declined: Boolean? = null
+        var onboardingFinished = false
+        compose.setContent {
+            ScreenBudgetApp(
+                usageEventsSource = fakeUsageEventsSource { true },
+                launchSettings = {},
+                recordNotificationChoice = { declined = it },
+                finishOnboarding = { onboardingFinished = true },
+                mainContent = { Text("Phone Sense") },
+            )
+        }
+
+        compose.onNodeWithText("Not now").performClick()
+
+        compose.runOnIdle {
+            assertEquals(true, declined)
+            assertEquals(true, onboardingFinished)
+        }
+        compose.onNodeWithText("Choose your schedule").assertDoesNotExist()
+        compose.onNodeWithText("Phone Sense").assertIsDisplayed()
     }
 
     @Test
@@ -140,6 +231,7 @@ class MainActivityTest {
         }
 
         compose.onNodeWithText("See your screen time").assertDoesNotExist()
+        compose.onNodeWithText("Choose your notifications").assertDoesNotExist()
         compose.onNodeWithText("Phone Sense").assertIsDisplayed()
     }
 
@@ -151,6 +243,18 @@ class MainActivityTest {
         uid = 123,
         packageName = "ca.mattmccormick.phone_sense",
     )
+
+    private fun assertChannels(notificationManager: NotificationManager) {
+        assertEquals(
+            setOf(
+                NotificationChannels.DAILY_BUDGET,
+                NotificationChannels.WEEKLY_SUMMARY,
+                NotificationChannels.GOAL_NEEDED,
+                NotificationChannels.USAGE_ACCESS_NEEDED,
+            ),
+            notificationManager.notificationChannels.map { it.id }.toSet(),
+        )
+    }
 
     private class FakeLifecycleOwner : LifecycleOwner {
         private val registry = LifecycleRegistry(this)

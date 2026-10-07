@@ -59,6 +59,7 @@ class SettingsRepositoryTest {
                 notificationTime = LocalTime.of(7, 0),
                 reductionPercent = 10,
                 onboardingDone = false,
+                notificationsDeclined = false,
             ),
             repository.settings.first(),
         )
@@ -71,6 +72,7 @@ class SettingsRepositoryTest {
             it[stringPreferencesKey("notification_time")] = LocalTime.of(18, 45).toString()
             it[intPreferencesKey("reduction_percent")] = 25
         }
+        repository.setNotificationsDeclined(true)
         repository.finishOnboarding()
 
         assertEquals(
@@ -79,6 +81,7 @@ class SettingsRepositoryTest {
                 notificationTime = LocalTime.of(18, 45),
                 reductionPercent = 25,
                 onboardingDone = true,
+                notificationsDeclined = true,
             ),
             repository.settings.first(),
         )
@@ -113,5 +116,12 @@ class SettingsRepositoryTest {
         collection.join()
 
         assertEquals(listOf(Settings(), Settings(onboardingDone = true)), emissions)
+    }
+
+    @Test
+    fun notificationChoiceIsPersisted() = runBlocking {
+        repository.setNotificationsDeclined(true)
+
+        assertEquals(true, repository.settings.first().notificationsDeclined)
     }
 }

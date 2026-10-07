@@ -1,7 +1,9 @@
 package ca.mattmccormick.phone_sense
 
+import android.Manifest
 import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -67,7 +69,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         database = (application as ScreenBudgetApplication).database
-        NotificationChannels.create(this)
         val initialDestination = AppDestination.from(intent)
         setContent {
             ScreenBudgetTheme {
@@ -99,6 +100,14 @@ class MainActivity : ComponentActivity() {
                     }
                     lifecycleOwner.lifecycle.addObserver(observer)
                     onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
+                val notificationPermission = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission(),
+                ) { granted ->
+                    notificationsEnabled = granted
+                    scope.launch {
+                        settingsRepository.setNotificationsDeclined(!granted)
+                    }
                 }
                 var pendingExportFormat by remember { mutableStateOf(ExportFormat.JSON) }
                 var exportError by remember { mutableStateOf<String?>(null) }
@@ -148,6 +157,15 @@ class MainActivity : ComponentActivity() {
                     usageEventsSource = usageEventsSource,
                     launchSettings = ::startActivity,
                     settings = settings,
+                    createNotificationChannels = {
+                        NotificationChannels.create(this@MainActivity)
+                    },
+                    requestNotificationPermission = notificationPermission::launch,
+                    recordNotificationChoice = { declined ->
+                        scope.launch {
+                            settingsRepository.setNotificationsDeclined(declined)
+                        }
+                    },
                     finishOnboarding = {
                         scope.launch {
                             settingsRepository.finishOnboarding()
@@ -165,7 +183,8 @@ class MainActivity : ComponentActivity() {
                         HomeWithSettings(
                             settings = settings,
                             hasUsageAccess = usageEventsSource.hasUsageAccess(),
-                            notificationsEnabled = notificationsEnabled,
+                            notificationsEnabled =
+                                notificationsEnabled && !settings.notificationsDeclined,
                             collectNow = {
                                 collector.collect(LocalDate.now(), ZoneId.systemDefault())
                             },
@@ -173,6 +192,9 @@ class MainActivity : ComponentActivity() {
                                 startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                             },
                             openNotificationSettings = {
+                                scope.launch {
+                                    settingsRepository.setNotificationsDeclined(false)
+                                }
                                 startActivity(
                                     Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                                         .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
@@ -253,6 +275,9 @@ internal fun ScreenBudgetApp(
     usageEventsSource: UsageEventsSource,
     launchSettings: (Intent) -> Unit,
     settings: AppSettings = AppSettings(),
+    createNotificationChannels: () -> Unit = {},
+    requestNotificationPermission: (permission: String) -> Unit = {},
+    recordNotificationChoice: (notificationsDeclined: Boolean) -> Unit = {},
     finishOnboarding: () -> Unit = {},
     collectUsage: () -> Unit = {},
     mainContent: @Composable (collectionVersion: Int) -> Unit,
@@ -260,6 +285,9 @@ internal fun ScreenBudgetApp(
 ) {
     var hasUsageAccess by remember(usageEventsSource) {
         mutableStateOf(usageEventsSource.hasUsageAccess())
+    }
+    var notificationStepDone by remember(settings.onboardingDone) {
+        mutableStateOf(settings.onboardingDone)
     }
     var collectionVersion by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner, usageEventsSource) {
@@ -277,16 +305,28 @@ internal fun ScreenBudgetApp(
             collectionVersion++
         }
     }
-    LaunchedEffect(hasUsageAccess, settings.onboardingDone) {
-        if (hasUsageAccess && !settings.onboardingDone) {
-            finishOnboarding()
-        }
-    }
-
     if (!hasUsageAccess && !settings.onboardingDone) {
         UsageAccessScreen(
             onAllowUsageAccess = {
                 launchSettings(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            },
+        )
+    } else if (!notificationStepDone) {
+        NotificationOnboardingScreen(
+            onTurnOnNotifications = {
+                createNotificationChannels()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    requestNotificationPermission(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                recordNotificationChoice(false)
+                finishOnboarding()
+                notificationStepDone = true
+            },
+            onNotNow = {
+                createNotificationChannels()
+                recordNotificationChoice(true)
+                finishOnboarding()
+                notificationStepDone = true
             },
         )
     } else {
