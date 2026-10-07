@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phone Sense first-install onboarding review</title>
+  <style>
+    :root { color-scheme: light dark; --paper:#f7f4ec; --ink:#18302a; --muted:#52645f; --card:#fffdf8; --line:#ccd7d1; --accent:#25786d; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 system-ui,sans-serif; }
+    main { width:min(1180px,calc(100% - 32px)); margin:auto; padding:48px 0 72px; }
+    header { max-width:850px; margin-bottom:32px; }
+    h1 { margin:0 0 10px; font-size:clamp(2rem,5vw,4rem); line-height:1.05; letter-spacing:-.035em; }
+    h2 { margin:44px 0 14px; font-size:1.5rem; }
+    p { margin:8px 0; }
+    .lede { color:var(--muted); font-size:1.1rem; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:1px; overflow:hidden; margin:26px 0; border:1px solid var(--line); border-radius:14px; background:var(--line); }
+    .meta div { min-height:82px; padding:14px 16px; background:var(--card); }
+    .meta dt { color:var(--muted); font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+    .meta dd { margin:4px 0 0; font-weight:650; overflow-wrap:anywhere; }
+    .note { padding:16px 18px; border-left:5px solid var(--accent); border-radius:4px 12px 12px 4px; background:var(--card); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:22px; }
+    figure { margin:0; overflow:hidden; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:0 8px 28px #1b302614; }
+    figure a { display:block; padding:12px; background:#e7ebe8; }
+    figure img { display:block; width:100%; height:auto; max-height:640px; object-fit:contain; border-radius:9px; }
+    figcaption { padding:14px 16px 18px; }
+    figcaption strong { display:block; margin-bottom:4px; }
+    figcaption span { color:var(--muted); }
+    ul { margin:10px 0; padding-left:1.3rem; }
+    li + li { margin-top:8px; }
+    code { font-size:.9em; overflow-wrap:anywhere; }
+    @media (prefers-color-scheme:dark) {
+      :root { --paper:#0e1916; --ink:#e9f1ed; --muted:#adbbb5; --card:#16241f; --line:#34483f; --accent:#9bd4c7; }
+      figure a { background:#26362f; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>First-install onboarding review</h1>
+    <p class="lede">Real Phone Sense screens captured from a disposable Pixel 10a emulator. Images are unedited Android Debug Bridge screenshots; select any image to open it at full resolution.</p>
+  </header>
+
+  <dl class="meta">
+    <div><dt>Device</dt><dd>Pixel 10a emulator<br>1080 × 2424, 420 dpi</dd></div>
+    <div><dt>Android</dt><dd>Android 17<br>Application Programming Interface level 37</dd></div>
+    <div><dt>App</dt><dd>Phone Sense 0.1.0<br>debug variant</dd></div>
+    <div><dt>Source</dt><dd><code>4e3e58c51ffd0a5270b9f1ddbdfd2651b2922302</code></dd></div>
+    <div><dt>Data state</dt><dd>Fresh install, then one app-data reset for the skip branch</dd></div>
+  </dl>
+
+  <p class="note"><strong>Capture conditions.</strong> No usage or goal history was seeded. The initial Home value is the usage collected during this walkthrough. The second clean-data pass kept system usage access enabled only so the dark notification skip branch could be reached directly.</p>
+
+  <h2>Required usage access</h2>
+  <div class="grid">
+    <figure>
+      <a href="assets/01-usage-access.png"><img src="assets/01-usage-access.png" alt="Phone Sense screen explaining why usage access is needed"></a>
+      <figcaption><strong>1. Welcome and usage explanation</strong><span>The first app-owned screen explains foreground-app collection, on-device processing, and Android backup behavior. Usage access is a required gate.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/02-usage-access-list.png"><img src="assets/02-usage-access-list.png" alt="Android App usage data list with Phone Sense marked Not allowed"></a>
+      <figcaption><strong>2. Android app list</strong><span>The button opens Android’s “App usage data” list. Phone Sense starts as “Not allowed.”</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/03-usage-access-toggle.png"><img src="assets/03-usage-access-toggle.png" alt="Android Phone Sense app usage data detail with access disabled"></a>
+      <figcaption><strong>3. System toggle, off</strong><span>Android supplies a broader explanation of what this special access can reveal.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/04-usage-access-enabled.png"><img src="assets/04-usage-access-enabled.png" alt="Android Phone Sense app usage data detail with access enabled"></a>
+      <figcaption><strong>4. System toggle, on</strong><span>Returning to Phone Sense after enabling this toggle advances to notification choices.</span></figcaption>
+    </figure>
+  </div>
+
+  <h2>Notification branches</h2>
+  <div class="grid">
+    <figure>
+      <a href="assets/05-notification-choice.png"><img src="assets/05-notification-choice.png" alt="Phone Sense notification explanation with Turn on notifications and Not now actions"></a>
+      <figcaption><strong>5. Choice and explanation</strong><span>All four notification categories are listed before either action. “Not now” skips the system dialog and goes directly to scheduling.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/06-notification-permission.png"><img src="assets/06-notification-permission.png" alt="Android dialog asking whether Phone Sense may send notifications"></a>
+      <figcaption><strong>6. Runtime permission</strong><span>“Turn on notifications” opens Android’s permission dialog. This pass chose “Don’t allow”; denial still advances to scheduling.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/13-notification-choice-dark.png"><img src="assets/13-notification-choice-dark.png" alt="Phone Sense notification explanation in dark mode"></a>
+      <figcaption><strong>13. Dark mode and skip path</strong><span>A second fresh-data pass used “Not now.” No extra confirmation appears.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/14-schedule-after-skip-dark.png"><img src="assets/14-schedule-after-skip-dark.png" alt="Phone Sense schedule defaults in dark mode after notification skip"></a>
+      <figcaption><strong>14. Skip destination</strong><span>The skip branch reaches the same schedule step, shown here in dark mode.</span></figcaption>
+    </figure>
+  </div>
+
+  <h2>Schedule and pickers</h2>
+  <div class="grid">
+    <figure>
+      <a href="assets/07-schedule-defaults.png"><img src="assets/07-schedule-defaults.png" alt="Phone Sense schedule screen showing Saturday and 07:00 defaults"></a>
+      <figcaption><strong>7. Defaults</strong><span>On this United States locale the fresh defaults are Saturday and 07:00.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/08-week-start-picker.png"><img src="assets/08-week-start-picker.png" alt="Week-start menu with all seven weekdays"></a>
+      <figcaption><strong>8. Week-start picker</strong><span>All seven days are available. Its placement is called out below for owner review.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/09-notification-time-picker.png"><img src="assets/09-notification-time-picker.png" alt="Native Android 24-hour time picker set to 07:00"></a>
+      <figcaption><strong>9. Notification-time picker</strong><span>The native 24-hour Android picker opens at the current 07:00 value.</span></figcaption>
+    </figure>
+  </div>
+
+  <h2>Fresh Home and first goal</h2>
+  <div class="grid">
+    <figure>
+      <a href="assets/10-initial-home.png"><img src="assets/10-initial-home.png" alt="Initial Phone Sense Home with no goal and three counted minutes"></a>
+      <figcaption><strong>10. Initial Home</strong><span>No goal or historical marketing data is present. Three minutes were genuinely collected while completing system settings.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/11-first-goal-entry.png"><img src="assets/11-first-goal-entry.png" alt="First weekly goal field containing 60 with numeric keyboard visible"></a>
+      <figcaption><strong>11. First goal entry</strong><span>The initial Home prompts inline for a daily-average goal and uses the numeric keyboard.</span></figcaption>
+    </figure>
+    <figure>
+      <a href="assets/12-initial-home-dark.png"><img src="assets/12-initial-home-dark.png" alt="Initial Phone Sense Home and goal draft in dark mode"></a>
+      <figcaption><strong>12. Dark Home</strong><span>The fresh Home, chart, navigation, and unsaved goal draft remain legible in dark mode.</span></figcaption>
+    </figure>
+  </div>
+
+  <h2>Owner review notes</h2>
+  <ul>
+    <li>The week-start menu appears against the upper-left edge and overlaps the “Choose your schedule” title, visually detached from the button that opened it.</li>
+    <li>Android’s usage-access explanation mentions carrier, language, and other details beyond the app’s narrower explanation. The handoff may feel more alarming than the preceding copy prepares users for.</li>
+    <li>Notification denial and “Not now” both move straight to schedule setup without a brief acknowledgement of the choice or how to change it later.</li>
+    <li>A fresh Home can already contain a small non-zero total because time spent in Android settings during onboarding is real foreground usage.</li>
+  </ul>
+
+  <h2>Older Android behavior</h2>
+  <p>Android 12L and earlier do not show the runtime notification-permission dialog introduced in Android 13. On those versions, “Turn on notifications” creates notification channels and proceeds directly to the schedule step. Usage-access labels, list layout, toggle presentation, and time-picker styling are system interfaces and vary by Android release and device maker; the Phone Sense steps and defaults remain the same.</p>
+</main>
+</body>
+</html>
