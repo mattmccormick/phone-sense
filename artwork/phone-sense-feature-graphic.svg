@@ -1,10 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
-  <defs>
-    <clipPath id="scene">
-      <rect x="612" y="54" width="330" height="392" rx="44"/>
-    </clipPath>
-  </defs>
-
   <rect width="1024" height="500" fill="#FFF8E8"/>
   <circle cx="926" cy="68" r="156" fill="#FFF0CB"/>
   <circle cx="69" cy="470" r="116" fill="#E5ECD9"/>
@@ -16,33 +10,23 @@
     </g>
     <text x="82" y="143" fill="#21675E" font-size="22" font-weight="700" letter-spacing="3">PHONE SENSE</text>
     <text x="78" y="220" fill="#25332E" font-size="46" font-weight="700">
-      <tspan x="78" dy="0">See your habits clearly.</tspan>
-      <tspan x="78" dy="62">Plan your screen time.</tspan>
+      <tspan x="78" dy="0">A little less phone.</tspan>
+      <tspan x="78" dy="62">A little more life.</tspan>
     </text>
-    <text x="82" y="345" fill="#526C47" font-size="24">A thoughtful daily budget from your weekly goal.</text>
+    <text x="82" y="340" fill="#526C47" font-size="20">
+      <tspan x="82" dy="0">A sensible phone usage tracking system to spend</tspan>
+      <tspan x="82" dy="29">more time on the things that matter.</tspan>
+    </text>
   </g>
 
-  <g clip-path="url(#scene)">
-    <rect x="612" y="54" width="330" height="392" fill="#FFF0CB"/>
-    <circle cx="777" cy="173" r="70" fill="#F7B83D"/>
-    <path fill="#8AA374" d="M575 302c63-94 134-94 207 0 69-102 144-92 208 0v180H575z"/>
-    <path fill="#326850" d="M555 362c82-98 168-97 258 0 62-69 125-67 190 0v120H555z"/>
-    <path fill="#125551" d="M568 413c100-70 196-67 289 0 53-38 105-35 156 0v69H568z"/>
-  </g>
-  <rect x="612" y="54" width="330" height="392" rx="44" fill="none" stroke="#21675E" stroke-width="8"/>
-
-  <g transform="translate(654 309)">
-    <rect width="246" height="105" rx="25" fill="#FFFCF4"/>
-    <text x="22" y="30" fill="#526C47" font-family="Noto Sans, sans-serif" font-size="14" font-weight="700" letter-spacing="1.5">WEEKLY PROGRESS</text>
-    <g fill="#9DD3C5">
-      <rect x="24" y="61" width="20" height="22" rx="5"/>
-      <rect x="55" y="49" width="20" height="34" rx="5"/>
-      <rect x="86" y="56" width="20" height="27" rx="5"/>
-      <rect x="117" y="39" width="20" height="44" rx="5"/>
-      <rect x="148" y="46" width="20" height="37" rx="5"/>
-      <rect x="179" y="54" width="20" height="29" rx="5"/>
-      <rect x="210" y="65" width="20" height="18" rx="5"/>
-    </g>
-    <path d="M20 53h214" fill="none" stroke="#F7B83D" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 8"/>
+  <g transform="matrix(4.583333 0 0 4.583333 529.5 2.5)">
+    <rect x="18" y="18" width="72" height="72" fill="#FFF8E8"/>
+    <path fill="#F7B83D" d="M 41,45 A 13,13 0 0,1 67,45 L 54,50 Z"/>
+    <path fill="#F7B83D" d="M53,23 Q53,22 54,22 Q55,22 55,23 L55,28 Q55,29 54,29 Q53,29 53,28 Z M40,27 Q39,26 38,27 Q37,28 38,29 L41,33 Q42,34 43,33 Q44,32 43,31 Z M68,27 Q69,26 70,27 Q71,28 70,29 L67,33 Q66,34 65,33 Q64,32 65,31 Z M33,36 Q31,35 31,37 Q31,38 32,38 L37,40 Q39,41 39,39 Q39,38 38,38 Z M75,36 Q77,35 77,37 Q77,38 76,38 L71,40 Q69,41 69,39 Q69,38 70,38 Z"/>
+    <path fill="#245F50" d="M31,46 C28,42 29,38 31,36 C33,38 34,43 33,46 Z M36,46 C34,43 34,41 36,39 C38,41 38,44 37,46 Z M69,46 C67,43 69,41 71,42 C72,38 76,39 77,42 C80,41 81,44 80,47 Z"/>
+    <path fill="#125551" d="M29,51 L29,72 Q29,82 39,82 L69,82 Q79,82 79,72 L79,51 L75,54 L75,70 Q75,75 70,75 L38,75 Q33,75 33,70 L33,55 Z"/>
+    <path fill="#8AA374" d="M29,47 C37,43 46,44 57,49 C61,51 58,52 54,54 C46,59 48,62 53,65 C57,68 58,71 56,74 L38,74 Q34,74 34,70 L34,58 Q34,54 29,52 Z"/>
+    <path fill="#326850" d="M59,49 C68,45 73,44 79,46 L79,52 Q74,55 74,60 L74,70 Q74,74 70,74 L69,74 C67,65 58,64 56,61 C52,58 64,56 62,53 Q61,51 59,49 Z"/>
+    <path fill="#FFF8E8" d="M51,78 Q51,77 52,77 L57,77 Q59,77 59,78 Q59,79 57,79 L52,79 Q51,79 51,78 Z"/>
   </g>
 </svg>
