@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 3,
-    "identityHash": "8af211b2782006ff4d47f3903ecc848f",
+    "version": 2,
+    "identityHash": "fc6b1ba6d56ac232790ce50d3b4f4927",
     "entities": [
       {
         "tableName": "daily_usage",
@@ -118,41 +118,11 @@
             "weekStart"
           ]
         }
-      },
-      {
-        "tableName": "app_rules",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`appKey` TEXT NOT NULL, `label` TEXT NOT NULL, `excluded` INTEGER NOT NULL, PRIMARY KEY(`appKey`))",
-        "fields": [
-          {
-            "fieldPath": "appKey",
-            "columnName": "appKey",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "label",
-            "columnName": "label",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "excluded",
-            "columnName": "excluded",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "appKey"
-          ]
-        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8af211b2782006ff4d47f3903ecc848f')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fc6b1ba6d56ac232790ce50d3b4f4927')"
     ]
   }
 }
