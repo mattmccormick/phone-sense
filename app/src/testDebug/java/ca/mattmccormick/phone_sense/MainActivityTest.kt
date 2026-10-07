@@ -69,7 +69,7 @@ class MainActivityTest {
             )
         }
 
-        compose.onNodeWithText("See your screen time").assertIsDisplayed()
+        compose.onNodeWithText("Usage Access Required").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, calls.get()) }
     }
 
@@ -87,7 +87,7 @@ class MainActivityTest {
             )
         }
 
-        compose.onNodeWithText("See your screen time").assertIsDisplayed()
+        compose.onNodeWithText("Usage Access Required").assertIsDisplayed()
         compose.onNodeWithText("Day").assertDoesNotExist()
         compose.onNodeWithText("Goals").assertDoesNotExist()
     }
@@ -122,12 +122,12 @@ class MainActivityTest {
                 lifecycleOwner = lifecycleOwner,
             )
         }
-        compose.onNodeWithText("See your screen time").assertIsDisplayed()
+        compose.onNodeWithText("Usage Access Required").assertIsDisplayed()
 
         hasAccess = true
         compose.runOnIdle { lifecycleOwner.resume() }
 
-        compose.onNodeWithText("See your screen time").assertDoesNotExist()
+        compose.onNodeWithText("Usage Access Required").assertDoesNotExist()
         compose.onNodeWithText("Choose your notifications").assertIsDisplayed()
         compose.onNodeWithText("Phone Sense").assertDoesNotExist()
     }
@@ -230,7 +230,7 @@ class MainActivityTest {
             )
         }
 
-        compose.onNodeWithText("See your screen time").assertDoesNotExist()
+        compose.onNodeWithText("Usage Access Required").assertDoesNotExist()
         compose.onNodeWithText("Choose your notifications").assertDoesNotExist()
         compose.onNodeWithText("Phone Sense").assertIsDisplayed()
     }

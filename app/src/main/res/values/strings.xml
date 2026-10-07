@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Phone Sense</string>
-    <string name="usage_access_title">See your screen time</string>
-    <string name="usage_access_explanation">Phone Sense records which apps are in the foreground and for how long. Phone Sense processes this data on your device and does not send it to us. If Android device backup is enabled, Android may copy the app\'s usage data and settings to your backup account or transfer them directly to another device. You control cloud backup in Android settings.</string>
+    <string name="usage_access_title">Usage Access Required</string>
+    <string name="usage_access_explanation">Phone Sense records which apps you\'re using and for how long. To do this, it needs permission to access your app usage data. All data remains on your device.\n\nIf Android device backup is enabled, Android may copy the app\'s usage data and settings to your backup account or transfer them directly to another device. You control cloud backup in Android settings.</string>
     <string name="allow_usage_access">Allow usage access</string>
     <string name="notification_onboarding_title">Choose your notifications</string>
     <string name="notification_onboarding_explanation">Phone Sense can send:</string>
