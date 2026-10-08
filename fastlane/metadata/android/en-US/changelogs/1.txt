@@ -1,4 +1,4 @@
-Initial release.
+Initial release
 
 * Track daily screen time by app
 * Set weekly goals and see a daily budget
