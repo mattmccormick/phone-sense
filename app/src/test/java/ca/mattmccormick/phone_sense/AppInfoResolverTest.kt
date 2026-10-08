@@ -2,10 +2,10 @@ package ca.mattmccormick.phone_sense
 
 import android.content.ComponentName
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
@@ -83,13 +83,13 @@ class AppInfoResolverTest {
             nonLocalizedLabel = label
             this.icon = TEST_ICON_RESOURCE
         }
-        val resolveInfo = ResolveInfo().apply {
-            this.activityInfo = activityInfo
+        val launcherFilter = IntentFilter(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
         }
-        shadowPackageManager.addActivityIfNotPresent(component)
-        shadowPackageManager.addResolveInfoForIntent(
-            launcherIntent(packageName),
-            resolveInfo,
+        shadowPackageManager.addOrUpdateActivity(activityInfo)
+        shadowPackageManager.addIntentFilterForActivity(
+            component,
+            launcherFilter,
         )
         shadowPackageManager.addDrawableResolution(packageName, TEST_ICON_RESOURCE, icon)
     }
