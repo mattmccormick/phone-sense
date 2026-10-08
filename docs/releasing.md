@@ -177,9 +177,24 @@ with no configuration, release packages are unsigned.
    Validate [16-kilobyte memory page support](https://developer.android.com/guide/practices/page-sizes)
    on an appropriate emulator: dependencies include native libraries, so a Kotlin
    app is not automatically exempt. Check Play's report for the uploaded bundle.
-7. Commit release changes with `git commit --signoff`. Tag the tested commit
-   (for example, `git tag -a v0.1.0 -m 'Phone Sense 0.1.0'`) and push the commit
-   and tag to the canonical repository. Never move a published release tag.
+7. Check `git status`. If release preparation changed tracked files, stage those
+   changes and commit with `git commit --signoff`. If the working tree is clean,
+   skip the commit; an empty commit is not needed. From the release branch, with
+   the tested commit checked out, create an annotated tag and push the branch
+   and that specific tag:
+
+   ```sh
+   git tag -a v0.1.0 -m 'Phone Sense 0.1.0'
+   git push origin HEAD
+   git push origin tag v0.1.0
+   ```
+
+   Replace `v0.1.0` and the message with the release version, and use the canonical
+   repository's remote name if it is not `origin`. If the local tag already exists
+   and points to the tested commit, skip its creation and push it. Pushing the
+   branch alone does not normally push tags. Never move or force-update a published
+   release tag.
+
    Archive artifacts, their checksums, build-tool versions, and signing certificate
    fingerprints. Keep private credentials out of public release attachments.
 
