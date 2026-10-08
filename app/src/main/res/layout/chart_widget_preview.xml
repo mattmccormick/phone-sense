@@ -10,13 +10,13 @@
             android:textSize="14sp" android:textStyle="bold" android:includeFontPadding="false" />
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="@string/chart_widget_unit" android:textColor="@color/widget_secondary"
-            android:textSize="10sp" android:includeFontPadding="false" />
+            android:textSize="11sp" android:includeFontPadding="false" />
     </LinearLayout>
     <ImageView android:id="@+id/chart_widget_image" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="8dp"
         android:src="@drawable/chart_preview_plot" android:scaleType="fitXY"
         android:contentDescription="@string/widget_preview_sample" />
     <TextView android:id="@+id/chart_widget_note" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="5dp" android:text="@string/chart_widget_note" android:textSize="9sp"
+        android:layout_marginTop="5dp" android:text="@string/chart_widget_note" android:textSize="11sp"
         android:textColor="@color/widget_secondary" android:includeFontPadding="false" />
 </LinearLayout>
