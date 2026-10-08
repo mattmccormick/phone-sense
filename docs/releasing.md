@@ -193,6 +193,12 @@ with no configuration, release packages are unsigned.
    automated store-upload workflow is configured. Supply a 512 × 512 icon, a
    1024 × 500 feature graphic, and at least two actual app screenshots. Check
    image formats and other limits against [Play preview asset requirements](https://support.google.com/googleplay/android-developer/answer/9866151).
+   The prepared set contains five 1080 × 1920 portrait screenshots, including
+   `04-widgets-light.png` and `05-widgets-dark.png`. Both widget images were
+   captured on 2026-10-08 from the current debug build on the Pixel 10a emulator,
+   showing Today’s budget and the six-week chart on the launcher home screen.
+   This meets the four-image minimum and 9:16 resolution guidance for
+   screenshot-based recommendations; promotion itself is not guaranteed.
 3. Complete App content declarations: privacy-policy link, ads, app access,
    target audience, content rating, Data safety, and any applicable permission
    declarations. Explain the usage-access setup for reviewers; there is no login.
