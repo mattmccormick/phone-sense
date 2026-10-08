@@ -9,7 +9,7 @@ aggregation rules, and the screens.
 - Kotlin, Jetpack Compose with Material 3, Room, DataStore, WorkManager, Vico.
   All dependencies must be FOSS (F-Droid rule). No Google Play Services, no
   Firebase, no analytics.
-- `minSdk 26`, `targetSdk 36`, `compileSdk 36`. Guard event constants that
+- `minSdk 26`, `targetSdk 37`, `compileSdk 37`. Guard event constants that
   are newer than API 26 by numeric value.
 - No `INTERNET` permission. No `QUERY_ALL_PACKAGES`. Nothing leaves the device.
 - Test first. Write a failing test, then the code that makes it pass. Core
