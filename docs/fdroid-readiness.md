@@ -69,7 +69,7 @@ DataStore, and Kotlin serialization. The relevant resolved families were:
 
 | Family | Resolved versions and evidence |
 | --- | --- |
-| AndroidX | Activity 1.11.0, Compose 1.10.6, Material 3 1.4.0, Core 1.17.0, Lifecycle 2.9.4, Room 2.8.5 / SQLite 2.6.2, WorkManager 2.12.0, DataStore 1.2.1, Graphics Path 1.1.0, plus AndroidX support transitives. Their published metadata names Apache-2.0 and canonical [AndroidX source]. |
+| AndroidX | Activity 1.11.0, Compose 1.10.6, Material 3 1.4.0, Core 1.17.0, Lifecycle 2.11.0, Room 2.8.5 / SQLite 2.6.2, WorkManager 2.12.0, DataStore 1.2.1, Graphics Path 1.1.0, plus AndroidX support transitives. Their published metadata names Apache-2.0 and canonical [AndroidX source]. |
 | Kotlin | Standard library and compiler plugins 2.4.20, coroutines 1.9.0, and serialization 1.8.1. Canonical [Kotlin], [coroutines], and [serialization] sources are Apache-2.0. |
 | Other transitives | [Okio] 3.9.1, [JetBrains annotations] 23.0.0, [JSpecify] 1.0.0, and Guava [ListenableFuture] 1.0 have public source and Apache-2.0 metadata. |
 | Repackaged Protocol Buffers | `datastore-preferences-external-protobuf` 1.2.1 repackages `protobuf-lite`; its [AndroidX build definition] identifies the relocation and Berkeley Software Distribution (BSD) 3-Clause license, and Protocol Buffers has [public source]. This is an audited exception to the general AndroidX Apache-2.0 statement. |
