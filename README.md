@@ -51,6 +51,8 @@ Run `just --list` to see the available commands:
 
 - `just build` builds the release APK (also the default for `just`). It is
   unsigned unless release signing is configured as described below.
+- `just tag` creates an annotated local release tag (`v<versionName>`) from
+  `app/build.gradle.kts`. It requires a clean working tree and does not push the tag.
 - `just debug` builds the debug APK.
 - `just test` runs the unit tests.
 - `just emulator` builds the current checkout, launches the `Pixel_10a` virtual

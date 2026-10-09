@@ -6,6 +6,32 @@ debug_apk := "app/build/outputs/apk/debug/app-debug.apk"
 # Build the release APK.
 build: (_gradle "assembleRelease")
 
+# Create an annotated release tag from app/build.gradle.kts's versionName.
+tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [[ -n "$(git status --porcelain)" ]]; then
+        echo "error: working tree must be clean before tagging" >&2
+        exit 1
+    fi
+
+    mapfile -t versions < <(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts)
+    if [[ ${#versions[@]} -ne 1 || -z "${versions[0]}" ]]; then
+        echo "error: expected exactly one static versionName in app/build.gradle.kts" >&2
+        exit 1
+    fi
+
+    tag="v${versions[0]}"
+    git check-ref-format "refs/tags/$tag"
+    if git show-ref --verify --quiet "refs/tags/$tag"; then
+        echo "error: tag $tag already exists" >&2
+        exit 1
+    fi
+
+    git tag -a "$tag" -m "Phone Sense $tag"
+    printf 'Created tag %s at %s\n' "$tag" "$(git rev-parse --short HEAD)"
+
 # Build the debug APK; this is the one `install` and default `permissions` use.
 debug: (_gradle "assembleDebug")
 
