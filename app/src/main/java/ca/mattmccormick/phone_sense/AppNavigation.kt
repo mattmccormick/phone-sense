@@ -48,10 +48,10 @@ internal enum class AppDestination(
 
 @Composable
 internal fun AppNavigationShell(
-    initialDestination: AppDestination = AppDestination.HOME,
-    home: @Composable () -> Unit = {},
     dayDetail: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    initialDestination: AppDestination = AppDestination.HOME,
+    home: @Composable () -> Unit = {},
 ) {
     var dayVisit by remember { mutableIntStateOf(0) }
     var route by rememberSaveable { mutableStateOf(initialDestination.route) }

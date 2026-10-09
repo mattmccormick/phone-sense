@@ -150,9 +150,9 @@ internal fun HomeScreen(
     usedSoFar: Int,
     settings: Settings,
     onSetGoal: (Goal) -> Unit,
+    modifier: Modifier = Modifier,
     savingGoal: Boolean = false,
     goalError: String? = null,
-    modifier: Modifier = Modifier,
     today: LocalDate = LocalDate.now(),
     chart: HomeChartModel = chartModel(
         days = emptyList(),
