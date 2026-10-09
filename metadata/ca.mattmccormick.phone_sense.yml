@@ -5,6 +5,8 @@ AuthorName: Matt McCormick
 SourceCode: https://github.com/mattmccormick/phone-sense
 IssueTracker: https://github.com/mattmccormick/phone-sense/issues
 
+AutoName: Phone Sense
+
 RepoType: git
 Repo: https://github.com/mattmccormick/phone-sense.git
 
