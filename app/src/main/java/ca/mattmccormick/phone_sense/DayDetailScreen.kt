@@ -60,10 +60,10 @@ fun DayDetailScreen(
     dao: UsageDao,
     appRuleDao: AppRuleDao,
     appInfoSource: AppInfoSource,
+    modifier: Modifier = Modifier,
     today: LocalDate = LocalDate.now(),
     refreshKey: Int = 0,
     loadDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    modifier: Modifier = Modifier,
     readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = {
         CurrentDayUsageSnapshotResult.Unavailable
     },
