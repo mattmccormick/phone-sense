@@ -42,6 +42,7 @@ val includeDependencyMetadata = providers.gradleProperty("includeDependencyMetad
 android {
     namespace = "ca.mattmccormick.phone_sense"
     compileSdk = 37
+    ndkVersion = "28.2.13676358"
 
     defaultConfig {
         applicationId = "ca.mattmccormick.phone_sense"
