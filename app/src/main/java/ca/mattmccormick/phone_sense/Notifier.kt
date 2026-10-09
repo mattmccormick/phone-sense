@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings as AndroidSettings
+import androidx.core.content.edit
 import ca.mattmccormick.phone_sense.budget.WeeklySummary
 import ca.mattmccormick.phone_sense.budget.displayBudget
 import ca.mattmccormick.phone_sense.budget.distractionMinutes
@@ -108,7 +109,7 @@ internal object Notifier {
 
         context.getSystemService(NotificationManager::class.java)
             .notify(DAILY_NOTIFICATION_ID, notification)
-        preferences.edit().putString(LAST_DAILY_NOTIFICATION, today.toString()).apply()
+        preferences.edit { putString(LAST_DAILY_NOTIFICATION, today.toString()) }
     }
 
     @Synchronized
@@ -158,8 +159,6 @@ internal object Notifier {
 
     private fun markWeeklyNotificationPosted(context: Context, weekStart: LocalDate) {
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
-            .edit()
-            .putString(LAST_WEEKLY_NOTIFICATION, weekStart.toString())
-            .apply()
+            .edit { putString(LAST_WEEKLY_NOTIFICATION, weekStart.toString()) }
     }
 }
