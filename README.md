@@ -41,11 +41,11 @@ Tap to open Home. Both widgets share the same refresh schedule described above.
 ## Development
 
 Install [just](https://just.systems/man/en/packages.html), JDK 17, and the Android
-SDK (platform 36, build-tools 36.0.0, and platform-tools). Gradle-backed `just`
-commands use `JAVA_HOME` when it points to JDK 17; otherwise they look for JDK 17
-in standard Linux and macOS installation locations. If it cannot be found, install
-JDK 17 or set `JAVA_HOME` to its installation directory. `ANDROID_HOME` defaults
-to `~/Android/Sdk`; set it if your SDK is elsewhere.
+SDK (platform 37, build-tools 36.0.0, platform-tools, and NDK 28.2.13676358).
+Gradle-backed `just` commands use `JAVA_HOME` when it points to JDK 17; otherwise
+they look for JDK 17 in standard Linux and macOS installation locations. If it
+cannot be found, install JDK 17 or set `JAVA_HOME` to its installation directory.
+`ANDROID_HOME` defaults to `~/Android/Sdk`; set it if your SDK is elsewhere.
 
 Run `just --list` to see the available commands:
 
