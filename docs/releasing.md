@@ -30,7 +30,7 @@ packages from public source using its own build recipe.
 | First-install flow | [Onboarding review](onboarding-review/index.html) with real emulator captures; owner review remains. |
 | Store listing | Reviewed text in `fastlane/metadata/android/en-US/`, the refreshed [feature graphic](../fastlane/metadata/android/en-US/images/featureGraphic.png), and current [screenshots](../fastlane/metadata/android/en-US/images/phoneScreenshots/); owner review remains. |
 | Local candidate | [Unsigned release validation](release-validation.md) records passing tests, build, permission, bundle, and static 16-kilobyte checks. Its lint and Room schema blockers were subsequently fixed; functional and runtime validation still remains. |
-| F-Droid | [Readiness audit](fdroid-readiness.md) records source, license, dependency, native-library, and build-tool evidence. F-Droid tooling and publication remain. |
+| F-Droid | [Readiness audit](fdroid-readiness.md) records source, license, dependency, native-library, and build-tool evidence. The v0.1.1 metadata checks, build-server build, and source/APK scans passed on 2026-10-08; the fdroiddata merge request and publication remain. |
 | Google Play | [Declaration worksheet](play-console-worksheet.md) records evidence-backed draft answers and separates owner and console-only decisions. Nothing has been submitted. |
 
 ## Before the first release
@@ -238,44 +238,111 @@ with no configuration, release packages are unsigned.
 
 ## F-Droid submission
 
-1. Review the [inclusion policy](https://f-droid.org/docs/Inclusion_Policy/).
-   Confirm the public release tag contains all source, license notices, and
-   build instructions. Audit transitive dependencies and their source availability;
-   do not assume inclusion solely because the app has no network permission.
-2. Follow the [submission guide](https://f-droid.org/docs/Submitting_to_F-Droid_Quick_Start_Guide/):
-   fork `fdroiddata`, create a branch, and add
-   `metadata/ca.mattmccormick.phone_sense.yml`. This recipe belongs in the
-   F-Droid data repository, separately from this app's store metadata.
-3. Use the [build metadata reference](https://f-droid.org/docs/Build_Metadata_Reference/)
-   to supply the real source/issue addresses, license `GPL-3.0-or-later`, category,
-   repository address, version, and immutable release commit. This project uses
-   the `app` subdirectory and the unflavored Gradle release build (`gradle: [yes]`).
-   Ensure the build environment provides JDK 17 and the required Android tools.
-   Configure tag-based checks using `UpdateCheckMode: Tags` and
-   `AutoUpdateMode: Version`; confirm detection with the actual version tags.
-4. Build in a clean checkout without `keystore.properties` or signing environment
-   variables. The ordinary F-Droid build must succeed unsigned without private
-   credentials. Do not disable signing in your normal working checkout by
-   deleting your only keystore. The existing reproducible archive settings are
-   useful, but do not establish that the Android package is reproducible.
-5. In your `fdroiddata` checkout, with `fdroidserver` installed, run:
+F-Droid's [quick-start guide](https://f-droid.org/docs/Submitting_to_F-Droid_Quick_Start_Guide/)
+has two repositories in play. The app repository owns the release source, version
+tag, and user-facing Fastlane metadata. The submission itself is a new build recipe
+in the separate `fdroiddata` repository at
+`metadata/ca.mattmccormick.phone_sense.yml`. Adding a file under this app
+repository's `metadata/` directory does not submit it to F-Droid; copy it into the
+`fdroiddata` fork and open a merge request there.
+
+1. Check the [inclusion policy](https://f-droid.org/docs/Inclusion_Policy/),
+   licenses, source availability, and release instructions. Confirm that the
+   release tag is public and points to the exact immutable commit in the recipe:
 
    ```sh
-   fdroid readmeta
-   fdroid rewritemeta ca.mattmccormick.phone_sense
-   fdroid lint ca.mattmccormick.phone_sense
-   fdroid build ca.mattmccormick.phone_sense
+   git ls-remote https://github.com/mattmccormick/phone-sense.git \
+     refs/tags/v0.1.1 'refs/tags/v0.1.1^{}'
    ```
 
-   Test in F-Droid's supported build environment and review the fork's build
-   pipeline. Fix scanner/build failures rather than broadly suppressing them.
-6. If using developer signatures, publish the reference signed package at a
-   stable release address and configure `Binaries` or a build's `binary`, plus
-   `AllowedAPKSigningKeys`. Prove a match with F-Droid's rebuild before requesting
-   publication. Ordinary F-Droid signing does not need this step.
-7. Open a merge request to `fdroiddata`, respond to review, and monitor build and
-   publication status. A merged recipe is not yet a published app. Confirm the
-   listing and installation through the F-Droid client once available.
+   For an annotated tag, compare the peeled `^{}` commit with the recipe's
+   `Builds.commit`. On 2026-10-08, `v0.1.1` resolved to
+   `1a5c4a7350399864ef20f19c8ae700c150bf003d`.
+
+2. Create a fork of `fdroiddata` in GitLab, then clone it and start a branch from
+   its `master` branch. Replace `YOUR_GITLAB_USERNAME` if you use the SSH URL:
+
+   ```sh
+   git clone git@gitlab.com:YOUR_GITLAB_USERNAME/fdroiddata.git \
+     "$HOME/projects/fdroiddata"
+   cd "$HOME/projects/fdroiddata"
+   git switch -c new-app-phone-sense origin/master
+   cp "$HOME/projects/screen-budget/metadata/ca.mattmccormick.phone_sense.yml" \
+     metadata/ca.mattmccormick.phone_sense.yml
+   ```
+
+   The app repository's metadata file is the source for this copy. The current
+   recipe uses category `Time Tracker`, license `GPL-3.0-or-later`, the public
+   GitHub source, `subdir: app`, unflavored `gradle: [yes]`, and
+   `includeDependencyMetadata=false`. Keep the full tagged commit, version name,
+   and version code in sync. `AutoUpdateMode: Version` and `UpdateCheckMode: Tags`
+   let F-Droid discover later tagged releases.
+
+3. Validate the recipe with the current F-Droid server tools. Install Docker if
+   needed, and clone current `fdroidserver` source separately from the app and
+   `fdroiddata` repositories:
+
+   ```sh
+   git clone --depth=1 https://gitlab.com/fdroid/fdroidserver.git \
+     "$HOME/projects/fdroidserver"
+   ```
+
+   Start the official build-server container from the `fdroiddata` checkout:
+
+   ```sh
+   docker run --rm -i -u vagrant --entrypoint /bin/bash \
+     -v "$HOME/projects/fdroiddata:/build:z" \
+     -v "$HOME/projects/fdroidserver:/home/vagrant/fdroidserver:Z" \
+     registry.gitlab.com/fdroid/fdroidserver:buildserver -s <<'EOF'
+   . /etc/profile
+   export PATH="/home/vagrant/fdroidserver:$PATH"
+   export PYTHONPATH="/home/vagrant/fdroidserver"
+   export JAVA_HOME="$(java -XshowSettings:properties -version 2>&1 >/dev/null \
+     | awk -F= '/java.home/ {gsub(/[[:space:]]/, "", $2); print $2}')"
+   cd /build
+   fdroid readmeta
+   fdroid rewritemeta --list ca.mattmccormick.phone_sense
+   fdroid lint ca.mattmccormick.phone_sense
+   fdroid checkupdates --allow-dirty ca.mattmccormick.phone_sense
+   fdroid build --test --no-tarball ca.mattmccormick.phone_sense:2
+   fdroid scanner --exit-code /build/tmp/ca.mattmccormick.phone_sense_2.apk
+   EOF
+   ```
+
+   `rewritemeta --list` is a dry run. If it lists the recipe, run
+   `fdroid rewritemeta ca.mattmccormick.phone_sense`, inspect the resulting diff,
+   and rerun lint. `checkupdates` must be able to reach the public source and find
+   the release tag. The build runs F-Droid's source scan; `scanner` checks the
+   produced APK. Replace `:2` and the APK filename with the current version code
+   for future releases.
+
+4. Do not treat every Gradle failure as a recipe defect. The packaged
+   `fdroidserver` 2.4.5 used on the host failed on Gradle 9.3.1 with
+   `No hash for gradle version 9.3.1!`; this was an old wrapper limitation. Running
+   the separate `gradlew-fdroid` project manually proved that Gradle itself could
+   build the app, but did not test the F-Droid recipe. The successful test on
+   2026-10-08 used current `fdroidserver` source (`c21c177`) and the official
+   `buildserver` image. It built the tagged source, passed the source scan, and
+   passed the APK scanner. The image selected OpenJDK 21, Android platform 37,
+   and build-tools 36.0.0 without extra setup; do not force workstation Java or
+   SDK versions into the recipe unless the current build server proves that
+   necessary. In a restricted local shell, a read-only `~/.gradle` can separately
+   cause `libnative-platform.so` cache errors; point `GRADLE_USER_HOME` at a
+   writable temporary directory for that local test. The build-server container's
+   `vagrant` home was writable, so it needed no such workaround.
+
+5. Commit only the new recipe, push the branch to your fork, and open a merge
+   request against `fdroiddata`'s `master` branch. The guide's convention is a
+   `New App: ca.mattmccormick.phone_sense` commit message. Watch the GitLab
+   pipeline, respond to reviewer questions, and follow the submission queue until
+   the recipe is accepted. A merged recipe is not yet a published app; verify the
+   listing and installation in the F-Droid client after the build cycle completes.
+
+6. Developer-signed reproducible builds are optional. If choosing that route,
+   publish the reference signed package at a stable release address and configure
+   `Binaries` or a build's `binary`, plus `AllowedAPKSigningKeys`. Prove a match
+   with F-Droid's rebuild before requesting publication. Standard F-Droid signing
+   needs no developer private key.
 
 ## Subsequent releases
 
