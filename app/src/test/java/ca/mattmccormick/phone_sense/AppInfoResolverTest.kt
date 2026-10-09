@@ -11,6 +11,7 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,9 +61,14 @@ class AppInfoResolverTest {
     @Test
     fun resultsAreCachedAcrossResolversForProcessLifetime() {
         val packageName = "com.example.cached"
-        addLauncherActivity(packageName, "Cached App", packageManager.defaultActivityIcon)
+        val component = addLauncherActivity(
+            packageName,
+            "Cached App",
+            packageManager.defaultActivityIcon,
+        )
         val firstResult = resolver.resolve(packageName)
-        shadowPackageManager.setResolveInfosForIntent(launcherIntent(packageName), emptyList())
+        shadowPackageManager.clearIntentFilterForActivity(component)
+        assertTrue(packageManager.queryIntentActivities(launcherIntent(packageName), 0).isEmpty())
 
         val redrawResults = List(60) {
             AppInfoResolver(packageManager).resolve(packageName)
@@ -71,7 +77,11 @@ class AppInfoResolverTest {
         redrawResults.forEach { assertSame(firstResult, it) }
     }
 
-    private fun addLauncherActivity(packageName: String, label: String, icon: Drawable) {
+    private fun addLauncherActivity(
+        packageName: String,
+        label: String,
+        icon: Drawable,
+    ): ComponentName {
         val component = ComponentName(packageName, "$packageName.MainActivity")
         val applicationInfo = ApplicationInfo().apply {
             this.packageName = packageName
@@ -92,6 +102,7 @@ class AppInfoResolverTest {
             launcherFilter,
         )
         shadowPackageManager.addDrawableResolution(packageName, TEST_ICON_RESOURCE, icon)
+        return component
     }
 
     private fun launcherIntent(packageName: String) = Intent(Intent.ACTION_MAIN)
