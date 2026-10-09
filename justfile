@@ -6,7 +6,7 @@ debug_apk := "app/build/outputs/apk/debug/app-debug.apk"
 # Build the release APK.
 build: (_gradle "assembleRelease")
 
-# Create an annotated release tag from app/build.gradle.kts's versionName.
+# Create and push an annotated release tag from app/build.gradle.kts's versionName.
 tag:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -30,6 +30,7 @@ tag:
     fi
 
     git tag -a "$tag" -m "Phone Sense $tag"
+    git push origin "$tag"
     printf 'Created tag %s at %s\n' "$tag" "$(git rev-parse --short HEAD)"
 
 # Build the debug APK; this is the one `install` and default `permissions` use.
