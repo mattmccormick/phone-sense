@@ -46,7 +46,7 @@ android {
     defaultConfig {
         applicationId = "ca.mattmccormick.phone_sense"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 2
         versionName = "0.1.1"
     }
