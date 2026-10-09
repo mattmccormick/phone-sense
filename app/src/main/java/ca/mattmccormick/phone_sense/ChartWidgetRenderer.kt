@@ -5,13 +5,14 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
+import androidx.core.graphics.createBitmap
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 
 // RemoteViews cannot host the Compose Canvas used by Home; draw the same model into an image.
 internal fun renderChartWidget(context: Context, model: HomeChartModel, width: Float, height: Float): Bitmap {
     val scale = context.resources.displayMetrics.density.coerceAtMost(1.5f)
-    val bitmap = Bitmap.createBitmap((width * scale).toInt(), (height * scale).toInt(), Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap((width * scale).toInt(), (height * scale).toInt(), Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap).apply { scale(scale, scale) }
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     val accent = context.getColor(R.color.widget_accent)
