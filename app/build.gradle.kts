@@ -35,6 +35,10 @@ if (releaseSigningRequested) {
     }
 }
 
+val includeDependencyMetadata = providers.gradleProperty("includeDependencyMetadata")
+    .map { it.toBoolean() }
+    .getOrElse(true)
+
 android {
     namespace = "ca.mattmccormick.phone_sense"
     compileSdk = 37
@@ -43,8 +47,13 @@ android {
         applicationId = "ca.mattmccormick.phone_sense"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
+    }
+
+    dependenciesInfo {
+        includeInApk = includeDependencyMetadata
+        includeInBundle = includeDependencyMetadata
     }
 
     signingConfigs {
