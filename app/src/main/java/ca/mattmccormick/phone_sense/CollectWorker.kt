@@ -76,7 +76,7 @@ class CollectWorker internal constructor(
     }
 }
 
-private object CollectionDependencies {
+internal object CollectionDependencies {
     fun collector(context: Context): Collector = Collector(
         dao = (context.applicationContext as ScreenBudgetApplication).database.usageDao(),
         source = UsageEventsSource(context),

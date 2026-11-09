@@ -153,6 +153,18 @@ internal object Notifier {
         markWeeklyNotificationPosted(context, weekStart)
     }
 
+    @Synchronized
+    fun forgetDailyPosted(context: Context) {
+        context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+            .edit { remove(LAST_DAILY_NOTIFICATION) }
+    }
+
+    @Synchronized
+    fun forgetWeeklyPosted(context: Context) {
+        context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+            .edit { remove(LAST_WEEKLY_NOTIFICATION) }
+    }
+
     private fun wasWeeklyNotificationPosted(context: Context, weekStart: LocalDate): Boolean =
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
             .getString(LAST_WEEKLY_NOTIFICATION, null) == weekStart.toString()

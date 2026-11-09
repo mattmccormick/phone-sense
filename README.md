@@ -116,3 +116,28 @@ The equivalent Android Debug Bridge command is:
 ```sh
 adb shell pm clear ca.mattmccormick.phone_sense
 ```
+
+#### Post the summary notifications on demand
+
+Debug builds carry a receiver that posts either summary notification immediately,
+so its appearance can be checked without waiting for the scheduled collection. Each
+command forgets that the notification was already posted for the day or the week,
+then runs the same code the collection worker runs.
+
+The daily budget notification:
+
+```sh
+adb shell am broadcast -n ca.mattmccormick.phone_sense/.DebugNotificationReceiver \
+  -a ca.mattmccormick.phone_sense.debug.POST_DAILY_NOTIFICATION
+```
+
+The weekly summary notification:
+
+```sh
+adb shell am broadcast -n ca.mattmccormick.phone_sense/.DebugNotificationReceiver \
+  -a ca.mattmccormick.phone_sense.debug.POST_WEEKLY_NOTIFICATION
+```
+
+Both notifications report on the stored data, so the weekly summary says how many
+days are missing until a full week has been collected. The receiver is declared in
+the debug manifest only and is absent from the release APK.
