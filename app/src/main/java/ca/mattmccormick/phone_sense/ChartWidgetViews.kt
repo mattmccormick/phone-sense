@@ -39,7 +39,7 @@ internal fun chartWidgetViews(
     message: String? = null,
 ): RemoteViews = RemoteViews(context.packageName, R.layout.chart_widget).apply {
     setOnClickPendingIntent(R.id.chart_widget_root, TodayWidget.openIntent(context))
-    val hasData = model != null && (model.dailyMinutes.any { it != null } || model.goalMinutes.any { it != null })
+    val hasData = model != null && model.hasData
     setViewVisibility(R.id.chart_widget_image, if (hasData) View.VISIBLE else View.GONE)
     setViewVisibility(R.id.chart_widget_message, if (hasData) View.GONE else View.VISIBLE)
     setViewVisibility(R.id.chart_widget_note, if (hasData) View.VISIBLE else View.GONE)
