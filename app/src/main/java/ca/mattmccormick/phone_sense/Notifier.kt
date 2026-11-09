@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.provider.Settings as AndroidSettings
 import androidx.core.content.edit
 import ca.mattmccormick.phone_sense.budget.WeeklySummary
@@ -25,6 +26,10 @@ internal object Notifier {
     private const val PREFERENCES = "notifications"
     private const val LAST_DAILY_NOTIFICATION = "last_daily_notification"
     private const val LAST_WEEKLY_NOTIFICATION = "last_weekly_notification"
+
+    // The big picture area is about 2:1; these are the renderer's dp-like units.
+    private const val CHART_WIDTH = 360f
+    private const val CHART_HEIGHT = 180f
 
     @Synchronized
     fun usageAccessNeeded(context: Context) {
@@ -59,6 +64,7 @@ internal object Notifier {
         today: LocalDate,
         settings: Settings,
         database: UsageDatabase,
+        chart: HomeChartModel? = null,
     ) {
         val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
         if (preferences.getString(LAST_DAILY_NOTIFICATION, null) == today.toString()) return
@@ -99,16 +105,26 @@ internal object Notifier {
                 .putExtra(EXTRA_INITIAL_DESTINATION, destination.route),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification = Notification.Builder(context, channel)
+        val builder = Notification.Builder(context, channel)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(text)
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
-            .build()
+        if (chart != null && chart.hasData) {
+            val picture = renderChartWidget(context, chart, CHART_WIDTH, CHART_HEIGHT)
+            builder.setLargeIcon(picture)
+                .setStyle(
+                    Notification.BigPictureStyle()
+                        .bigPicture(picture)
+                        // The expanded view shows the picture, so drop the duplicate thumbnail.
+                        .bigLargeIcon(null as Icon?)
+                        .setSummaryText(text),
+                )
+        }
 
         context.getSystemService(NotificationManager::class.java)
-            .notify(DAILY_NOTIFICATION_ID, notification)
+            .notify(DAILY_NOTIFICATION_ID, builder.build())
         preferences.edit { putString(LAST_DAILY_NOTIFICATION, today.toString()) }
     }
 

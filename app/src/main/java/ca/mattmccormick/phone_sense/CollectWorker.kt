@@ -1,9 +1,11 @@
 package ca.mattmccormick.phone_sense
 
 import android.content.Context
+import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import ca.mattmccormick.phone_sense.data.SettingsRepository
+import ca.mattmccormick.phone_sense.data.UsageDatabase
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -96,8 +98,34 @@ internal object CollectionDependencies {
             val settings = runBlocking {
                 SettingsRepository(context.settingsDataStore).settings.first()
             }
-            Notifier.daily(context, today, settings, application.database)
+            Notifier.daily(
+                context,
+                today,
+                settings,
+                application.database,
+                dailyChart(context, application.database, settings.weekStartDay, today),
+            )
         }
+    }
+
+    private fun dailyChart(
+        context: Context,
+        database: UsageDatabase,
+        weekStartDay: DayOfWeek,
+        today: LocalDate,
+    ): HomeChartModel? = try {
+        val source = UsageEventsSource(context)
+        // Collection stops at yesterday, so today's bar comes from the live snapshot.
+        val snapshot = if (source.hasUsageAccess()) {
+            (CurrentDayUsageSnapshotReader(source).read(ZoneId.systemDefault())
+                as? CurrentDayUsageSnapshotResult.Available)?.snapshot
+        } else null
+        loadHomeData(database.usageDao(), database.goalDao(), database.appRuleDao(),
+            weekStartDay, today, snapshot).chart
+    } catch (error: Exception) {
+        // The budget line is the point of the notification; post it without the chart.
+        Log.w("Notifier", "Could not build the daily chart", error)
+        null
     }
 
     fun weeklyNotifier(context: Context): WeeklyNotificationRunner {

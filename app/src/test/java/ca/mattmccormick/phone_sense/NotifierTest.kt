@@ -3,6 +3,7 @@ package ca.mattmccormick.phone_sense
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import ca.mattmccormick.phone_sense.budget.WeeklySummary
@@ -17,6 +18,8 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +34,12 @@ class NotifierTest {
     private val today = LocalDate.of(2026, 3, 9)
     private lateinit var database: UsageDatabase
     private lateinit var notificationManager: NotificationManager
+
+    private fun chart(days: List<DailyUsage>, goals: List<Goal>) =
+        chartModel(days, goals, DayOfWeek.SATURDAY, today)
+
+    private fun picture(notification: Notification): Bitmap? =
+        notification.extras.getParcelable(Notification.EXTRA_PICTURE, Bitmap::class.java)
 
     @Before
     fun setUp() {
@@ -105,6 +114,53 @@ class NotifierTest {
 
         val notification = shadowOf(notificationManager).allNotifications.single()
         assertEquals(NotificationChannels.DAILY_BUDGET, notification.channelId)
+    }
+
+    @Test
+    fun dailyNotificationCarriesTheChartWhenThereIsData() {
+        val weekStart = LocalDate.of(2026, 3, 7)
+        database.goalDao().insert(Goal(weekStart, 60))
+        database.usageDao().insert(
+            DailyUsage(weekStart, 200, Source.COLLECTED, Instant.EPOCH),
+            listOf(AppUsage(weekStart, "example.app", 200)),
+        )
+
+        Notifier.daily(
+            context,
+            today,
+            Settings(weekStartDay = DayOfWeek.SATURDAY),
+            database,
+            chart(
+                listOf(DailyUsage(weekStart, 200, Source.COLLECTED, Instant.EPOCH)),
+                listOf(Goal(weekStart, 60)),
+            ),
+        )
+
+        val notification = shadowOf(notificationManager).allNotifications.single()
+        assertNotNull(picture(notification))
+        assertNotNull(notification.getLargeIcon())
+        assertEquals(
+            "Max usage today to meet goal: 00:44",
+            notification.extras.getString(Notification.EXTRA_SUMMARY_TEXT),
+        )
+    }
+
+    @Test
+    fun dailyNotificationDoesNotCarryAChartWithoutData() {
+        Notifier.daily(
+            context,
+            today,
+            Settings(weekStartDay = DayOfWeek.SATURDAY),
+            database,
+            chart(emptyList(), emptyList()),
+        )
+
+        val notification = shadowOf(notificationManager).allNotifications.single()
+        assertNull(picture(notification))
+        assertEquals(
+            "Set a goal for this week.",
+            notification.extras.getString(Notification.EXTRA_TEXT),
+        )
     }
 
     @Test

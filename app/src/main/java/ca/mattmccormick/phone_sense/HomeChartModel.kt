@@ -12,7 +12,10 @@ internal data class HomeChartModel(
     val goalMinutes: List<Int?>,
     val weeklyAverageMinutes: List<Double?>,
     val weekBoundaryPositions: List<Int>,
-)
+) {
+    val hasData: Boolean
+        get() = dailyMinutes.any { it != null } || goalMinutes.any { it != null }
+}
 
 internal fun chartModel(
     days: List<DailyUsage>,
