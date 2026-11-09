@@ -18,6 +18,11 @@ internal data class HomeData(
     val chart: HomeChartModel,
 )
 
+internal data class HomeChartPage(
+    val chart: HomeChartModel,
+    val earlierDataAvailable: Boolean,
+)
+
 // Call off the main thread. Both the screen and widgets use the same normalized data.
 internal fun loadHomeData(
     usageDao: UsageDao,
@@ -45,11 +50,11 @@ internal fun loadHomeData(
             weekStartDay,
             refreshDate,
             currentSnapshot,
-        ),
+        ).chart,
     )
 }
 
-// Call off the main thread.
+// Call off the main thread. The window is the 42 days ending on end; see chartWindowEnd.
 internal fun loadHomeChart(
     usageDao: UsageDao,
     goalDao: GoalDao,
@@ -57,12 +62,17 @@ internal fun loadHomeChart(
     weekStartDay: DayOfWeek,
     end: LocalDate,
     currentSnapshot: CurrentDayUsageSnapshot?,
-): HomeChartModel {
+): HomeChartPage {
+    val start = end.minusDays(41)
     // The first week's average covers the whole week, including days left of the chart.
-    val firstChartWeek = weekStart(end.minusDays(41), weekStartDay)
+    val firstChartWeek = weekStart(start, weekStartDay)
     val days = normalizedDays(usageDao, appRuleDao, firstChartWeek, end, currentSnapshot)
     val goals = goalDao.between(firstChartWeek, weekStart(end, weekStartDay))
-    return chartModel(days, goals, weekStartDay, end)
+    val earliestDate = usageDao.earliestDate()
+    return HomeChartPage(
+        chart = chartModel(days, goals, weekStartDay, end),
+        earlierDataAvailable = earliestDate != null && earliestDate < start,
+    )
 }
 
 private fun normalizedDays(
@@ -73,10 +83,11 @@ private fun normalizedDays(
     currentSnapshot: CurrentDayUsageSnapshot?,
 ): List<DailyUsage> {
     val excluded = appRuleDao.excludedKeys().toSet()
+    val snapshot = currentSnapshot?.takeIf { it.date in start..end }
     val collected = usageDao.daysBetween(start, end).map {
         it.day.copy(totalMinutes = distractionMinutes(it.day, it.apps, excluded))
-    }.filterNot { it.date == currentSnapshot?.date }
-    val snapshotDay = currentSnapshot?.let { current ->
+    }.filterNot { it.date == snapshot?.date }
+    val snapshotDay = snapshot?.let { current ->
         val day = DailyUsage(
             current.date,
             current.totalMillis.toMinutes(),
