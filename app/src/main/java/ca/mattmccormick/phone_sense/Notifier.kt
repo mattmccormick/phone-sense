@@ -119,7 +119,12 @@ internal object Notifier {
     }
 
     @Synchronized
-    fun weekly(context: Context, weekStart: LocalDate, summary: WeeklySummary) {
+    fun weekly(
+        context: Context,
+        weekStart: LocalDate,
+        summary: WeeklySummary,
+        chart: HomeChartModel? = null,
+    ) {
         if (wasWeeklyNotificationPosted(context, weekStart)) return
         val achievement = if (summary.achieved) "Goal achieved" else "Goal not achieved"
         val text = "Average: ${formatHoursMinutes(summary.average)} · $achievement · " +
@@ -136,6 +141,7 @@ internal object Notifier {
             .setContentText(text)
             .addAction(Notification.Action.Builder(null, "Accept", acceptIntent).build())
             .setAutoCancel(true)
+            .withChart(context, chart, text)
             .build()
 
         context.getSystemService(NotificationManager::class.java)

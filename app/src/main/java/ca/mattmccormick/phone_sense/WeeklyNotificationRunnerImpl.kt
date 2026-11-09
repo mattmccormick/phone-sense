@@ -28,6 +28,15 @@ internal class WeeklyNotificationRunnerImpl(
             goal.minutes,
             settings.reductionPercent,
         )
-        Notifier.weekly(context, today, summary)
+        // The week being summarized is already collected, so the chart needs no live snapshot.
+        val chart = loadHomeData(
+            database.usageDao(),
+            database.goalDao(),
+            database.appRuleDao(),
+            settings.weekStartDay,
+            today,
+            currentSnapshot = null,
+        ).chart
+        Notifier.weekly(context, today, summary, chart)
     }
 }
