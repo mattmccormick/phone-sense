@@ -5,6 +5,8 @@ import ca.mattmccormick.phone_sense.data.Goal
 import ca.mattmccormick.phone_sense.budget.weekStart
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 internal data class HomeChartModel(
     val dates: List<LocalDate>,
@@ -24,6 +26,14 @@ internal fun chartWindowEnd(today: LocalDate, weekStartDay: DayOfWeek, page: Int
     require(page >= 0) { "A chart page cannot be negative: $page" }
     if (page == 0) return today
     return weekStart(today, weekStartDay).minusDays(1 + 7L * (page - 1))
+}
+
+// Named off the window rather than the page, so the label always describes the chart beside it
+// while a page change is still loading. The day format matches the chart's week labels.
+internal fun chartRangeLabel(chart: HomeChartModel, locale: Locale): String {
+    if (chart.includesToday) return "Last 6 weeks"
+    val format = DateTimeFormatter.ofPattern("MMM d", locale)
+    return "${chart.dates.first().format(format)} to ${chart.dates.last().format(format)}"
 }
 
 internal fun chartModel(

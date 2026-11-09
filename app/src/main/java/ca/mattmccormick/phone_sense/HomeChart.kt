@@ -46,7 +46,7 @@ private fun Density.cellWidth(width: Float, dayCount: Int) =
 @Composable
 internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
     if (model.dailyMinutes.all { it == null } && model.goalMinutes.all { it == null }) {
-        Text("No usage data yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("No usage data yet", modifier, color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
     val colors = MaterialTheme.colorScheme
