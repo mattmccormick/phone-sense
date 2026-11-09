@@ -139,5 +139,7 @@ adb shell am broadcast -n ca.mattmccormick.phone_sense/.DebugNotificationReceive
 ```
 
 Both notifications report on the stored data, so the weekly summary says how many
-days are missing until a full week has been collected. The receiver is declared in
+days are missing until a full week has been collected. Either weekly summary,
+the full one and the one that reports missing days, carries the chart when
+expanded, so the chart can be checked before a week of data exists. The receiver is declared in
 the debug manifest only and is absent from the release APK.

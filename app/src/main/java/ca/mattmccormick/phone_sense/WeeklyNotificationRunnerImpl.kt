@@ -16,8 +16,17 @@ internal class WeeklyNotificationRunnerImpl(
     override fun weekly(today: LocalDate) {
         val previousWeekStart = weekStart(today.minusDays(1), settings.weekStartDay)
         val days = database.usageDao().daysBetween(previousWeekStart, today.minusDays(1))
+        // The chart covers collected days only, so it needs no live snapshot of today.
+        val chart = loadHomeData(
+            database.usageDao(),
+            database.goalDao(),
+            database.appRuleDao(),
+            settings.weekStartDay,
+            today,
+            currentSnapshot = null,
+        ).chart
         if (days.size < 7) {
-            Notifier.weeklyIncomplete(context, today, 7 - days.size)
+            Notifier.weeklyIncomplete(context, today, 7 - days.size, chart)
             return
         }
 
@@ -28,15 +37,6 @@ internal class WeeklyNotificationRunnerImpl(
             goal.minutes,
             settings.reductionPercent,
         )
-        // The week being summarized is already collected, so the chart needs no live snapshot.
-        val chart = loadHomeData(
-            database.usageDao(),
-            database.goalDao(),
-            database.appRuleDao(),
-            settings.weekStartDay,
-            today,
-            currentSnapshot = null,
-        ).chart
         Notifier.weekly(context, today, summary, chart)
     }
 }
