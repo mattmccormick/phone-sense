@@ -7,6 +7,7 @@ import java.time.Instant
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,6 +90,27 @@ class UsageDaoTest {
         val dates = dao.datesBetween(september28, september30)
 
         assertEquals(listOf(september28, september30), dates)
+    }
+
+    @Test
+    fun earliestDateIsNullWithoutAnyDay() {
+        assertNull(dao.earliestDate())
+    }
+
+    @Test
+    fun earliestDateIsTheOldestRecordedDay() {
+        listOf(
+            LocalDate.of(2026, 9, 30),
+            LocalDate.of(2026, 9, 28),
+            LocalDate.of(2026, 10, 1),
+        ).forEach { date ->
+            dao.insert(
+                DailyUsage(date, 10, Source.IMPORTED, Instant.parse("2026-10-02T07:00:00Z")),
+                emptyList(),
+            )
+        }
+
+        assertEquals(LocalDate.of(2026, 9, 28), dao.earliestDate())
     }
 
     @Test

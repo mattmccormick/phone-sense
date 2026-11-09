@@ -67,7 +67,8 @@ class HomeScreenTest {
                 usedSoFar = 101,
                 chart = chartModel(
                     listOf(DailyUsage(LocalDate.of(2026, 9, 30), 10, Source.COLLECTED, Instant.EPOCH)),
-                    listOf(Goal(LocalDate.of(2026, 9, 28), 45)), DayOfWeek.MONDAY, LocalDate.of(2026, 9, 30),
+                    listOf(Goal(LocalDate.of(2026, 9, 28), 45)), DayOfWeek.MONDAY,
+                    LocalDate.of(2026, 9, 30), LocalDate.of(2026, 9, 30),
                 ),
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
                 today = LocalDate.of(2026, 9, 30),

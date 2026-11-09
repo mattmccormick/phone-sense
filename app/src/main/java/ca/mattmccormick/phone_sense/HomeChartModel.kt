@@ -12,9 +12,18 @@ internal data class HomeChartModel(
     val goalMinutes: List<Int?>,
     val weeklyAverageMinutes: List<Double?>,
     val weekBoundaryPositions: List<Int>,
+    val includesToday: Boolean,
 ) {
     val hasData: Boolean
         get() = dailyMinutes.any { it != null } || goalMinutes.any { it != null }
+}
+
+// Page 0 ends today; every earlier page ends on the last day of a week, so it holds
+// six whole weeks.
+internal fun chartWindowEnd(today: LocalDate, weekStartDay: DayOfWeek, page: Int): LocalDate {
+    require(page >= 0) { "A chart page cannot be negative: $page" }
+    if (page == 0) return today
+    return weekStart(today, weekStartDay).minusDays(1 + 7L * (page - 1))
 }
 
 internal fun chartModel(
@@ -22,6 +31,7 @@ internal fun chartModel(
     goals: List<Goal>,
     weekStartDay: DayOfWeek,
     end: LocalDate,
+    today: LocalDate,
 ): HomeChartModel {
     val daysByDate = days.associateBy(DailyUsage::date)
     val goalsByWeek = goals.associateBy(Goal::weekStart)
@@ -34,5 +44,6 @@ internal fun chartModel(
         goalMinutes = dates.map { goalsByWeek[weekStart(it, weekStartDay)]?.minutes },
         weeklyAverageMinutes = dates.map { averagesByWeek[weekStart(it, weekStartDay)] },
         weekBoundaryPositions = dates.indices.filter { dates[it].dayOfWeek == weekStartDay },
+        includesToday = end == today,
     )
 }

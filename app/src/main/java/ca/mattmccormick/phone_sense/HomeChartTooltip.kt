@@ -18,7 +18,7 @@ internal fun tooltipLines(model: HomeChartModel, index: Int): List<String> {
     val difference = if (minutes != null && goal != null) minutes - goal else null
     return listOf(
         model.dates[index].format(tooltipDateFormat) +
-            if (index == model.dates.lastIndex) " · so far" else "",
+            if (model.includesToday && index == model.dates.lastIndex) " · so far" else "",
         when {
             minutes == null -> "No usage data"
             difference == null -> "$minutes min"

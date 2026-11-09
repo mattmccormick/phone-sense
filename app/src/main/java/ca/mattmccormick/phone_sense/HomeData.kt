@@ -18,6 +18,11 @@ internal data class HomeData(
     val chart: HomeChartModel,
 )
 
+internal data class HomeChartPage(
+    val chart: HomeChartModel,
+    val earlierDataAvailable: Boolean,
+)
+
 // Call off the main thread. Both the screen and widgets use the same normalized data.
 internal fun loadHomeData(
     usageDao: UsageDao,
@@ -28,14 +33,63 @@ internal fun loadHomeData(
     currentSnapshot: CurrentDayUsageSnapshot?,
 ): HomeData {
     val currentWeekStart = weekStart(refreshDate, weekStartDay)
-    val chartStart = refreshDate.minusDays(41)
-    val firstChartWeek = weekStart(chartStart, weekStartDay)
-    val days = usageDao.daysBetween(firstChartWeek, refreshDate)
+    val currentWeek = normalizedDays(
+        usageDao,
+        appRuleDao,
+        currentWeekStart,
+        refreshDate,
+        currentSnapshot,
+    )
+    return HomeData(
+        goal = goalDao.forWeek(currentWeekStart),
+        usedSoFar = currentWeek.sumOf(DailyUsage::totalMinutes),
+        chart = loadHomeChart(
+            usageDao,
+            goalDao,
+            appRuleDao,
+            weekStartDay,
+            refreshDate,
+            refreshDate,
+            currentSnapshot,
+        ).chart,
+    )
+}
+
+// Call off the main thread. The window is the 42 days ending on end; see chartWindowEnd.
+internal fun loadHomeChart(
+    usageDao: UsageDao,
+    goalDao: GoalDao,
+    appRuleDao: AppRuleDao,
+    weekStartDay: DayOfWeek,
+    end: LocalDate,
+    today: LocalDate,
+    currentSnapshot: CurrentDayUsageSnapshot?,
+): HomeChartPage {
+    val start = end.minusDays(41)
+    // The first week's average covers the whole week, including days left of the chart.
+    val firstChartWeek = weekStart(start, weekStartDay)
+    val days = normalizedDays(usageDao, appRuleDao, firstChartWeek, end, currentSnapshot)
+    val goals = goalDao.between(firstChartWeek, weekStart(end, weekStartDay))
+    val earliestDate = usageDao.earliestDate()
+    return HomeChartPage(
+        chart = chartModel(days, goals, weekStartDay, end, today),
+        earlierDataAvailable = earliestDate != null && earliestDate < start,
+    )
+}
+
+private fun normalizedDays(
+    usageDao: UsageDao,
+    appRuleDao: AppRuleDao,
+    start: LocalDate,
+    end: LocalDate,
+    currentSnapshot: CurrentDayUsageSnapshot?,
+): List<DailyUsage> {
     val excluded = appRuleDao.excludedKeys().toSet()
-    val normalizedDays = days.map {
+    val snapshot = currentSnapshot?.takeIf { it.date in start..end }
+    val collected = usageDao.daysBetween(start, end).map {
         it.day.copy(totalMinutes = distractionMinutes(it.day, it.apps, excluded))
-    }.filterNot { it.date == currentSnapshot?.date }.toMutableList()
-    currentSnapshot?.let { current ->
+    }.filterNot { it.date == snapshot?.date }
+    val snapshotDay = snapshot?.let { current ->
         val day = DailyUsage(
             current.date,
             current.totalMillis.toMinutes(),
@@ -45,20 +99,9 @@ internal fun loadHomeData(
         val apps = current.perPackageMillis.map { (appKey, millis) ->
             AppUsage(current.date, appKey, millis.toMinutes())
         }
-        normalizedDays += day.copy(
-            totalMinutes = distractionMinutes(day, apps, excluded),
-        )
+        day.copy(totalMinutes = distractionMinutes(day, apps, excluded))
     }
-    val goals = goalDao.between(
-        firstChartWeek,
-        currentWeekStart,
-    )
-    return HomeData(
-        goal = goals.firstOrNull { it.weekStart == currentWeekStart },
-        usedSoFar = normalizedDays.filter { it.date >= currentWeekStart }
-            .sumOf { it.totalMinutes },
-        chart = chartModel(normalizedDays, goals, weekStartDay, refreshDate),
-    )
+    return collected + listOfNotNull(snapshotDay)
 }
 
 private fun Long.toMinutes(): Int = (this / 60_000L).toInt()

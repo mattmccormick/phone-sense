@@ -56,7 +56,6 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
     var selectedDate by remember(model) { mutableStateOf<LocalDate?>(null) }
     val selected = selectedDate?.let { date -> model.dates.indexOf(date).takeIf { it >= 0 } }
     val boundaries = (listOf(0) + model.weekBoundaryPositions + model.dates.size).distinct().sorted()
-    val currentWeek = model.weekBoundaryPositions.last()
     val maximum = maxOf(
         model.dailyMinutes.filterNotNull().maxOrNull() ?: 0,
         model.goalMinutes.filterNotNull().maxOrNull() ?: 0,
@@ -68,6 +67,7 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
             "goal ${model.goalMinutes[index]?.let { "$it minutes" } ?: "not set"}, " +
             "weekly average ${model.weeklyAverageMinutes[index]?.let { "%.1f minutes".format(it) } ?: "unavailable"}"
     }
+    val progressSentence = if (model.includesToday) " Today and this week's average are in progress." else ""
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Canvas(Modifier.fillMaxWidth().height(212.dp).pointerInput(model) {
             detectTapGestures { tap ->
@@ -77,7 +77,7 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
             }
         }.semantics {
             contentDescription = "Six-week distraction chart"
-            stateDescription = "$description. Today and this week's average are in progress."
+            stateDescription = "$description.$progressSentence"
         }) {
             val left = PLOT_LEFT.toPx()
             val top = 22.dp.toPx()
@@ -91,13 +91,16 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
                 drawText(layout, topLeft = Offset(start.coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f)), y))
             }
             val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))
-            drawRect(colors.primary.copy(alpha = 0.05f), Offset(edge(currentWeek), top),
-                Size(edge(model.dates.size) - edge(currentWeek), bottom - top))
+            if (model.includesToday) {
+                val currentWeek = model.weekBoundaryPositions.last()
+                drawRect(colors.primary.copy(alpha = 0.05f), Offset(edge(currentWeek), top),
+                    Size(edge(model.dates.size) - edge(currentWeek), bottom - top))
+                label("This week", size.width - 28.dp.toPx(), 0f, centered = true)
+            }
             selected?.let { index ->
                 drawRect(colors.onSurface.copy(alpha = 0.08f), Offset(edge(index), top),
                     Size(cell, bottom - top))
             }
-            label("This week", size.width - 28.dp.toPx(), 0f, centered = true)
             listOf(0f, ceiling / 2, ceiling).forEach { value ->
                 drawLine(colors.outlineVariant, Offset(left, y(value)), Offset(size.width, y(value)))
                 label(value.toInt().toString(), 0f, y(value) - 6.dp.toPx())
@@ -111,7 +114,7 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
                 if (value != null) {
                     val barTop = Offset(edge(index) + cell * 0.22f, y(value))
                     val barSize = Size(cell * 0.56f, bottom - y(value))
-                    if (index == model.dates.lastIndex) {
+                    if (model.includesToday && index == model.dates.lastIndex) {
                         drawRect(colors.primary, barTop, barSize, style = Stroke(1.5.dp.toPx()))
                     } else {
                         drawRect(colors.primary.copy(alpha = 0.15f), barTop, barSize)
@@ -136,10 +139,12 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
                 }
             }
             // An open endpoint marks the provisional average without reusing the goal's dash pattern.
-            model.weeklyAverageMinutes.lastOrNull()?.let { average ->
-                val marker = Offset(edge(model.dates.lastIndex) + cell / 2, y(average))
-                drawCircle(colors.surface, 3.5.dp.toPx(), marker)
-                drawCircle(colors.secondary, 3.5.dp.toPx(), marker, style = Stroke(2.dp.toPx()))
+            if (model.includesToday) {
+                model.weeklyAverageMinutes.lastOrNull()?.let { average ->
+                    val marker = Offset(edge(model.dates.lastIndex) + cell / 2, y(average))
+                    drawCircle(colors.surface, 3.5.dp.toPx(), marker)
+                    drawCircle(colors.secondary, 3.5.dp.toPx(), marker, style = Stroke(2.dp.toPx()))
+                }
             }
             selected?.let { index ->
                 val lines = tooltipLines(model, index).mapIndexed { line, text ->
@@ -164,10 +169,14 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
             ChartLegend("Daily usage", bars = true)
             ChartLegend("Weekly goal", dashed = true)
             ChartLegend("Weekly average", average = true)
-            ChartLegend("This week · so far", average = true, provisional = true)
+            if (model.includesToday) {
+                ChartLegend("This week · so far", average = true, provisional = true)
+            }
         }
-        Text("Outlined bar: today, still in progress", style = MaterialTheme.typography.labelSmall,
-            color = colors.onSurfaceVariant)
+        if (model.includesToday) {
+            Text("Outlined bar: today, still in progress", style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant)
+        }
     }
 }
 

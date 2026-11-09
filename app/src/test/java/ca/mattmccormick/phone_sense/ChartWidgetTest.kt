@@ -41,7 +41,7 @@ class ChartWidgetTest {
     private fun model() = chartModel(
         listOf(DailyUsage(today.minusDays(1), 100, Source.COLLECTED, Instant.EPOCH),
             DailyUsage(today, 16, Source.COLLECTED, Instant.EPOCH)),
-        listOf(Goal(today.minusDays(2), 60)), DayOfWeek.SATURDAY, today,
+        listOf(Goal(today.minusDays(2), 60)), DayOfWeek.SATURDAY, today, today,
     )
 
     @Test fun recentUsageAndWeeklyGoalAreVisibleAtMinimumAndLargeSizes() {
@@ -104,11 +104,11 @@ class ChartWidgetTest {
 
     @Test fun emptyHistoryShowsMessageWhileGoalOnlyHistoryStillShowsChart() {
         val size = SizeF(280f, 220f)
-        val empty = chartModel(emptyList(), emptyList(), DayOfWeek.SATURDAY, today)
+        val empty = chartModel(emptyList(), emptyList(), DayOfWeek.SATURDAY, today, today)
         val view = chartWidgetViews(context, size, empty).apply(context, FrameLayout(context))
         assertEquals(context.getString(R.string.chart_widget_empty),
             view.findViewById<TextView>(R.id.chart_widget_message).text.toString())
-        val goal = chartModel(emptyList(), listOf(Goal(today.minusDays(2), 60)), DayOfWeek.SATURDAY, today)
+        val goal = chartModel(emptyList(), listOf(Goal(today.minusDays(2), 60)), DayOfWeek.SATURDAY, today, today)
         chartWidgetViews(context, size, goal).reapply(context, view)
         assertEquals(View.VISIBLE, view.findViewById<ImageView>(R.id.chart_widget_image).visibility)
     }

@@ -51,6 +51,7 @@ class HomeChartTooltipRenderingTest {
         goals = listOf(Goal(LocalDate.of(2026, 11, 2), 90)),
         weekStartDay = DayOfWeek.MONDAY,
         end = end,
+        today = end,
     )
 
     private fun chart() = compose.onNodeWithContentDescription("Six-week distraction chart")

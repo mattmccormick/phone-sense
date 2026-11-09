@@ -20,7 +20,7 @@ class HomeChartTooltipTest {
         collectedAt = Instant.EPOCH,
     )
 
-    private fun model() = chartModel(
+    private fun model(end: LocalDate = today) = chartModel(
         days = listOf(
             day(LocalDate.of(2026, 10, 28), 40),
             day(LocalDate.of(2026, 11, 4), 72),
@@ -29,11 +29,12 @@ class HomeChartTooltipTest {
         ),
         goals = listOf(Goal(LocalDate.of(2026, 11, 2), 90)),
         weekStartDay = DayOfWeek.MONDAY,
-        end = today,
+        end = end,
+        today = today,
     )
 
-    private fun tooltipOn(date: LocalDate): List<String> {
-        val model = model()
+    private fun tooltipOn(date: LocalDate, end: LocalDate = today): List<String> {
+        val model = model(end)
         return tooltipLines(model, model.dates.indexOf(date))
     }
 
@@ -74,6 +75,16 @@ class HomeChartTooltipTest {
         assertEquals(
             listOf("Sat Nov 7 · so far", "30 min · 60 under goal", "Goal 90 min/day", "Week average 66 min"),
             tooltipOn(today),
+        )
+    }
+
+    @Test
+    fun leavesTheLastDayOfAPastWindowAsAFinishedDay() {
+        val lastDayBeforeThisWeek = LocalDate.of(2026, 11, 1)
+
+        assertEquals(
+            listOf("Sun Nov 1", "No usage data", "Goal not set", "Week average 40 min"),
+            tooltipOn(lastDayBeforeThisWeek, end = lastDayBeforeThisWeek),
         )
     }
 
