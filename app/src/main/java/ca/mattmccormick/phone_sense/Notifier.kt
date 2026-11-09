@@ -111,17 +111,7 @@ internal object Notifier {
             .setContentText(text)
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
-        if (chart != null && chart.hasData) {
-            val picture = renderChartWidget(context, chart, CHART_WIDTH, CHART_HEIGHT)
-            builder.setLargeIcon(picture)
-                .setStyle(
-                    Notification.BigPictureStyle()
-                        .bigPicture(picture)
-                        // The expanded view shows the picture, so drop the duplicate thumbnail.
-                        .bigLargeIcon(null as Icon?)
-                        .setSummaryText(text),
-                )
-        }
+            .withChart(context, chart, text)
 
         context.getSystemService(NotificationManager::class.java)
             .notify(DAILY_NOTIFICATION_ID, builder.build())
@@ -179,6 +169,23 @@ internal object Notifier {
     fun forgetWeeklyPosted(context: Context) {
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
             .edit { remove(LAST_WEEKLY_NOTIFICATION) }
+    }
+
+    private fun Notification.Builder.withChart(
+        context: Context,
+        chart: HomeChartModel?,
+        summaryText: String,
+    ): Notification.Builder {
+        if (chart == null || !chart.hasData) return this
+        val picture = renderChartWidget(context, chart, CHART_WIDTH, CHART_HEIGHT)
+        return setLargeIcon(picture)
+            .setStyle(
+                Notification.BigPictureStyle()
+                    .bigPicture(picture)
+                    // The expanded view shows the picture, so drop the duplicate thumbnail.
+                    .bigLargeIcon(null as Icon?)
+                    .setSummaryText(summaryText),
+            )
     }
 
     private fun wasWeeklyNotificationPosted(context: Context, weekStart: LocalDate): Boolean =
