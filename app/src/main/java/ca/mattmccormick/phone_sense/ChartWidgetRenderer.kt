@@ -27,8 +27,9 @@ internal fun renderChartWidget(context: Context, model: HomeChartModel, width: F
     val ceiling = (ceil(maximum.coerceAtLeast(60) / 60.0) * 60).toFloat()
     val left = 25f
     val top = 16f
+    val right = width - 2f
     val bottom = height - 37f
-    val cell = (width - left - 2) / model.dates.size
+    val cell = (right - left) / model.dates.size
     fun edge(index: Int) = left + index * cell
     fun y(value: Number) = bottom - value.toFloat() / ceiling * (bottom - top)
     fun line(x1: Float, y1: Float, x2: Float, y2: Float, color: Int, stroke: Float = 1f, dashed: Boolean = false) {
@@ -45,17 +46,24 @@ internal fun renderChartWidget(context: Context, model: HomeChartModel, width: F
         paint.alpha = 255
         paint.style = Paint.Style.FILL
         paint.textSize = 9f
-        val start = if (centered) x - paint.measureText(text) / 2 else x
-        canvas.drawText(text, start.coerceIn(0f, (width - paint.measureText(text)).coerceAtLeast(0f)), baseline, paint)
+        val textWidth = paint.measureText(text)
+        val start = if (centered) x - textWidth / 2 else x
+        canvas.drawText(text, start.coerceIn(0f, (right - 2 - textWidth).coerceAtLeast(0f)), baseline, paint)
     }
     paint.color = accent
     paint.alpha = 12
-    canvas.drawRect(edge(model.weekBoundaryPositions.last()), top, width, bottom, paint)
-    label(context.getString(R.string.chart_widget_this_week), width, 9f, centered = true)
+    canvas.drawRect(edge(model.weekBoundaryPositions.last()), top, right, bottom, paint)
+    label(context.getString(R.string.chart_widget_this_week),
+        (edge(model.weekBoundaryPositions.last()) + right) / 2, 9f, centered = true)
     listOf(0f, ceiling / 2, ceiling).forEach {
-        line(left, y(it), width, y(it), track)
+        line(left, y(it), right, y(it), track)
         label(it.toInt().toString(), 0f, y(it) + 3f)
     }
+    paint.color = secondary
+    paint.alpha = 140
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 1f
+    canvas.drawRect(left, top, right, bottom, paint)
     model.weekBoundaryPositions.forEach { index ->
         line(edge(index), top, edge(index), bottom, track)
         label(model.dates[index].format(DateTimeFormatter.ofPattern("MMM d")), edge(index), bottom + 13f, centered = true)
