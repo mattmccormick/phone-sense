@@ -120,8 +120,8 @@ internal fun HomeRoute(
 
     data?.let { homeData ->
         HomeScreen(
-            goal = homeData.goal,
-            usedSoFar = homeData.usedSoFar,
+            goal = homeData.week.goal,
+            usedSoFar = homeData.week.usedSoFar,
             chart = homeData.chart,
             settings = settings,
             onSetGoal = { goal ->
@@ -130,7 +130,7 @@ internal fun HomeRoute(
                 scope.launch {
                     val result = withContext(Dispatchers.IO) { runCatching { goalDao.insert(goal) } }
                     if (result.isSuccess) {
-                        data = data?.copy(goal = goal)
+                        data = data?.let { it.copy(week = it.week.copy(goal = goal)) }
                         resumeVersion++
                     } else goalError = "Could not save your goal. Please try again."
                     savingGoal = false

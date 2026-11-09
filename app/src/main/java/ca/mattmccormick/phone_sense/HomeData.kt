@@ -12,9 +12,14 @@ import ca.mattmccormick.phone_sense.data.UsageDao
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-internal data class HomeData(
+internal data class HomeWeek(
     val goal: Goal?,
     val usedSoFar: Int,
+    val usedToday: Int?,
+)
+
+internal data class HomeData(
+    val week: HomeWeek,
     val chart: HomeChartModel,
 )
 
@@ -31,7 +36,28 @@ internal fun loadHomeData(
     weekStartDay: DayOfWeek,
     refreshDate: LocalDate,
     currentSnapshot: CurrentDayUsageSnapshot?,
-): HomeData {
+): HomeData = HomeData(
+    week = loadHomeWeek(usageDao, goalDao, appRuleDao, weekStartDay, refreshDate, currentSnapshot),
+    chart = loadHomeChart(
+        usageDao,
+        goalDao,
+        appRuleDao,
+        weekStartDay,
+        refreshDate,
+        refreshDate,
+        currentSnapshot,
+    ).chart,
+)
+
+// Call off the main thread. The goal and the usage of the week that holds refreshDate.
+internal fun loadHomeWeek(
+    usageDao: UsageDao,
+    goalDao: GoalDao,
+    appRuleDao: AppRuleDao,
+    weekStartDay: DayOfWeek,
+    refreshDate: LocalDate,
+    currentSnapshot: CurrentDayUsageSnapshot?,
+): HomeWeek {
     val currentWeekStart = weekStart(refreshDate, weekStartDay)
     val currentWeek = normalizedDays(
         usageDao,
@@ -40,18 +66,10 @@ internal fun loadHomeData(
         refreshDate,
         currentSnapshot,
     )
-    return HomeData(
+    return HomeWeek(
         goal = goalDao.forWeek(currentWeekStart),
         usedSoFar = currentWeek.sumOf(DailyUsage::totalMinutes),
-        chart = loadHomeChart(
-            usageDao,
-            goalDao,
-            appRuleDao,
-            weekStartDay,
-            refreshDate,
-            refreshDate,
-            currentSnapshot,
-        ).chart,
+        usedToday = currentWeek.find { it.date == refreshDate }?.totalMinutes,
     )
 }
 
