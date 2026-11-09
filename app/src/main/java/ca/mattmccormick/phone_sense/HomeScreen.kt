@@ -61,6 +61,7 @@ internal fun HomeRoute(
     zone: ZoneId = ZoneId.systemDefault(),
     refreshKey: Any? = Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    onOpenDay: (LocalDate) -> Unit = {},
 ) {
     var data by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeData?>(null) }
     var snapshot by remember { mutableStateOf<CurrentDayUsageSnapshot?>(null) }
@@ -140,6 +141,7 @@ internal fun HomeRoute(
             goalError = goalError,
             modifier = modifier,
             today = homeData.chart.dates.last(),
+            onOpenDay = onOpenDay,
         )
     }
 }
@@ -153,6 +155,7 @@ internal fun HomeScreen(
     modifier: Modifier = Modifier,
     savingGoal: Boolean = false,
     goalError: String? = null,
+    onOpenDay: (LocalDate) -> Unit = {},
     today: LocalDate = LocalDate.now(),
     chart: HomeChartModel = chartModel(
         days = emptyList(),
@@ -200,7 +203,7 @@ internal fun HomeScreen(
                 Text("Last 6 weeks", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
             Text("Counted minutes per day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-            HomeChart(chart)
+            HomeChart(chart, onOpenDay = onOpenDay)
         }
     }
 }

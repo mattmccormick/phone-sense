@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import java.time.LocalDate
 
 internal const val EXTRA_INITIAL_DESTINATION =
     "ca.mattmccormick.phone_sense.extra.INITIAL_DESTINATION"
@@ -48,12 +49,13 @@ internal enum class AppDestination(
 
 @Composable
 internal fun AppNavigationShell(
-    dayDetail: @Composable () -> Unit,
+    dayDetail: @Composable (requestedDate: LocalDate?) -> Unit,
     modifier: Modifier = Modifier,
     initialDestination: AppDestination = AppDestination.HOME,
-    home: @Composable () -> Unit = {},
+    home: @Composable (onOpenDay: (LocalDate) -> Unit) -> Unit = {},
 ) {
     var dayVisit by remember { mutableIntStateOf(0) }
+    var requestedDate by remember { mutableStateOf<LocalDate?>(null) }
     var route by rememberSaveable { mutableStateOf(initialDestination.route) }
     val selectedDestination = AppDestination.entries.firstOrNull { it.route == route }
         ?: AppDestination.HOME
@@ -71,7 +73,10 @@ internal fun AppNavigationShell(
                                 selected = selected,
                                 role = Role.Tab,
                                 onClick = {
-                                    if (destination == AppDestination.DAY_DETAIL) dayVisit++
+                                    if (destination == AppDestination.DAY_DETAIL) {
+                                        dayVisit++
+                                        requestedDate = null
+                                    }
                                     route = destination.route
                                 },
                             ),
@@ -88,8 +93,12 @@ internal fun AppNavigationShell(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedDestination) {
-                AppDestination.HOME -> home()
-                AppDestination.DAY_DETAIL -> key(dayVisit) { dayDetail() }
+                AppDestination.HOME -> home { date ->
+                    requestedDate = date
+                    dayVisit++
+                    route = AppDestination.DAY_DETAIL.route
+                }
+                AppDestination.DAY_DETAIL -> key(dayVisit) { dayDetail(requestedDate) }
             }
         }
     }

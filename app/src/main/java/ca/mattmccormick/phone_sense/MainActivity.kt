@@ -229,7 +229,7 @@ class MainActivity : ComponentActivity() {
                             mainContent = { currentSettings ->
                                 AppNavigationShell(
                                     initialDestination = initialDestination,
-                                    home = {
+                                    home = { onOpenDay ->
                                         HomeRoute(
                                             usageDao = database.usageDao(),
                                             goalDao = database.goalDao(),
@@ -243,13 +243,17 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             },
                                             refreshKey = collectionVersion to importVersion,
+                                            onOpenDay = onOpenDay,
                                         )
                                     },
-                                    dayDetail = {
+                                    dayDetail = { requestedDate ->
+                                        val today = LocalDate.now()
                                         DayDetailScreen(
                                             dao = database.usageDao(),
                                             appRuleDao = database.appRuleDao(),
                                             appInfoSource = appInfoSource,
+                                            today = today,
+                                            initialDate = requestedDate ?: today,
                                             readCurrentDay = { zone ->
                                                 if (usageEventsSource.hasUsageAccess()) {
                                                     currentDayReader.read(zone)

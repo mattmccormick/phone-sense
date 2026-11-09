@@ -25,6 +25,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -62,6 +63,13 @@ class HomeChartTooltipRenderingTest {
         compose.waitForIdle()
     }
 
+    // The panel sits at the top of the plot, centred on the tapped day.
+    private fun tapPanel(fraction: Float) {
+        val bounds = chart().fetchSemanticsNode().boundsInRoot
+        chart().performTouchInput { click(Offset(bounds.width * fraction, bounds.height * 0.1f)) }
+        compose.waitForIdle()
+    }
+
     // The panel fill is the only part of the tooltip that no other chart element draws.
     private fun tooltipPixels(): Int {
         val pixels = compose.runOnIdle {
@@ -85,6 +93,24 @@ class HomeChartTooltipRenderingTest {
         assertTrue("A tap on a day must open its tooltip", tooltipPixels() > 1000)
         tapAcross(0.75f)
         assertEquals("A second tap on the same day must close the tooltip", 0, tooltipPixels())
+    }
+
+    // 0.7 of a 360dp chart falls on the 29th of the window's 42 days, 13 days before its last.
+    @Test
+    fun opensTheDayBehindATapOnThePanel() {
+        var opened: LocalDate? = null
+        compose.setContent {
+            ScreenBudgetTheme(darkTheme = false) {
+                HomeChart(model(), Modifier.width(360.dp), onOpenDay = { opened = it })
+            }
+        }
+
+        tapAcross(0.7f)
+        assertTrue("A tap on a day must open its tooltip", tooltipPixels() > 1000)
+        assertNull("Selecting a day must not open the Day view on its own", opened)
+
+        tapPanel(0.7f)
+        assertEquals(today.minusDays(13), opened)
     }
 
     @Test

@@ -1,11 +1,14 @@
 package ca.mattmccormick.phone_sense
 
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -38,6 +41,25 @@ class AppNavigationTest {
 
         compose.onNodeWithText("Day").performClick()
         compose.onNodeWithText("Day detail screen").assertIsDisplayed()
+    }
+
+    @Test
+    fun openingADayFromHomeShowsThatDateAndTheDayTabStillOpensToday() {
+        val chosen = LocalDate.of(2026, 11, 3)
+        compose.setContent {
+            AppNavigationShell(
+                dayDetail = { date -> Text("Day detail for ${date ?: "today"}") },
+                home = { onOpenDay ->
+                    Text("Open a day", Modifier.clickable { onOpenDay(chosen) })
+                },
+            )
+        }
+
+        compose.onNodeWithText("Open a day").performClick()
+        compose.onNodeWithText("Day detail for 2026-11-03").assertIsDisplayed()
+
+        compose.onNodeWithText("Day").performClick()
+        compose.onNodeWithText("Day detail for today").assertIsDisplayed()
     }
 
     @Test
