@@ -150,14 +150,21 @@ internal object Notifier {
     }
 
     @Synchronized
-    fun weeklyIncomplete(context: Context, weekStart: LocalDate, missingDays: Int) {
+    fun weeklyIncomplete(
+        context: Context,
+        weekStart: LocalDate,
+        missingDays: Int,
+        chart: HomeChartModel? = null,
+    ) {
         if (wasWeeklyNotificationPosted(context, weekStart)) return
         val dayLabel = if (missingDays == 1) "day" else "days"
+        val text = "Weekly summary unavailable: $missingDays $dayLabel missing."
         val notification = Notification.Builder(context, NotificationChannels.WEEKLY_SUMMARY)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(context.getString(R.string.app_name))
-            .setContentText("Weekly summary unavailable: $missingDays $dayLabel missing.")
+            .setContentText(text)
             .setAutoCancel(true)
+            .withChart(context, chart, text)
             .build()
 
         context.getSystemService(NotificationManager::class.java)

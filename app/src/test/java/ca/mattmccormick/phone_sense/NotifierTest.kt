@@ -263,4 +263,29 @@ class NotifierTest {
         )
         assertEquals(0, notification.actions?.size ?: 0)
     }
+
+    @Test
+    fun incompleteWeekStillCarriesTheChart() {
+        val previousWeekStart = today.minusWeeks(1)
+        repeat(5) { offset ->
+            val date = previousWeekStart.plusDays(offset.toLong())
+            database.usageDao().insert(
+                DailyUsage(date, 100, Source.COLLECTED, Instant.EPOCH),
+                emptyList(),
+            )
+        }
+
+        WeeklyNotificationRunnerImpl(
+            context,
+            Settings(weekStartDay = DayOfWeek.MONDAY),
+            database,
+        ).weekly(today)
+
+        val notification = shadowOf(notificationManager).allNotifications.single()
+        assertNotNull(picture(notification))
+        assertEquals(
+            "Weekly summary unavailable: 2 days missing.",
+            notification.extras.getString(Notification.EXTRA_SUMMARY_TEXT),
+        )
+    }
 }
