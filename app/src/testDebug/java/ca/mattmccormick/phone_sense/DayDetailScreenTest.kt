@@ -337,6 +337,22 @@ class DayDetailScreenTest {
         compose.onNodeWithContentDescription("Total usage: 75 minutes").assertDoesNotExist()
     }
 
+    @Test
+    fun aPastInitialDateOpensThatDayAndTodayStillShowsLiveUsage() {
+        val date = today.minusDays(3)
+        database.usageDao().insert(DailyUsage(date, 33, Source.COLLECTED, Instant.EPOCH), emptyList())
+
+        setScreen(initialDate = date, readCurrentDay = { snapshot(75) }, showYesterday = false)
+
+        compose.waitUntilAtLeastOneExists(hasText("33 min"), 5_000)
+        compose.onNodeWithText(dayDateHeading(date, today, java.util.Locale.getDefault())).assertIsDisplayed()
+
+        repeat(3) { compose.onNodeWithContentDescription("Next day").performClick() }
+
+        compose.waitUntilAtLeastOneExists(hasText("75 min"), 5_000)
+        compose.onNodeWithContentDescription("Total usage: 75 minutes").assertIsDisplayed()
+    }
+
     private fun snapshot(minutes: Int, date: LocalDate = today) =
         CurrentDayUsageSnapshotResult.Available(
             CurrentDayUsageSnapshot(
@@ -361,6 +377,7 @@ class DayDetailScreenTest {
         readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = { CurrentDayUsageSnapshotResult.Unavailable },
         lifecycleOwner: LifecycleOwner? = null,
         showYesterday: Boolean = true,
+        initialDate: LocalDate = today,
     ) {
         compose.setContent {
             MaterialTheme {
@@ -372,6 +389,7 @@ class DayDetailScreenTest {
                             appRuleDao = database.appRuleDao(),
                             appInfoSource = resolver,
                             today = today,
+                            initialDate = initialDate,
                             readCurrentDay = readCurrentDay,
                             lifecycleOwner = lifecycleOwner ?: LocalLifecycleOwner.current,
                             loadDispatcher = Dispatchers.Unconfined,

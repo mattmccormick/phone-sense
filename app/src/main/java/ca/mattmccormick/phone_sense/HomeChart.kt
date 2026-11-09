@@ -15,10 +15,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -26,6 +28,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -39,12 +42,31 @@ import kotlin.math.ceil
 
 private val PLOT_LEFT = 28.dp
 private val PLOT_RIGHT_INSET = 4.dp
+private val TOOLTIP_PADDING = 8.dp
 
 private fun Density.cellWidth(width: Float, dayCount: Int) =
     (width - PLOT_LEFT.toPx() - PLOT_RIGHT_INSET.toPx()) / dayCount
 
+private fun Density.tooltipBounds(
+    lines: List<TextLayoutResult>,
+    index: Int,
+    cell: Float,
+    width: Float,
+): Rect {
+    val padding = TOOLTIP_PADDING.toPx()
+    val boxWidth = lines.maxOf { it.size.width } + padding * 2
+    val boxHeight = lines.sumOf { it.size.height } + padding * 2
+    val left = (PLOT_LEFT.toPx() + index * cell + cell / 2 - boxWidth / 2)
+        .coerceIn(0f, (width - boxWidth).coerceAtLeast(0f))
+    return Rect(Offset(left, 0f), Size(boxWidth, boxHeight))
+}
+
 @Composable
-internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
+internal fun HomeChart(
+    model: HomeChartModel,
+    modifier: Modifier = Modifier,
+    onOpenDay: (LocalDate) -> Unit = {},
+) {
     if (model.dailyMinutes.all { it == null } && model.goalMinutes.all { it == null }) {
         Text("No usage data yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
@@ -55,6 +77,11 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
     val tooltipStyle = TextStyle(color = colors.inverseOnSurface, fontSize = 11.sp)
     var selectedDate by remember(model) { mutableStateOf<LocalDate?>(null) }
     val selected = selectedDate?.let { date -> model.dates.indexOf(date).takeIf { it >= 0 } }
+    val openDay by rememberUpdatedState(onOpenDay)
+    fun tooltipLayouts(index: Int) = tooltipLines(model, index).mapIndexed { line, text ->
+        textMeasurer.measure(text,
+            if (line == 0) tooltipStyle.copy(fontWeight = FontWeight.Medium) else tooltipStyle)
+    }
     val boundaries = (listOf(0) + model.weekBoundaryPositions + model.dates.size).distinct().sorted()
     val maximum = maxOf(
         model.dailyMinutes.filterNotNull().maxOrNull() ?: 0,
@@ -71,9 +98,19 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Canvas(Modifier.fillMaxWidth().height(212.dp).pointerInput(model) {
             detectTapGestures { tap ->
-                val index = dayIndexAt(tap.x, PLOT_LEFT.toPx(),
-                    cellWidth(size.width.toFloat(), model.dates.size), model.dates.size)
-                selectedDate = index?.let(model.dates::get).takeIf { it != selectedDate }
+                val cell = cellWidth(size.width.toFloat(), model.dates.size)
+                val tappedTooltip = selectedDate
+                    ?.let { date -> model.dates.indexOf(date).takeIf { it >= 0 } }
+                    ?.takeIf { index ->
+                        tooltipBounds(tooltipLayouts(index), index, cell, size.width.toFloat())
+                            .contains(tap)
+                    }
+                if (tappedTooltip != null) {
+                    openDay(model.dates[tappedTooltip])
+                } else {
+                    val index = dayIndexAt(tap.x, PLOT_LEFT.toPx(), cell, model.dates.size)
+                    selectedDate = index?.let(model.dates::get).takeIf { it != selectedDate }
+                }
             }
         }.semantics {
             contentDescription = "Six-week distraction chart"
@@ -147,20 +184,14 @@ internal fun HomeChart(model: HomeChartModel, modifier: Modifier = Modifier) {
                 }
             }
             selected?.let { index ->
-                val lines = tooltipLines(model, index).mapIndexed { line, text ->
-                    textMeasurer.measure(text,
-                        if (line == 0) tooltipStyle.copy(fontWeight = FontWeight.Medium) else tooltipStyle)
-                }
-                val padding = 8.dp.toPx()
-                val boxWidth = lines.maxOf { it.size.width } + padding * 2
-                val boxHeight = lines.sumOf { it.size.height } + padding * 2
-                val boxLeft = (edge(index) + cell / 2 - boxWidth / 2)
-                    .coerceIn(0f, (size.width - boxWidth).coerceAtLeast(0f))
-                drawRoundRect(colors.inverseSurface, Offset(boxLeft, 0f), Size(boxWidth, boxHeight),
+                val lines = tooltipLayouts(index)
+                val bounds = tooltipBounds(lines, index, cell, size.width)
+                val padding = TOOLTIP_PADDING.toPx()
+                drawRoundRect(colors.inverseSurface, bounds.topLeft, bounds.size,
                     CornerRadius(8.dp.toPx()))
-                var lineTop = padding
+                var lineTop = bounds.top + padding
                 lines.forEach { line ->
-                    drawText(line, topLeft = Offset(boxLeft + padding, lineTop))
+                    drawText(line, topLeft = Offset(bounds.left + padding, lineTop))
                     lineTop += line.size.height
                 }
             }
