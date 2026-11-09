@@ -57,7 +57,7 @@ internal fun loadHomeData(
         goal = goals.firstOrNull { it.weekStart == currentWeekStart },
         usedSoFar = normalizedDays.filter { it.date >= currentWeekStart }
             .sumOf { it.totalMinutes },
-        chart = chartModel(normalizedDays, goals, weekStartDay, refreshDate),
+        chart = chartModel(normalizedDays, goals, weekStartDay, refreshDate, refreshDate),
     )
 }
 

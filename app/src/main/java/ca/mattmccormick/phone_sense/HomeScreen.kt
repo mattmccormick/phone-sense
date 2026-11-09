@@ -159,6 +159,7 @@ internal fun HomeScreen(
         goals = listOfNotNull(goal),
         weekStartDay = settings.weekStartDay,
         end = today,
+        today = today,
     ),
 ) {
     val currentWeekStart = weekStart(today, settings.weekStartDay)

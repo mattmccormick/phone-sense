@@ -7,14 +7,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import ca.mattmccormick.phone_sense.data.DailyUsage
 import ca.mattmccormick.phone_sense.data.Source
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -65,6 +68,7 @@ class HomeChartRenderingTest {
             goals = emptyList(),
             weekStartDay = DayOfWeek.SATURDAY,
             end = today,
+            today = today,
         )
         compose.setContent {
             ScreenBudgetTheme {
@@ -74,5 +78,31 @@ class HomeChartRenderingTest {
 
         assertTrue("Recent daily usage must be drawn at the right of the six-week chart",
             hasOutlinedBar(fromFractionOfWidth = 0.75f))
+    }
+
+    @Test
+    fun pastWindowDropsTheMarkersThatOnlyMakeSenseForThisWeek() {
+        val end = LocalDate.of(2026, 9, 19)
+        val model = chartModel(
+            days = threeRecordedDays(end),
+            goals = emptyList(),
+            weekStartDay = DayOfWeek.SATURDAY,
+            end = end,
+            today = LocalDate.of(2026, 10, 5),
+        )
+        compose.setContent {
+            ScreenBudgetTheme {
+                HomeChart(model, Modifier.width(320.dp))
+            }
+        }
+
+        val state = compose.onNodeWithContentDescription("Six-week distraction chart")
+            .fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+        assertTrue("The window's last day must still be described, got: $state",
+            state.contains("$end: 16 minutes"))
+        assertFalse("A past window holds nothing in progress, got: $state", state.contains("in progress"))
+        compose.onNodeWithText("Outlined bar: today, still in progress").assertDoesNotExist()
+        compose.onNodeWithText("This week · so far").assertDoesNotExist()
+        assertFalse("A window that ends in the past has no bar for today to outline", hasOutlinedBar())
     }
 }
