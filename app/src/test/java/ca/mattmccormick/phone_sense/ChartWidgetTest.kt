@@ -65,6 +65,16 @@ class ChartWidgetTest {
         }
     }
 
+    @Test fun theThisWeekLabelStaysInsideTheImage() {
+        for ((width, height) in listOf(196f to 94f, 360f to 180f)) {
+            val bitmap = renderChartWidget(context, model(), width, height)
+            val headerRows = 0 until (16f / height * bitmap.height).toInt()
+            val edgeColumns = ((width - 2f) / width * bitmap.width).toInt() until bitmap.width
+            assertTrue("Label should keep clear of the right edge at ${width}x$height",
+                headerRows.all { y -> edgeColumns.all { x -> Color.alpha(bitmap.getPixel(x, y)) == 0 } })
+        }
+    }
+
     @Test fun unavailableStateClearsRenderedChartAndExplainsHowToRestoreIt() {
         val size = SizeF(280f, 220f)
         val view = chartWidgetViews(context, size, model()).apply(context, FrameLayout(context))
