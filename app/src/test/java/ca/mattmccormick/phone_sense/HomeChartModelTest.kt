@@ -15,6 +15,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeChartModelTest {
+    private fun day(date: LocalDate, minutes: Int) = DailyUsage(
+        date = date,
+        totalMinutes = minutes,
+        source = Source.COLLECTED,
+        collectedAt = Instant.EPOCH,
+    )
+
     @Test
     fun containsOnePointPerDayForSixWeeksAndLeavesMissingDaysEmpty() {
         val end = LocalDate.of(2026, 10, 3)
@@ -196,11 +203,4 @@ class HomeChartModelTest {
             chartWindowEnd(LocalDate.of(2026, 10, 7), DayOfWeek.MONDAY, -1)
         }
     }
-
-    private fun day(date: LocalDate, minutes: Int) = DailyUsage(
-        date = date,
-        totalMinutes = minutes,
-        source = Source.COLLECTED,
-        collectedAt = Instant.EPOCH,
-    )
 }
