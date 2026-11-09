@@ -18,6 +18,14 @@ internal data class HomeChartModel(
         get() = dailyMinutes.any { it != null } || goalMinutes.any { it != null }
 }
 
+// Page 0 ends today; every earlier page ends on the last day of a week, so it holds
+// six whole weeks.
+internal fun chartWindowEnd(today: LocalDate, weekStartDay: DayOfWeek, page: Int): LocalDate {
+    require(page >= 0) { "A chart page cannot be negative: $page" }
+    if (page == 0) return today
+    return weekStart(today, weekStartDay).minusDays(1 + 7L * (page - 1))
+}
+
 internal fun chartModel(
     days: List<DailyUsage>,
     goals: List<Goal>,
