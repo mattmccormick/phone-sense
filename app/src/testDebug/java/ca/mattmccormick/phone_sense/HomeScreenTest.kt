@@ -7,7 +7,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -45,6 +44,43 @@ class HomeScreenTest {
     val compose = createComposeRule()
 
     private lateinit var database: UsageDatabase
+
+    private fun insertDay(date: LocalDate, minutes: Int) = database.usageDao().insert(
+        DailyUsage(date, minutes, Source.COLLECTED, Instant.EPOCH),
+        emptyList(),
+    )
+
+    private fun snapshot(
+        date: LocalDate,
+        totalMinutes: Int,
+        excludedMinutes: Int = 0,
+    ): CurrentDayUsageSnapshotResult.Available = CurrentDayUsageSnapshotResult.Available(
+        CurrentDayUsageSnapshot(
+            date = date,
+            capturedAt = date.atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
+            totalMillis = totalMinutes * 60_000L,
+            perPackageMillis = buildMap {
+                put("com.example.used", (totalMinutes - excludedMinutes) * 60_000L)
+                if (excludedMinutes > 0) {
+                    put("com.example.excluded", excludedMinutes * 60_000L)
+                }
+            },
+        ),
+    )
+
+    private fun awaitText(text: String) = compose.waitUntil(timeoutMillis = 5_000) {
+        compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    private class FakeLifecycleOwner : LifecycleOwner {
+        private val registry = LifecycleRegistry(this)
+
+        override val lifecycle: Lifecycle = registry
+
+        fun resume() {
+            registry.currentState = Lifecycle.State.RESUMED
+        }
+    }
 
     @Before
     fun setUp() {
@@ -97,18 +133,9 @@ class HomeScreenTest {
     fun weekProgressUsesTheConfiguredWeekStartDay() {
         val monday = LocalDate.of(2026, 9, 28)
         database.goalDao().insert(Goal(monday, 45))
-        database.usageDao().insert(
-            DailyUsage(monday, 30, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
-        database.usageDao().insert(
-            DailyUsage(monday.plusDays(1), 20, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
-        database.usageDao().insert(
-            DailyUsage(monday.minusDays(1), 200, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
+        insertDay(monday, 30)
+        insertDay(monday.plusDays(1), 20)
+        insertDay(monday.minusDays(1), 200)
 
         compose.setContent {
             HomeRoute(
@@ -120,9 +147,7 @@ class HomeScreenTest {
             )
         }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Daily allowance").fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("Daily allowance")
         compose.onNodeWithText("Daily allowance").assertIsDisplayed()
         compose.onNodeWithText("Usage unavailable").assertIsDisplayed()
         compose.onAllNodesWithText("45")[1].assertIsDisplayed()
@@ -143,9 +168,7 @@ class HomeScreenTest {
                 refreshKey = refreshKey.intValue,
             )
         }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Set goal").fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("Set goal")
         compose.onNodeWithText("Set goal").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertExists()
 
@@ -168,10 +191,7 @@ class HomeScreenTest {
         )
         compose.runOnIdle { refreshKey.intValue++ }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("300")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("300")
         compose.onNodeWithText("Daily allowance").assertIsDisplayed()
         compose.onNodeWithText("240 min over today").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
@@ -183,10 +203,7 @@ class HomeScreenTest {
         val today = LocalDate.of(2026, 10, 1)
         val monday = LocalDate.of(2026, 9, 28)
         database.goalDao().insert(Goal(monday, 120))
-        database.usageDao().insert(
-            DailyUsage(monday, 30, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
+        insertDay(monday, 30)
         database.usageDao().insert(
             DailyUsage(today, 500, Source.IMPORTED, Instant.EPOCH),
             emptyList(),
@@ -206,10 +223,7 @@ class HomeScreenTest {
             )
         }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("90")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("90")
         compose.onNodeWithText("90").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
     }
@@ -232,18 +246,12 @@ class HomeScreenTest {
                 lifecycleOwner = lifecycleOwner,
             )
         }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("30")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("30")
 
         currentMinutes = 50
         compose.runOnIdle { lifecycleOwner.resume() }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("50")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("50")
     }
 
     @Test
@@ -268,47 +276,13 @@ class HomeScreenTest {
                 refreshKey = refreshKey.intValue,
             )
         }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("40")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("40")
 
         currentDate = monday.plusDays(1)
         available = false
         compose.runOnIdle { refreshKey.intValue++ }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Usage unavailable")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("Usage unavailable")
         compose.onNodeWithText("40").assertDoesNotExist()
-    }
-
-    private fun snapshot(
-        date: LocalDate,
-        totalMinutes: Int,
-        excludedMinutes: Int = 0,
-    ): CurrentDayUsageSnapshotResult.Available = CurrentDayUsageSnapshotResult.Available(
-        CurrentDayUsageSnapshot(
-            date = date,
-            capturedAt = date.atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
-            totalMillis = totalMinutes * 60_000L,
-            perPackageMillis = buildMap {
-                put("com.example.used", (totalMinutes - excludedMinutes) * 60_000L)
-                if (excludedMinutes > 0) {
-                    put("com.example.excluded", excludedMinutes * 60_000L)
-                }
-            },
-        ),
-    )
-
-    private class FakeLifecycleOwner : LifecycleOwner {
-        private val registry = LifecycleRegistry(this)
-
-        override val lifecycle: Lifecycle = registry
-
-        fun resume() {
-            registry.currentState = Lifecycle.State.RESUMED
-        }
     }
 }
