@@ -65,10 +65,24 @@ class ChartWidgetTest {
         }
     }
 
+    @Test fun thePlotAreaIsFramed() {
+        for ((width, height) in listOf(196f to 94f, 360f to 180f)) {
+            val bitmap = renderChartWidget(context, model(), width, height)
+            val plotTop = 16f
+            val plotBottom = height - 37f
+            // A quarter down the oldest week, which holds no usage, goal or average.
+            val y = ((plotTop + (plotBottom - plotTop) / 4) / height * bitmap.height).toInt()
+            val x = (25f / width * bitmap.width).toInt()
+            assertTrue("Frame should be drawn at ${width}x$height",
+                (x - 1..x + 1).any { Color.alpha(bitmap.getPixel(it, y)) > 0 })
+        }
+    }
+
     @Test fun theThisWeekLabelStaysInsideTheImage() {
         for ((width, height) in listOf(196f to 94f, 360f to 180f)) {
             val bitmap = renderChartWidget(context, model(), width, height)
-            val headerRows = 0 until (16f / height * bitmap.height).toInt()
+            // Above the frame, whose antialiased top edge reaches the row below it.
+            val headerRows = 0 until ((16f - 1) / height * bitmap.height).toInt()
             val edgeColumns = ((width - 2f) / width * bitmap.width).toInt() until bitmap.width
             assertTrue("Label should keep clear of the right edge at ${width}x$height",
                 headerRows.all { y -> edgeColumns.all { x -> Color.alpha(bitmap.getPixel(x, y)) == 0 } })

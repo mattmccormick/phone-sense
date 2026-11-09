@@ -59,6 +59,11 @@ internal fun renderChartWidget(context: Context, model: HomeChartModel, width: F
         line(left, y(it), right, y(it), track)
         label(it.toInt().toString(), 0f, y(it) + 3f)
     }
+    paint.color = secondary
+    paint.alpha = 140
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 1f
+    canvas.drawRect(left, top, right, bottom, paint)
     model.weekBoundaryPositions.forEach { index ->
         line(edge(index), top, edge(index), bottom, track)
         label(model.dates[index].format(DateTimeFormatter.ofPattern("MMM d")), edge(index), bottom + 13f, centered = true)
