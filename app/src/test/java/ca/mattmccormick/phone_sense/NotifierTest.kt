@@ -212,6 +212,33 @@ class NotifierTest {
     }
 
     @Test
+    fun weeklySummaryCarriesTheChartAndKeepsTheAcceptAction() {
+        val previousWeekStart = today.minusWeeks(1)
+        database.goalDao().insert(Goal(previousWeekStart, 120))
+        repeat(7) { offset ->
+            val date = previousWeekStart.plusDays(offset.toLong())
+            database.usageDao().insert(
+                DailyUsage(date, 100, Source.COLLECTED, Instant.EPOCH),
+                emptyList(),
+            )
+        }
+
+        WeeklyNotificationRunnerImpl(
+            context,
+            Settings(weekStartDay = DayOfWeek.MONDAY),
+            database,
+        ).weekly(today)
+
+        val notification = shadowOf(notificationManager).allNotifications.single()
+        assertNotNull(picture(notification))
+        assertEquals("Accept", notification.actions.single().title.toString())
+        assertEquals(
+            "Average: 01:40 · Goal achieved · Recommended goal: 01:30",
+            notification.extras.getString(Notification.EXTRA_SUMMARY_TEXT),
+        )
+    }
+
+    @Test
     fun incompleteWeekShowsTheMissingDayCountWithoutARecommendation() {
         val previousWeekStart = today.minusWeeks(1)
         database.goalDao().insert(Goal(previousWeekStart, 120))
