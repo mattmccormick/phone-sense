@@ -61,6 +61,7 @@ class HomeChartLoaderTest {
             database.appRuleDao(),
             weekStartDay,
             end,
+            today,
             currentSnapshot,
         )
 
@@ -85,6 +86,12 @@ class HomeChartLoaderTest {
 
         assertEquals(today, page.chart.dates.last())
         assertEquals(120, page.chart.dailyMinutes.last())
+    }
+
+    @Test
+    fun onlyTheLatestWindowIsMarkedAsIncludingToday() {
+        assertTrue(load(today).chart.includesToday)
+        assertFalse(load(pastEnd).chart.includesToday)
     }
 
     @Test

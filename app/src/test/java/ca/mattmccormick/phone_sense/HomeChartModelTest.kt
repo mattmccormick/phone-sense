@@ -8,8 +8,10 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeChartModelTest {
@@ -23,6 +25,7 @@ class HomeChartModelTest {
             goals = emptyList(),
             weekStartDay = DayOfWeek.MONDAY,
             end = end,
+            today = end,
         )
 
         assertEquals(42, model.dates.size)
@@ -45,6 +48,7 @@ class HomeChartModelTest {
             goals = listOf(Goal(firstWeek, 45), Goal(secondWeek, 30)),
             weekStartDay = DayOfWeek.MONDAY,
             end = end,
+            today = end,
         )
 
         val firstWeekIndices = model.dates.indices.filter {
@@ -67,6 +71,7 @@ class HomeChartModelTest {
             goals = emptyList(),
             weekStartDay = DayOfWeek.MONDAY,
             end = end,
+            today = end,
         )
 
         val weekIndices = model.dates.indices.filter {
@@ -83,6 +88,7 @@ class HomeChartModelTest {
             goals = emptyList(),
             weekStartDay = DayOfWeek.THURSDAY,
             end = LocalDate.of(2026, 10, 3),
+            today = LocalDate.of(2026, 10, 3),
         )
 
         assertEquals(6, model.weekBoundaryPositions.size)
@@ -103,6 +109,7 @@ class HomeChartModelTest {
             goals = listOf(Goal(lastWindowWeek, 45)),
             weekStartDay = DayOfWeek.MONDAY,
             end = end,
+            today = today,
         )
 
         assertEquals(LocalDate.of(2026, 8, 24), model.dates.first())
@@ -112,6 +119,36 @@ class HomeChartModelTest {
         assertEquals(List(7) { 30.0 }, (35..41).map(model.weeklyAverageMinutes::get))
         assertNull(model.goalMinutes[34])
         assertNull(model.weeklyAverageMinutes[34])
+    }
+
+    @Test
+    fun marksAWindowThatEndsTodayAsIncludingToday() {
+        val today = LocalDate.of(2026, 10, 3)
+
+        val model = chartModel(
+            days = emptyList(),
+            goals = emptyList(),
+            weekStartDay = DayOfWeek.MONDAY,
+            end = today,
+            today = today,
+        )
+
+        assertTrue(model.includesToday)
+    }
+
+    @Test
+    fun marksAWindowThatEndsBeforeTodayAsNotIncludingToday() {
+        val today = LocalDate.of(2026, 10, 3)
+
+        val model = chartModel(
+            days = emptyList(),
+            goals = emptyList(),
+            weekStartDay = DayOfWeek.MONDAY,
+            end = today.minusWeeks(2),
+            today = today,
+        )
+
+        assertFalse(model.includesToday)
     }
 
     @Test

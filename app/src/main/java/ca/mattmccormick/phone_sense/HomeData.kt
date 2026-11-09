@@ -49,6 +49,7 @@ internal fun loadHomeData(
             appRuleDao,
             weekStartDay,
             refreshDate,
+            refreshDate,
             currentSnapshot,
         ).chart,
     )
@@ -61,6 +62,7 @@ internal fun loadHomeChart(
     appRuleDao: AppRuleDao,
     weekStartDay: DayOfWeek,
     end: LocalDate,
+    today: LocalDate,
     currentSnapshot: CurrentDayUsageSnapshot?,
 ): HomeChartPage {
     val start = end.minusDays(41)
@@ -70,7 +72,7 @@ internal fun loadHomeChart(
     val goals = goalDao.between(firstChartWeek, weekStart(end, weekStartDay))
     val earliestDate = usageDao.earliestDate()
     return HomeChartPage(
-        chart = chartModel(days, goals, weekStartDay, end),
+        chart = chartModel(days, goals, weekStartDay, end, today),
         earlierDataAvailable = earliestDate != null && earliestDate < start,
     )
 }

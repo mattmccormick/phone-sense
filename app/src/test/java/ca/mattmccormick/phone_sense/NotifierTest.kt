@@ -36,7 +36,7 @@ class NotifierTest {
     private lateinit var notificationManager: NotificationManager
 
     private fun chart(days: List<DailyUsage>, goals: List<Goal>) =
-        chartModel(days, goals, DayOfWeek.SATURDAY, today)
+        chartModel(days, goals, DayOfWeek.SATURDAY, today, today)
 
     private fun picture(notification: Notification): Bitmap? =
         notification.extras.getParcelable(Notification.EXTRA_PICTURE, Bitmap::class.java)

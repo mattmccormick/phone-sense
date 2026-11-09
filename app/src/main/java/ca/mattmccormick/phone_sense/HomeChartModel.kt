@@ -12,6 +12,7 @@ internal data class HomeChartModel(
     val goalMinutes: List<Int?>,
     val weeklyAverageMinutes: List<Double?>,
     val weekBoundaryPositions: List<Int>,
+    val includesToday: Boolean,
 ) {
     val hasData: Boolean
         get() = dailyMinutes.any { it != null } || goalMinutes.any { it != null }
@@ -30,6 +31,7 @@ internal fun chartModel(
     goals: List<Goal>,
     weekStartDay: DayOfWeek,
     end: LocalDate,
+    today: LocalDate,
 ): HomeChartModel {
     val daysByDate = days.associateBy(DailyUsage::date)
     val goalsByWeek = goals.associateBy(Goal::weekStart)
@@ -42,5 +44,6 @@ internal fun chartModel(
         goalMinutes = dates.map { goalsByWeek[weekStart(it, weekStartDay)]?.minutes },
         weeklyAverageMinutes = dates.map { averagesByWeek[weekStart(it, weekStartDay)] },
         weekBoundaryPositions = dates.indices.filter { dates[it].dayOfWeek == weekStartDay },
+        includesToday = end == today,
     )
 }
