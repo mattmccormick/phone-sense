@@ -97,8 +97,13 @@ internal fun HomeRoute(
     }
 
     DisposableEffect(lifecycleOwner) {
+        // An owner that is already resumed replays ON_RESUME to a new observer, and the load
+        // below covers that one; only a later resume is a return to the foreground.
+        var replayPending = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) resumeVersion++
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (replayPending) replayPending = false else resumeVersion++
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }

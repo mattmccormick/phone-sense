@@ -38,6 +38,8 @@ import ca.mattmccormick.phone_sense.export.encodeExport
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicInteger
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Before
@@ -263,6 +265,30 @@ class HomeScreenTest {
         awaitText("90")
         compose.onNodeWithText("90").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun firstCompositionReadsTheCurrentDayOnce() {
+        val today = LocalDate.of(2026, 10, 20)
+        val reads = AtomicInteger()
+        insertDay(today, 10)
+
+        compose.setContent {
+            HomeRoute(
+                usageDao = database.usageDao(),
+                goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
+                settings = Settings(weekStartDay = DayOfWeek.SUNDAY),
+                today = { today },
+                readCurrentDay = {
+                    reads.incrementAndGet()
+                    snapshot(today, 10)
+                },
+            )
+        }
+        awaitText("Last 6 weeks")
+
+        assertEquals("A resume replayed to a new observer must not load again", 1, reads.get())
     }
 
     @Test
