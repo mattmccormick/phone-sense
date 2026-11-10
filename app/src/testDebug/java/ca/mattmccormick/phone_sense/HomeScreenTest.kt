@@ -424,6 +424,38 @@ class HomeScreenTest {
     }
 
     @Test
+    fun aWindowWithoutDataKeepsTheChartsHeight() {
+        val today = LocalDate.of(2026, 10, 20)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 7, 1), 20)
+
+        pagedHome(today)
+        val height = chart().fetchSemanticsNode().boundsInWindow.height
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+
+        assertEquals(
+            height,
+            compose.onNodeWithText("No usage data yet").fetchSemanticsNode().boundsInWindow.height,
+        )
+    }
+
+    @Test
+    fun aSwipeOnAWindowWithoutDataPagesBack() {
+        val today = LocalDate.of(2026, 10, 20)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 7, 1), 20)
+
+        pagedHome(today)
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+
+        compose.onNodeWithText("No usage data yet").performTouchInput { swipeLeft() }
+
+        awaitText("Last 6 weeks")
+    }
+
+    @Test
     fun aHorizontalSwipeOnTheChartPagesByOneWeek() {
         val today = LocalDate.of(2026, 10, 20)
         (0L..60L).forEach { insertDay(today.minusDays(it), 10) }

@@ -40,6 +40,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
 
+private val CHART_HEIGHT = 212.dp
 private val PLOT_LEFT = 28.dp
 private val PLOT_RIGHT_INSET = 4.dp
 private val TOOLTIP_PADDING = 8.dp
@@ -68,7 +69,11 @@ internal fun HomeChart(
     onOpenDay: (LocalDate) -> Unit = {},
 ) {
     if (model.dailyMinutes.all { it == null } && model.goalMinutes.all { it == null }) {
-        Text("No usage data yet", modifier, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "No usage data yet",
+            modifier.fillMaxWidth().height(CHART_HEIGHT),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         return
     }
     val colors = MaterialTheme.colorScheme
@@ -96,7 +101,7 @@ internal fun HomeChart(
     }
     val progressSentence = if (model.includesToday) " Today and this week's average are in progress." else ""
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Canvas(Modifier.fillMaxWidth().height(212.dp).pointerInput(model) {
+        Canvas(Modifier.fillMaxWidth().height(CHART_HEIGHT).pointerInput(model) {
             detectTapGestures { tap ->
                 val cell = cellWidth(size.width.toFloat(), model.dates.size)
                 val tappedTooltip = selectedDate
