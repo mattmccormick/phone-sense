@@ -7,10 +7,11 @@ import java.time.Clock
 import java.time.Duration
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 internal const val DAILY_COLLECTION_WORK = "daily-collection"
-private val COLLECTION_FLEX = Duration.ofHours(1)
+private val COLLECTION_WINDOW = Duration.ofHours(1)
 
 internal fun scheduleDailyCollection(
     workManager: WorkManager,
@@ -19,7 +20,7 @@ internal fun scheduleDailyCollection(
 ) {
     workManager.enqueueUniquePeriodicWork(
         DAILY_COLLECTION_WORK,
-        ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+        ExistingPeriodicWorkPolicy.UPDATE,
         dailyCollectionRequest(clock, notificationTime),
     )
 }
@@ -27,20 +28,29 @@ internal fun scheduleDailyCollection(
 internal fun dailyCollectionRequest(
     clock: Clock,
     notificationTime: LocalTime,
-) =
-    PeriodicWorkRequestBuilder<CollectWorker>(
-        24,
-        TimeUnit.HOURS,
-        1,
-        TimeUnit.HOURS,
-    )
-        .setInitialDelay(initialCollectionDelay(clock, notificationTime))
-        .build()
+) = collectionRequest(clock, notificationTime).build()
 
-private fun initialCollectionDelay(clock: Clock, notificationTime: LocalTime): Duration {
+internal fun pinNextCollection(
+    workManager: WorkManager,
+    id: UUID,
+    clock: Clock,
+    notificationTime: LocalTime,
+) {
+    // The update is not waited on: WorkManager honours the override whether it
+    // lands while the worker still runs or after it has finished.
+    workManager.updateWork(collectionRequest(clock, notificationTime).setId(id).build())
+}
+
+private fun collectionRequest(clock: Clock, notificationTime: LocalTime) =
+    PeriodicWorkRequestBuilder<CollectWorker>(24, TimeUnit.HOURS)
+        .setNextScheduleTimeOverride(
+            nextWindowStart(clock, notificationTime).toInstant().toEpochMilli(),
+        )
+
+private fun nextWindowStart(clock: Clock, notificationTime: LocalTime): ZonedDateTime {
     val now = ZonedDateTime.now(clock)
-    var windowEnd = now.toLocalDate().atTime(notificationTime).atZone(clock.zone)
-    if (!windowEnd.isAfter(now)) windowEnd = windowEnd.plusDays(1)
-    val windowStart = windowEnd.minus(COLLECTION_FLEX)
-    return if (now.isBefore(windowStart)) Duration.between(now, windowStart) else Duration.ZERO
+    var start = now.toLocalDate().atTime(notificationTime).atZone(clock.zone)
+        .minus(COLLECTION_WINDOW)
+    while (!start.isAfter(now)) start = start.plusDays(1)
+    return start
 }
