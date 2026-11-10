@@ -85,6 +85,40 @@ class CollectWorkerTest {
     }
 
     @Test
+    fun pinsTheNextRunAfterCollecting() {
+        var pins = 0
+        val collector = CollectionRunner { _, _ -> CollectResult.NothingToDo }
+
+        worker(collector, rescheduler = CollectionRescheduler { pins++ }).doWork()
+
+        assertEquals(1, pins)
+    }
+
+    @Test
+    fun pinsTheNextRunAfterARetry() {
+        var pins = 0
+        val collector = CollectionRunner { _, _ -> CollectResult.NotUnlocked }
+
+        worker(collector, rescheduler = CollectionRescheduler { pins++ }).doWork()
+
+        assertEquals(1, pins)
+    }
+
+    @Test
+    fun pinsTheNextRunWithoutUsageAccess() {
+        var pins = 0
+        val collector = CollectionRunner { _, _ -> error("Collection should not run without access") }
+
+        worker(
+            collector = collector,
+            hasUsageAccess = UsageAccessChecker { false },
+            rescheduler = CollectionRescheduler { pins++ },
+        ).doWork()
+
+        assertEquals(1, pins)
+    }
+
+    @Test
     fun missingUsageAccessPostsAnAlertThatOpensUsageAccessSettings() {
         val notificationManager = context.getSystemService(NotificationManager::class.java)
         notificationManager.cancelAll()
@@ -172,6 +206,7 @@ class CollectWorkerTest {
         weekStartDay: DayOfWeek = DayOfWeek.SATURDAY,
         dailyNotifier: DailyNotificationRunner = DailyNotificationRunner {},
         weeklyNotifier: WeeklyNotificationRunner = WeeklyNotificationRunner {},
+        rescheduler: CollectionRescheduler = CollectionRescheduler {},
     ): CollectWorker =
         TestListenableWorkerBuilder<CollectWorker>(context)
             .setWorkerFactory(object : WorkerFactory() {
@@ -189,6 +224,7 @@ class CollectWorkerTest {
                     weekStartDay,
                     dailyNotifier,
                     weeklyNotifier,
+                    rescheduler,
                 )
             })
             .build()

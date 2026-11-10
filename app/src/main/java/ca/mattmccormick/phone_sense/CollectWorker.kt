@@ -2,6 +2,7 @@ package ca.mattmccormick.phone_sense
 
 import android.content.Context
 import android.util.Log
+import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import ca.mattmccormick.phone_sense.data.SettingsRepository
@@ -10,8 +11,13 @@ import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.UUID
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+
+fun interface CollectionRescheduler {
+    fun pinNextRun()
+}
 
 fun interface CollectionRunner {
     fun collect(today: LocalDate, zone: ZoneId): CollectResult
@@ -43,6 +49,7 @@ class CollectWorker internal constructor(
     private val weekStartDay: DayOfWeek,
     private val dailyNotifier: DailyNotificationRunner,
     private val weeklyNotifier: WeeklyNotificationRunner,
+    private val rescheduler: CollectionRescheduler,
 ) : Worker(appContext, workerParameters) {
     constructor(appContext: Context, workerParameters: WorkerParameters) : this(
         appContext,
@@ -54,9 +61,16 @@ class CollectWorker internal constructor(
         CollectionDependencies.settings(appContext).weekStartDay,
         CollectionDependencies.dailyNotifier(appContext),
         CollectionDependencies.weeklyNotifier(appContext),
+        CollectionDependencies.rescheduler(appContext, workerParameters.id),
     )
 
     override fun doWork(): Result {
+        val result = runCollection()
+        rescheduler.pinNextRun()
+        return result
+    }
+
+    private fun runCollection(): Result {
         if (!usageAccessChecker.hasUsageAccess()) {
             usageAccessNotifier.usageAccessNeeded()
             return Result.success()
@@ -79,6 +93,15 @@ class CollectWorker internal constructor(
 }
 
 internal object CollectionDependencies {
+    fun rescheduler(context: Context, id: UUID) = CollectionRescheduler {
+        pinNextCollection(
+            WorkManager.getInstance(context),
+            id,
+            Clock.systemDefaultZone(),
+            settings(context).notificationTime,
+        )
+    }
+
     fun collector(context: Context): Collector = Collector(
         dao = (context.applicationContext as ScreenBudgetApplication).database.usageDao(),
         source = UsageEventsSource(context),
