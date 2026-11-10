@@ -7,6 +7,7 @@ import ca.mattmccormick.phone_sense.data.Source
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -15,6 +16,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeChartModelTest {
+    private fun day(date: LocalDate, minutes: Int) = DailyUsage(
+        date = date,
+        totalMinutes = minutes,
+        source = Source.COLLECTED,
+        collectedAt = Instant.EPOCH,
+    )
+
+    // Sunday weeks put page 1 of a Tuesday on Sep 6 to Oct 17, the ticket's example.
+    private fun window(today: LocalDate, page: Int) = chartModel(
+        days = emptyList(),
+        goals = emptyList(),
+        weekStartDay = DayOfWeek.SUNDAY,
+        end = chartWindowEnd(today, DayOfWeek.SUNDAY, page),
+        today = today,
+    )
+
     @Test
     fun containsOnePointPerDayForSixWeeksAndLeavesMissingDaysEmpty() {
         val end = LocalDate.of(2026, 10, 3)
@@ -191,16 +208,24 @@ class HomeChartModelTest {
     }
 
     @Test
+    fun theLatestPagesRangeIsNamedRatherThanDated() {
+        val today = LocalDate.of(2026, 10, 20)
+
+        assertEquals("Last 6 weeks", chartRangeLabel(window(today, 0), Locale.ENGLISH))
+    }
+
+    @Test
+    fun aPastPagesRangeRunsFromItsFirstDayToItsLast() {
+        val today = LocalDate.of(2026, 10, 20)
+
+        assertEquals("Sep 6 to Oct 17", chartRangeLabel(window(today, 1), Locale.ENGLISH))
+        assertEquals("Aug 30 to Oct 10", chartRangeLabel(window(today, 2), Locale.ENGLISH))
+    }
+
+    @Test
     fun rejectsANegativePage() {
         assertThrows(IllegalArgumentException::class.java) {
             chartWindowEnd(LocalDate.of(2026, 10, 7), DayOfWeek.MONDAY, -1)
         }
     }
-
-    private fun day(date: LocalDate, minutes: Int) = DailyUsage(
-        date = date,
-        totalMinutes = minutes,
-        source = Source.COLLECTED,
-        collectedAt = Instant.EPOCH,
-    )
 }

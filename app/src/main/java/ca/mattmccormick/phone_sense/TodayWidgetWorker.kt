@@ -41,8 +41,9 @@ class TodayWidgetWorker(context: Context, parameters: WorkerParameters) : Corout
                 val settings = SettingsRepository(context.settingsDataStore).settings.first()
                 val data = loadHomeData(database.usageDao(), database.goalDao(), database.appRuleDao(),
                     settings.weekStartDay, snapshot.date, snapshot)
-                val used = data.chart.dailyMinutes.last()
-                val allowance = todayAllowance(data.goal, data.usedSoFar, used, snapshot.date, settings.weekStartDay)
+                val used = data.week.usedToday
+                val allowance = todayAllowance(data.week.goal, data.week.usedSoFar, used, snapshot.date,
+                    settings.weekStartDay)
                 if (snapshot.date != LocalDate.now(zone)) return@withLock Result.retry()
                 publishTodayWidgets(context, manager, ids, used, allowance)
                 publishChartWidgets(context, manager, chartIds, data.chart)

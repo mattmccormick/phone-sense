@@ -1,13 +1,21 @@
 package ca.mattmccormick.phone_sense
 
 import android.content.Context
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.material3.Text
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -30,6 +38,9 @@ import ca.mattmccormick.phone_sense.export.encodeExport
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicInteger
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -38,13 +49,84 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+// The default 320x470dp window clips the trend header off the bottom, where the pager lives.
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [35], qualifiers = "w411dp-h891dp")
 class HomeScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
     private lateinit var database: UsageDatabase
+
+    private fun insertDay(date: LocalDate, minutes: Int) = database.usageDao().insert(
+        DailyUsage(date, minutes, Source.COLLECTED, Instant.EPOCH),
+        emptyList(),
+    )
+
+    private fun snapshot(
+        date: LocalDate,
+        totalMinutes: Int,
+        excludedMinutes: Int = 0,
+    ): CurrentDayUsageSnapshotResult.Available = CurrentDayUsageSnapshotResult.Available(
+        CurrentDayUsageSnapshot(
+            date = date,
+            capturedAt = date.atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
+            totalMillis = totalMinutes * 60_000L,
+            perPackageMillis = buildMap {
+                put("com.example.used", (totalMinutes - excludedMinutes) * 60_000L)
+                if (excludedMinutes > 0) {
+                    put("com.example.excluded", excludedMinutes * 60_000L)
+                }
+            },
+        ),
+    )
+
+    // Sunday weeks put page 1 of this Tuesday on Sep 6 to Oct 17.
+    private fun pagedHome(today: LocalDate, refreshKey: MutableIntState = mutableIntStateOf(0)) {
+        compose.setContent {
+            HomeRoute(
+                usageDao = database.usageDao(),
+                goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
+                settings = Settings(weekStartDay = DayOfWeek.SUNDAY),
+                today = { today },
+                refreshKey = refreshKey.intValue,
+            )
+        }
+        awaitText("Last 6 weeks")
+    }
+
+    private fun chart() = compose.onNodeWithContentDescription("Six-week distraction chart")
+
+    private fun trendTop() = compose.onNodeWithText("Your trend").fetchSemanticsNode().boundsInWindow.top
+
+    private fun trendLayout(rangeLabel: String) = listOf(
+        trendTop(),
+        compose.onNodeWithText(rangeLabel).fetchSemanticsNode().boundsInWindow.top,
+        compose.onNodeWithContentDescription("Earlier week").fetchSemanticsNode().boundsInWindow.top,
+        compose.onNodeWithText("Counted minutes per day").fetchSemanticsNode().boundsInWindow.top,
+        chart().fetchSemanticsNode().boundsInWindow.top,
+    )
+
+    private fun awaitText(text: String) = compose.waitUntil(timeoutMillis = 5_000) {
+        compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    private fun awaitChartState(text: String) = compose.waitUntil(timeoutMillis = 5_000) {
+        compose.onAllNodesWithContentDescription("Six-week distraction chart")
+            .fetchSemanticsNodes()
+            .any { it.config[SemanticsProperties.StateDescription].contains(text) }
+    }
+
+    private class FakeLifecycleOwner : LifecycleOwner {
+        private val registry = LifecycleRegistry(this)
+
+        override val lifecycle: Lifecycle = registry
+
+        fun resume() {
+            registry.currentState = Lifecycle.State.RESUMED
+        }
+    }
 
     @Before
     fun setUp() {
@@ -70,6 +152,7 @@ class HomeScreenTest {
                     listOf(Goal(LocalDate.of(2026, 9, 28), 45)), DayOfWeek.MONDAY,
                     LocalDate.of(2026, 9, 30), LocalDate.of(2026, 9, 30),
                 ),
+                usedToday = 10,
                 settings = Settings(weekStartDay = DayOfWeek.MONDAY),
                 today = LocalDate.of(2026, 9, 30),
                 onSetGoal = {},
@@ -97,18 +180,9 @@ class HomeScreenTest {
     fun weekProgressUsesTheConfiguredWeekStartDay() {
         val monday = LocalDate.of(2026, 9, 28)
         database.goalDao().insert(Goal(monday, 45))
-        database.usageDao().insert(
-            DailyUsage(monday, 30, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
-        database.usageDao().insert(
-            DailyUsage(monday.plusDays(1), 20, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
-        database.usageDao().insert(
-            DailyUsage(monday.minusDays(1), 200, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
+        insertDay(monday, 30)
+        insertDay(monday.plusDays(1), 20)
+        insertDay(monday.minusDays(1), 200)
 
         compose.setContent {
             HomeRoute(
@@ -120,9 +194,7 @@ class HomeScreenTest {
             )
         }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Daily allowance").fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("Daily allowance")
         compose.onNodeWithText("Daily allowance").assertIsDisplayed()
         compose.onNodeWithText("Usage unavailable").assertIsDisplayed()
         compose.onAllNodesWithText("45")[1].assertIsDisplayed()
@@ -143,9 +215,7 @@ class HomeScreenTest {
                 refreshKey = refreshKey.intValue,
             )
         }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Set goal").fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("Set goal")
         compose.onNodeWithText("Set goal").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertExists()
 
@@ -168,14 +238,11 @@ class HomeScreenTest {
         )
         compose.runOnIdle { refreshKey.intValue++ }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("300")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("300")
         compose.onNodeWithText("Daily allowance").assertIsDisplayed()
         compose.onNodeWithText("240 min over today").assertIsDisplayed()
+        awaitChartState("$today: 300 minutes")
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Six-week distraction chart").assertExists()
     }
 
     @Test
@@ -183,10 +250,7 @@ class HomeScreenTest {
         val today = LocalDate.of(2026, 10, 1)
         val monday = LocalDate.of(2026, 9, 28)
         database.goalDao().insert(Goal(monday, 120))
-        database.usageDao().insert(
-            DailyUsage(monday, 30, Source.COLLECTED, Instant.EPOCH),
-            emptyList(),
-        )
+        insertDay(monday, 30)
         database.usageDao().insert(
             DailyUsage(today, 500, Source.IMPORTED, Instant.EPOCH),
             emptyList(),
@@ -206,12 +270,33 @@ class HomeScreenTest {
             )
         }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("90")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("90")
         compose.onNodeWithText("90").assertIsDisplayed()
         compose.onNodeWithText("No usage data yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun firstCompositionReadsTheCurrentDayOnce() {
+        val today = LocalDate.of(2026, 10, 20)
+        val reads = AtomicInteger()
+        insertDay(today, 10)
+
+        compose.setContent {
+            HomeRoute(
+                usageDao = database.usageDao(),
+                goalDao = database.goalDao(),
+                appRuleDao = database.appRuleDao(),
+                settings = Settings(weekStartDay = DayOfWeek.SUNDAY),
+                today = { today },
+                readCurrentDay = {
+                    reads.incrementAndGet()
+                    snapshot(today, 10)
+                },
+            )
+        }
+        awaitText("Last 6 weeks")
+
+        assertEquals("A resume replayed to a new observer must not load again", 1, reads.get())
     }
 
     @Test
@@ -232,18 +317,12 @@ class HomeScreenTest {
                 lifecycleOwner = lifecycleOwner,
             )
         }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("30")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("30")
 
         currentMinutes = 50
         compose.runOnIdle { lifecycleOwner.resume() }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("50")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("50")
     }
 
     @Test
@@ -268,47 +347,159 @@ class HomeScreenTest {
                 refreshKey = refreshKey.intValue,
             )
         }
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("40")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("40")
 
         currentDate = monday.plusDays(1)
         available = false
         compose.runOnIdle { refreshKey.intValue++ }
 
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Usage unavailable")
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitText("Usage unavailable")
         compose.onNodeWithText("40").assertDoesNotExist()
     }
 
-    private fun snapshot(
-        date: LocalDate,
-        totalMinutes: Int,
-        excludedMinutes: Int = 0,
-    ): CurrentDayUsageSnapshotResult.Available = CurrentDayUsageSnapshotResult.Available(
-        CurrentDayUsageSnapshot(
-            date = date,
-            capturedAt = date.atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
-            totalMillis = totalMinutes * 60_000L,
-            perPackageMillis = buildMap {
-                put("com.example.used", (totalMinutes - excludedMinutes) * 60_000L)
-                if (excludedMinutes > 0) {
-                    put("com.example.excluded", excludedMinutes * 60_000L)
-                }
-            },
-        ),
-    )
+    @Test
+    fun theArrowsMoveTheChartAWeekAtATime() {
+        val today = LocalDate.of(2026, 10, 20)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 7, 1), 20)
 
-    private class FakeLifecycleOwner : LifecycleOwner {
-        private val registry = LifecycleRegistry(this)
+        pagedHome(today)
+        compose.onNodeWithContentDescription("Later week").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Earlier week").performClick()
 
-        override val lifecycle: Lifecycle = registry
+        awaitText("Sep 6 to Oct 17")
+        compose.onNodeWithContentDescription("Later week").assertIsEnabled()
+        compose.onNodeWithContentDescription("Earlier week").performClick()
 
-        fun resume() {
-            registry.currentState = Lifecycle.State.RESUMED
-        }
+        awaitText("Aug 30 to Oct 10")
+        compose.onNodeWithContentDescription("Later week").performClick()
+
+        awaitText("Sep 6 to Oct 17")
+    }
+
+    @Test
+    fun theEarlierArrowStopsAtTheOldestDay() {
+        val today = LocalDate.of(2026, 10, 20)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 9, 7), 20)
+
+        pagedHome(today)
+        compose.onNodeWithContentDescription("Earlier week").assertIsEnabled()
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+
+        awaitText("Sep 6 to Oct 17")
+        compose.onNodeWithContentDescription("Earlier week").assertIsNotEnabled()
+    }
+
+    @Test
+    fun backToThisWeekReturnsFromAPastWindow() {
+        val today = LocalDate.of(2026, 10, 20)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 7, 1), 20)
+
+        pagedHome(today)
+        compose.onNodeWithText("Back to this week").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Aug 30 to Oct 10")
+
+        compose.onNodeWithText("Back to this week").performClick()
+
+        awaitText("Last 6 weeks")
+        compose.onNodeWithText("Back to this week").assertIsNotEnabled()
+    }
+
+    @Test
+    fun aPastWindowKeepsTheTrendHeaderArrowsAndChartWhereTheyAre() {
+        val today = LocalDate.of(2026, 10, 20)
+        (0L..60L).forEach { insertDay(today.minusDays(it), 10) }
+
+        pagedHome(today)
+        val thisWeek = trendLayout("Last 6 weeks")
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+
+        assertEquals(thisWeek, trendLayout("Sep 6 to Oct 17"))
+    }
+
+    @Test
+    fun aWindowWithoutDataKeepsTheChartsHeight() {
+        val today = LocalDate.of(2026, 10, 20)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 7, 1), 20)
+
+        pagedHome(today)
+        val height = chart().fetchSemanticsNode().boundsInWindow.height
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+
+        assertEquals(
+            height,
+            compose.onNodeWithText("No usage data yet").fetchSemanticsNode().boundsInWindow.height,
+        )
+    }
+
+    @Test
+    fun aSwipeOnAWindowWithoutDataPagesBack() {
+        val today = LocalDate.of(2026, 10, 20)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 7, 1), 20)
+
+        pagedHome(today)
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+
+        compose.onNodeWithText("No usage data yet").performTouchInput { swipeLeft() }
+
+        awaitText("Last 6 weeks")
+    }
+
+    @Test
+    fun aHorizontalSwipeOnTheChartPagesByOneWeek() {
+        val today = LocalDate.of(2026, 10, 20)
+        (0L..60L).forEach { insertDay(today.minusDays(it), 10) }
+
+        pagedHome(today)
+        chart().performTouchInput { swipeRight() }
+
+        awaitText("Sep 6 to Oct 17")
+        chart().performTouchInput { swipeLeft() }
+
+        awaitText("Last 6 weeks")
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h700dp")
+    fun aVerticalDragOnTheChartScrollsInsteadOfPaging() {
+        val today = LocalDate.of(2026, 10, 20)
+        (0L..60L).forEach { insertDay(today.minusDays(it), 10) }
+
+        pagedHome(today)
+        val top = trendTop()
+        chart().performTouchInput { swipeUp() }
+        compose.waitForIdle()
+
+        assertTrue("A vertical drag must scroll the screen, top was $top", trendTop() < top)
+        compose.onNodeWithText("Last 6 weeks").assertExists()
+    }
+
+    @Test
+    fun aRefreshRedrawsThePastWindowItIsShowing() {
+        val today = LocalDate.of(2026, 10, 20)
+        val refreshKey = mutableIntStateOf(0)
+        insertDay(today, 10)
+        insertDay(LocalDate.of(2026, 7, 1), 20)
+        insertDay(LocalDate.of(2026, 10, 1), 30)
+
+        pagedHome(today, refreshKey)
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+
+        insertDay(LocalDate.of(2026, 10, 2), 75)
+        compose.runOnIdle { refreshKey.intValue++ }
+
+        awaitChartState("2026-10-02: 75 minutes")
+        compose.onNodeWithText("Sep 6 to Oct 17").assertIsDisplayed()
     }
 }
