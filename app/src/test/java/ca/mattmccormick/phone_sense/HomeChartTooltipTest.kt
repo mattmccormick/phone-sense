@@ -57,7 +57,7 @@ class HomeChartTooltipTest {
     @Test
     fun readsOutADayUnderTheWeeksGoal() {
         assertEquals(
-            listOf("Wed Nov 4", "72 min · 18 under goal", "Goal 90 min/day", "Week average 66 min"),
+            listOf("Wed Nov 4 ›", "72 min · 18 under goal", "Goal 90 min/day", "Week average 66 min"),
             tooltipOn(LocalDate.of(2026, 11, 4)),
         )
     }
@@ -65,7 +65,7 @@ class HomeChartTooltipTest {
     @Test
     fun readsOutADayOverTheWeeksGoal() {
         assertEquals(
-            listOf("Thu Nov 5", "95 min · 5 over goal", "Goal 90 min/day", "Week average 66 min"),
+            listOf("Thu Nov 5 ›", "95 min · 5 over goal", "Goal 90 min/day", "Week average 66 min"),
             tooltipOn(LocalDate.of(2026, 11, 5)),
         )
     }
@@ -73,7 +73,7 @@ class HomeChartTooltipTest {
     @Test
     fun marksTodaysMinutesAsStillCounting() {
         assertEquals(
-            listOf("Sat Nov 7 · so far", "30 min · 60 under goal", "Goal 90 min/day", "Week average 66 min"),
+            listOf("Sat Nov 7 · so far ›", "30 min · 60 under goal", "Goal 90 min/day", "Week average 66 min"),
             tooltipOn(today),
         )
     }
@@ -83,7 +83,7 @@ class HomeChartTooltipTest {
         val lastDayBeforeThisWeek = LocalDate.of(2026, 11, 1)
 
         assertEquals(
-            listOf("Sun Nov 1", "No usage data", "Goal not set", "Week average 40 min"),
+            listOf("Sun Nov 1 ›", "No usage data", "Goal not set", "Week average 40 min"),
             tooltipOn(lastDayBeforeThisWeek, end = lastDayBeforeThisWeek),
         )
     }
@@ -91,7 +91,7 @@ class HomeChartTooltipTest {
     @Test
     fun saysSoForADayWithoutUsage() {
         assertEquals(
-            listOf("Fri Nov 6", "No usage data", "Goal 90 min/day", "Week average 66 min"),
+            listOf("Fri Nov 6 ›", "No usage data", "Goal 90 min/day", "Week average 66 min"),
             tooltipOn(LocalDate.of(2026, 11, 6)),
         )
     }
@@ -99,7 +99,7 @@ class HomeChartTooltipTest {
     @Test
     fun leavesOutTheComparisonForAWeekWithoutAGoal() {
         assertEquals(
-            listOf("Wed Oct 28", "40 min", "Goal not set", "Week average 40 min"),
+            listOf("Wed Oct 28 ›", "40 min", "Goal not set", "Week average 40 min"),
             tooltipOn(LocalDate.of(2026, 10, 28)),
         )
     }
@@ -107,7 +107,7 @@ class HomeChartTooltipTest {
     @Test
     fun saysSoForAWeekWithoutAverageOrGoal() {
         assertEquals(
-            listOf("Mon Oct 19", "No usage data", "Goal not set", "Week average unavailable"),
+            listOf("Mon Oct 19 ›", "No usage data", "Goal not set", "Week average unavailable"),
             tooltipOn(LocalDate.of(2026, 10, 19)),
         )
     }

@@ -62,6 +62,7 @@ fun DayDetailScreen(
     appInfoSource: AppInfoSource,
     modifier: Modifier = Modifier,
     today: LocalDate = LocalDate.now(),
+    initialDate: LocalDate = today,
     refreshKey: Int = 0,
     loadDispatcher: CoroutineDispatcher = Dispatchers.IO,
     readCurrentDay: (ZoneId) -> CurrentDayUsageSnapshotResult = {
@@ -70,7 +71,7 @@ fun DayDetailScreen(
     zone: ZoneId = ZoneId.systemDefault(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
-    var date by remember(today) { mutableStateOf(today) }
+    var date by remember(initialDate) { mutableStateOf(initialDate) }
     var day by remember { mutableStateOf<DayWithApps?>(null) }
     var rules by remember { mutableStateOf(emptyList<AppRule>()) }
     var excludedKeys by remember { mutableStateOf(emptySet<String>()) }

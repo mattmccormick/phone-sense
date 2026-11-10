@@ -75,6 +75,7 @@ internal fun HomeRoute(
     zone: ZoneId = ZoneId.systemDefault(),
     refreshKey: Any? = Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    onOpenDay: (LocalDate) -> Unit = {},
 ) {
     var refresh by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeRefresh?>(null) }
     var refreshVersion by remember(usageDao, goalDao, appRuleDao) { mutableIntStateOf(0) }
@@ -180,6 +181,7 @@ internal fun HomeRoute(
             goalError = goalError,
             modifier = modifier,
             today = loaded.date,
+            onOpenDay = onOpenDay,
         )
     }
 }
@@ -193,6 +195,7 @@ internal fun HomeScreen(
     modifier: Modifier = Modifier,
     savingGoal: Boolean = false,
     goalError: String? = null,
+    onOpenDay: (LocalDate) -> Unit = {},
     today: LocalDate = LocalDate.now(),
     chart: HomeChartModel = chartModel(
         days = emptyList(),
@@ -257,21 +260,25 @@ internal fun HomeScreen(
                     onClick = { showLater() }, fontSize = 24.sp)
             }
             Text("Counted minutes per day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-            HomeChart(chart, Modifier.pointerInput(page, earlierDataAvailable) {
-                val threshold = SWIPE_THRESHOLD.toPx()
-                var dragged = 0f
-                var paged = false
-                detectHorizontalDragGestures(
-                    onDragStart = { dragged = 0f; paged = false },
-                    onHorizontalDrag = { _, delta ->
-                        dragged += delta
-                        if (!paged && abs(dragged) >= threshold) {
-                            paged = true
-                            if (dragged > 0) showEarlier() else showLater()
-                        }
-                    },
-                )
-            })
+            HomeChart(
+                chart,
+                Modifier.pointerInput(page, earlierDataAvailable) {
+                    val threshold = SWIPE_THRESHOLD.toPx()
+                    var dragged = 0f
+                    var paged = false
+                    detectHorizontalDragGestures(
+                        onDragStart = { dragged = 0f; paged = false },
+                        onHorizontalDrag = { _, delta ->
+                            dragged += delta
+                            if (!paged && abs(dragged) >= threshold) {
+                                paged = true
+                                if (dragged > 0) showEarlier() else showLater()
+                            }
+                        },
+                    )
+                },
+                onOpenDay = onOpenDay,
+            )
         }
     }
 }
