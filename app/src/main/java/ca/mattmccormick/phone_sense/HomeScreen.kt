@@ -78,8 +78,8 @@ internal fun HomeRoute(
     onOpenDay: (LocalDate) -> Unit = {},
 ) {
     var refresh by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeRefresh?>(null) }
-    var refreshVersion by remember(usageDao, goalDao, appRuleDao) { mutableIntStateOf(0) }
     var chartPage by remember(usageDao, goalDao, appRuleDao) { mutableStateOf<HomeChartPage?>(null) }
+    var loadedKeys by remember(usageDao, goalDao, appRuleDao) { mutableStateOf(emptyList<Any?>()) }
     var page by remember(usageDao, goalDao, appRuleDao) { mutableIntStateOf(0) }
     var resumeVersion by remember { mutableIntStateOf(0) }
     var savingGoal by remember { mutableStateOf(false) }
@@ -104,53 +104,43 @@ internal fun HomeRoute(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(
-        usageDao,
-        goalDao,
-        appRuleDao,
-        settings.weekStartDay,
-        refreshKey,
-        resumeVersion,
-    ) {
+    val refreshKeys = listOf(usageDao, goalDao, appRuleDao, settings.weekStartDay, refreshKey, resumeVersion)
+
+    LaunchedEffect(refreshKeys, page) {
+        // Keep the week when only the page moved: its goal, usage and snapshot all still hold.
+        val reusable = refresh?.takeIf { refreshKeys == loadedKeys }
         val previousSnapshot = refresh?.snapshot
+        loadedKeys = refreshKeys
         val reader = currentReader
-        val refreshed = withContext(Dispatchers.IO) {
+        val (refreshed, chart) = withContext(Dispatchers.IO) {
             refreshMutex.withLock {
-                val result = reader(zone)
-                val refreshDate = when (result) {
-                    is CurrentDayUsageSnapshotResult.Available -> result.snapshot.date
-                    CurrentDayUsageSnapshotResult.Unavailable -> today()
+                val week = reusable ?: run {
+                    val result = reader(zone)
+                    val refreshDate = when (result) {
+                        is CurrentDayUsageSnapshotResult.Available -> result.snapshot.date
+                        CurrentDayUsageSnapshotResult.Unavailable -> today()
+                    }
+                    val currentSnapshot = when {
+                        result is CurrentDayUsageSnapshotResult.Available -> result.snapshot
+                        previousSnapshot?.date == refreshDate -> previousSnapshot
+                        else -> null
+                    }
+                    HomeRefresh(
+                        date = refreshDate,
+                        snapshot = currentSnapshot,
+                        week = loadHomeWeek(
+                            usageDao, goalDao, appRuleDao, settings.weekStartDay, refreshDate, currentSnapshot,
+                        ),
+                    )
                 }
-                val currentSnapshot = when {
-                    result is CurrentDayUsageSnapshotResult.Available -> result.snapshot
-                    previousSnapshot?.date == refreshDate -> previousSnapshot
-                    else -> null
-                }
-                HomeRefresh(
-                    date = refreshDate,
-                    snapshot = currentSnapshot,
-                    week = loadHomeWeek(
-                        usageDao, goalDao, appRuleDao, settings.weekStartDay, refreshDate, currentSnapshot,
-                    ),
+                week to loadHomeChart(
+                    usageDao, goalDao, appRuleDao, settings.weekStartDay,
+                    chartWindowEnd(week.date, settings.weekStartDay, page), week.date, week.snapshot,
                 )
             }
         }
         refresh = refreshed
-        refreshVersion++
-    }
-
-    // The counter rather than refresh itself: a refresh that leaves the week unchanged still has
-    // to redraw the chart, because an import can rewrite any day the window covers.
-    LaunchedEffect(refreshVersion, page) {
-        val loaded = refresh ?: return@LaunchedEffect
-        chartPage = withContext(Dispatchers.IO) {
-            refreshMutex.withLock {
-                loadHomeChart(
-                    usageDao, goalDao, appRuleDao, settings.weekStartDay,
-                    chartWindowEnd(loaded.date, settings.weekStartDay, page), loaded.date, loaded.snapshot,
-                )
-            }
-        }
+        chartPage = chart
     }
 
     val loaded = refresh
