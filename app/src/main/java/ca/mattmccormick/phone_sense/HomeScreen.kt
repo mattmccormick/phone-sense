@@ -244,8 +244,10 @@ internal fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(chartRangeLabel(chart, locale),
                             style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-                        if (page > 0) {
-                            TextButton(onClick = { onPageChange(0) }) { Text("Back to this week") }
+                        // Disabled rather than absent: appearing would push the chart and the
+                        // arrows down the screen, like the arrows that grey out beside it.
+                        TextButton(onClick = { onPageChange(0) }, enabled = page > 0) {
+                            Text("Back to this week")
                         }
                     }
                 }

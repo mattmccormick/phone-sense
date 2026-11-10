@@ -100,6 +100,14 @@ class HomeScreenTest {
 
     private fun trendTop() = compose.onNodeWithText("Your trend").fetchSemanticsNode().boundsInWindow.top
 
+    private fun trendLayout(rangeLabel: String) = listOf(
+        trendTop(),
+        compose.onNodeWithText(rangeLabel).fetchSemanticsNode().boundsInWindow.top,
+        compose.onNodeWithContentDescription("Earlier week").fetchSemanticsNode().boundsInWindow.top,
+        compose.onNodeWithText("Counted minutes per day").fetchSemanticsNode().boundsInWindow.top,
+        chart().fetchSemanticsNode().boundsInWindow.top,
+    )
+
     private fun awaitText(text: String) = compose.waitUntil(timeoutMillis = 5_000) {
         compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
     }
@@ -390,7 +398,7 @@ class HomeScreenTest {
         insertDay(LocalDate.of(2026, 7, 1), 20)
 
         pagedHome(today)
-        compose.onNodeWithText("Back to this week").assertDoesNotExist()
+        compose.onNodeWithText("Back to this week").assertIsNotEnabled()
         compose.onNodeWithContentDescription("Earlier week").performClick()
         awaitText("Sep 6 to Oct 17")
         compose.onNodeWithContentDescription("Earlier week").performClick()
@@ -399,7 +407,20 @@ class HomeScreenTest {
         compose.onNodeWithText("Back to this week").performClick()
 
         awaitText("Last 6 weeks")
-        compose.onNodeWithText("Back to this week").assertDoesNotExist()
+        compose.onNodeWithText("Back to this week").assertIsNotEnabled()
+    }
+
+    @Test
+    fun aPastWindowKeepsTheTrendHeaderArrowsAndChartWhereTheyAre() {
+        val today = LocalDate.of(2026, 10, 20)
+        (0L..60L).forEach { insertDay(today.minusDays(it), 10) }
+
+        pagedHome(today)
+        val thisWeek = trendLayout("Last 6 weeks")
+        compose.onNodeWithContentDescription("Earlier week").performClick()
+        awaitText("Sep 6 to Oct 17")
+
+        assertEquals(thisWeek, trendLayout("Sep 6 to Oct 17"))
     }
 
     @Test
