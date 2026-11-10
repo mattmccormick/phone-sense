@@ -56,7 +56,9 @@ class CollectWorker internal constructor(
         CollectionDependencies.weeklyNotifier(appContext),
     )
 
-    override fun doWork(): Result {
+    override fun doWork(): Result = runCollection()
+
+    private fun runCollection(): Result {
         if (!usageAccessChecker.hasUsageAccess()) {
             usageAccessNotifier.usageAccessNeeded()
             return Result.success()
